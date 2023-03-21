@@ -1,5 +1,5 @@
 # macai
-macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). You can support project on [Gumroad](https://renset.gumroad.com/l/macai).
+macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). You can download signed binary or support project on [Gumroad](https://renset.gumroad.com/l/macai).
 
 > Please note that macai can currently work only with your API token for ChatGPT. See how you can get your own token here. I consider implementing demo mode so that any interested user can try powerful ChatGPT capabilities even without using tokens.
 
