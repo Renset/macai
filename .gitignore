@@ -1,0 +1,41 @@
+# Xcode
+##
+*.xcodeproj/xcuserdata/
+*.xcscmblueprint
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/
+
+# Swift Package Manager
+##
+.build/
+Packages/
+Package.resolved
+
+# User-specific
+##
+*.moved-aside
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+.DS_Store?
+
+# Build artifacts
+##
+dist/*
+build/
+DerivedData/
+
+# Other common ignore patterns
+##
+*.log
+*.swp
+*.bak
+*~
+*.tmp
+*.o
+*.pyc
+*.pyo
+*.lock
+*.DS_Store
+*.Trash
