@@ -39,3 +39,4 @@ DerivedData/
 *.lock
 *.DS_Store
 *.Trash
+*.xcworkspace/xcuserdata/*/UserInterfaceState.xcuserstate

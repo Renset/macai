@@ -2,8 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>SUPublicEDKey</key>
+	<string>aIC04Ln2gewp3Gt+5PPDqGcidFvETwKM70taT5vAdyQ=</string>
 	<key>SUFeedURL</key>
-	<string></string>
+	<string>https://renset.github.io./macai/appcast.xml</string>
 	<key>SUEnableDownloaderService</key>
 	<true/>
 	<key>SUEnableInstallerLauncherService</key>
