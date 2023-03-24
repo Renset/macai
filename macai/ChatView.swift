@@ -6,39 +6,57 @@
 //
 
 import SwiftUI
+import CoreData
 
-struct Chat: Codable {
-    var id: UUID
-    var messagePreview: Message?
-    var messages: [Message] = []
-    var requestMessages = [["role": "user", "content": ""]]
-    var newChat: Bool = true
-    var temperature: Float64?
-    var top_p: Float64?
-    var behavior: String?
-    var newMessage: String?
+class ChatEntity: NSManagedObject, Identifiable {
+    @NSManaged public var id: UUID
+    @NSManaged public var messages: Set<MessageEntity>
+    @NSManaged public var requestMessages: [[String: String]]
+    @NSManaged public var newChat: Bool
+    @NSManaged public var temperature: Double
+    @NSManaged public var top_p: Double
+    @NSManaged public var behavior: String?
+    @NSManaged public var newMessage: String?
+    @NSManaged public var createdDate: Date
+    @NSManaged public var updatedDate: Date
+    
+    func addToMessages(_ value: MessageEntity) {
+       let items = self.mutableSetValue(forKey: "messages")
+       items.add(value)
+       value.chat = self
+     
+        self.objectWillChange.send()
+    }
+       
+   func removeFromMessages(_ value: MessageEntity) {
+       let items = self.mutableSetValue(forKey: "messages")
+       items.remove(value)
+       value.chat = nil
+   }
 }
 
-struct Message: Codable, Equatable {
-    var id: Int
-    var name: String
-    var body: String
-    var timestamp: Date
-    var own: Bool
-    var waitingForResponse: Bool?
+class MessageEntity: NSManagedObject, Identifiable {
+    @NSManaged public var id: Int64
+    @NSManaged public var name: String
+    @NSManaged public var body: String
+    @NSManaged public var timestamp: Date
+    @NSManaged public var own: Bool
+    @NSManaged public var waitingForResponse: Bool
+    @NSManaged public var chat: ChatEntity?
 }
+
 
 struct MessageCell: View {
-    @Binding var chat: Chat
+    @ObservedObject var chat: ChatEntity
     @State var timestamp: Date
-    @State var message: String
+    @Binding var message: String
     @Binding var isActive: Bool
     
 
 
     
     var body: some View {
-        NavigationLink(destination: ChatView(chat: $chat, message: $chat.newMessage), isActive: $isActive) {
+        NavigationLink(destination: ChatView(chat: chat, message: chat.newMessage), isActive: $isActive) {
             VStack(alignment: .leading) {
                 
                 Text(timestamp, style: .date)
@@ -54,10 +72,9 @@ struct MessageCell: View {
 }
 
 struct ChatView: View {
-    //@State var id: Int = 0 // Chat id
-    @Environment(\.updateAndSaveState) var saveState
-    @Binding var chat: Chat
-    @Binding var message: String?
+    @Environment(\.managedObjectContext) private var viewContext
+    @State var chat: ChatEntity
+    @State var message: String?
     @State private var waitingForResponse = false
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
@@ -80,9 +97,13 @@ struct ChatView: View {
                 ScrollViewReader { scrollView in
                     VStack(spacing: 12) {
                         if chat.messages.count > 0 {
-                            ForEach(0..<chat.messages.count, id: \.self) { i in
-                                ChatBubbleView(message: chat.messages[i].body, index: i, own: chat.messages[i].own, waitingForResponse: chat.messages[i].waitingForResponse)
+                            ForEach(Array(chat.messages.sorted(by: { $0.id < $1.id })), id: \.self) { messageEntity in
+                                ChatBubbleView(message: messageEntity.body, index: Int(messageEntity.id), own: messageEntity.own, waitingForResponse: messageEntity.waitingForResponse).id(Int64(messageEntity.id))
                             }
+                        }
+                        
+                        if (waitingForResponse) {
+                            ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true).id(-1)
                         }
                         
                     }
@@ -90,12 +111,20 @@ struct ChatView: View {
                     // Add a listener to the messages array to listen for changes
                     .onReceive([chat.messages.count].publisher) { newCount in
                         // Add animation block to animate in new message
-                        if newCount > self.messageCount {
+                        if waitingForResponse {
+                            withAnimation {
+                                scrollView.scrollTo(-1)
+                            }
+                        } else if newCount > self.messageCount {
                             self.messageCount = newCount
                             
-                            withAnimation {
-                                print("scrolling to message...")
-                                scrollView.scrollTo($chat.messages.endIndex - 1)
+                            let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
+                            if let lastMessage = sortedMessages.last {
+                                
+                                withAnimation {
+                                    print("scrolling to message...")
+                                    scrollView.scrollTo(lastMessage.id)
+                                }
                             }
                         }
                         
@@ -136,11 +165,19 @@ struct ChatView: View {
     
     func sendMessage() {
         let messageBody = self.message
-        let sendingMessage = Message(
-            id: chat.messages.count + 1, name: "", body: messageBody ?? "", timestamp: Date(), own: true)
         
-        chat.messages.append(sendingMessage)
-        chat.messagePreview = sendingMessage
+        let sendingMessage = MessageEntity(context: viewContext)
+        sendingMessage.id = Int64(chat.messages.count + 1)
+        sendingMessage.name = ""
+        sendingMessage.body = messageBody ?? ""
+        sendingMessage.timestamp = Date()
+        sendingMessage.own = true
+        sendingMessage.waitingForResponse = false
+        sendingMessage.chat = chat
+
+        
+        chat.addToMessages(sendingMessage)
+        try? viewContext.save()
         self.message = ""
         
         // Send message to OpenAI
@@ -168,25 +205,17 @@ struct ChatView: View {
         
         let session = URLSession.shared
         waitingForResponse = true
-        
-        // Display animated pencil icon when typing
-        if self.waitingForResponse {
-            chat.messages.append(Message(id: chat.messages.count + 1, name: "", body: "", timestamp: Date(), own: false, waitingForResponse: true))
-        }
+
         
         let task = session.dataTask(with: request) { data, response, error in
             waitingForResponse = false
             if let error = error {
                 print("Error: \(error)")
-                // remove pencil icon
-                chat.messages.removeLast()
                 return
             }
             
             guard let data = data else {
                 print("No data returned from API")
-                // remove pencil icon
-                chat.messages.removeLast()
                 return
             }
             
@@ -201,21 +230,23 @@ struct ChatView: View {
                        let messageRole = content["role"] as? String,
                        let messageContent = content["content"] as? String
                     {
+                        let receivedMessage = MessageEntity(context: viewContext)
+                        receivedMessage.id = Int64(chat.messages.count + 1)
+                        receivedMessage.name = "ChatGPT"
+                        receivedMessage.body = messageContent.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        receivedMessage.timestamp = Date()
+                        receivedMessage.own = false
+                        receivedMessage.chat = chat
                         
-                        let receivedMessage = Message(
-                            id: chat.messages.count + 1, name: "ChatGPT",
-                            body: messageContent.trimmingCharacters(in: .whitespacesAndNewlines),
-                            timestamp: Date(), own: false)
+                        
                         
                         DispatchQueue.main.async {
-                            chat.messages.removeLast()
-                            chat.messages.append(receivedMessage)
-                            chat.messagePreview = receivedMessage
+                            chat.updatedDate = Date()
+                            chat.addToMessages(receivedMessage)
+                            try? viewContext.save()
                             chat.requestMessages.append(["role": messageRole, "content": messageContent])
                             
-                            // once we got response from server, we have to update chat id so the list is updated, too
-                            chat.id = UUID()
-                            self.saveState?(chat.id, self.message ?? "")
+                            chat.objectWillChange.send()
                             print("Value of choices[\(lastIndex)].message.content: \(messageContent)")
                         }
                         
@@ -223,10 +254,6 @@ struct ChatView: View {
                         
                     }
                 } catch {
-                    DispatchQueue.main.async {
-                        chat.messages.removeLast()
-                        
-                    }
                     print("Error parsing JSON: \(error.localizedDescription)")
                 }
             } else if let error = error {
@@ -236,6 +263,8 @@ struct ChatView: View {
         }
         task.resume()
     }
+    
+    
 }
 
 //struct ChatView_Previews: PreviewProvider {

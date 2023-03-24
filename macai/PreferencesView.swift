@@ -58,7 +58,7 @@ func testAPIToken(model: String, token: String, completion: @escaping (Result<Bo
 struct PreferencesView: View {
     @AppStorage("gptToken") var gptToken: String = ""
     @AppStorage("gptModel") var gptModel: String = "gpt-3.5-turbo"
-    @StateObject private var store = ChatStore()
+    @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @State private var lampColor: Color = .gray
     @State private var previousGptModel: String = ""
     
@@ -164,20 +164,21 @@ struct PreferencesView: View {
                     Text("Export chats history")
                     Spacer()
                     Button("Export to file...") {
-                        ChatStore.load { result in
-                    
+                        
+                        store.loadFromCoreData { result in
+
                             switch result {
-                                
+
                             case .failure(let error):
                                 fatalError(error.localizedDescription)
-                                
+
                             case .success(let chats):
                                 let encoder = JSONEncoder()
                                 encoder.outputFormatting = .prettyPrinted
                                 let data = try! encoder.encode(chats)
                                 // save to user defined location
                                 let savePanel = NSSavePanel()
-                                savePanel.allowedFileTypes = ["json"]
+                                savePanel.allowedContentTypes = [.json]
                                 savePanel.nameFieldStringValue = "chats.json"
                                 savePanel.begin { (result) in
                                     if result == .OK {
@@ -190,32 +191,34 @@ struct PreferencesView: View {
                                 }
 
                             }
-                            
+
                         }
-                        
+
                     }
                 }
                 
-                // Import chats
+//                // Import chats
                 HStack {
                     Text("Import chats history")
                     Spacer()
                     Button("Import from file...") {
                         let openPanel = NSOpenPanel()
-                        openPanel.allowedFileTypes = ["json"]
+                        openPanel.allowedContentTypes = [.json]
                         openPanel.begin { (result) in
                             if result == .OK {
                                 do {
                                     let data = try Data(contentsOf: openPanel.url!)
                                     let decoder = JSONDecoder()
                                     let chats = try decoder.decode([Chat].self, from: data)
-                                    store.chats = chats
-                                    ChatStore.save(chats: chats) { result in
+                                    // remove all current chats from store.chats
+                                    
+                                    store.saveToCoreData(chats: chats) { result in
                                         print("State saved");
                                         if case .failure(let error) = result {
                                             fatalError(error.localizedDescription)
                                         }
                                     }
+                                    
                                 } catch {
                                     print(error)
                                 }

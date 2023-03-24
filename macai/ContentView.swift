@@ -10,6 +10,7 @@ import Combine
 import SwiftUI
 import Foundation
 import AppKit
+import CoreData
 
 extension String {
     func split(usingRegex pattern: String) -> [String] {
@@ -32,28 +33,18 @@ extension String {
     }
 }
 
-
-struct ParentFunctionKey: EnvironmentKey {
-    static let defaultValue: ((UUID, String) -> Void)? = nil
-}
-
-extension EnvironmentValues {
-    var updateAndSaveState: ((UUID, String) -> Void)? {
-        get { self[ParentFunctionKey.self] }
-        set { self[ParentFunctionKey.self] = newValue }
-    }
-}
-
 struct ContentView: View {
-    @Binding var chats: [Chat]
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
-    @State var selection: Set<UUID> = []
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest(entity: ChatEntity.entity(), sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.createdDate, ascending: false)], animation: .default)
+    private var chats: FetchedResults<ChatEntity>
+    //@State var selection: Set<UUID> = []
+    @State var selectedChat: ChatEntity?
     @AppStorage("gptToken") var gptToken = ""
    
     
     @State private var windowRef: NSWindow?
-    let saveAction: () -> Void
     
     let warmColors: [Color] = [.orange, .yellow, .white]
     let coldColors: [Color] = [.blue, .indigo, .cyan]
@@ -63,22 +54,25 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            List(selection: $selection) {
+            List {
                 ForEach(chats, id: \.id) { chat in
                     let isActive = Binding(
-                        get: { selection == [chat.id] },
+                        get: { selectedChat == chat },
                         set: { newValue in
                             if newValue {
-                                selection = [chat.id]
+                                selectedChat = chat
                             }
                         }
                     )
                     
+                    let messagePreview = chat.messages.max(by: { $0.id < $1.id })
+                    let messageTimestamp = messagePreview?.timestamp ?? Date()
+                    let messageBody = messagePreview?.body ?? ""
+                    
                     MessageCell(
-                        chat: $chats[getIndex(for: chat)], timestamp: chat.messagePreview?.timestamp ?? Date(),
-                        message: chat.messagePreview?.body ?? "", isActive: isActive
+                        chat: chats[getIndex(for: chat)], timestamp: messageTimestamp,
+                        message: .constant(messageBody), isActive: isActive // use .consant to pass binding value so it'll be updated in child view
                     )
-                    // Add option to delete chat from context menu
                     .contextMenu {
                         Button(action: {
                             deleteChat(chat)
@@ -185,17 +179,31 @@ struct ContentView: View {
             print("Scene phase changed: \(phase)")
             if phase == .inactive {
                 print("Saving state...")
-                saveAction()
             }
         }
-        .environment(\.updateAndSaveState, saveState)
     }
     
     func newChat() {
-        let newChat = Chat(id: UUID())
-        chats.append(newChat)
-        selection = [newChat.id]
-        print("Saving state...")
+        let uuid = UUID()
+        let newChat = ChatEntity(context: viewContext)
+        newChat.id = uuid
+        newChat.newChat = true
+        newChat.temperature = 0.8
+        newChat.top_p = 1.0
+        newChat.behavior = "default"
+        newChat.newMessage = ""
+        newChat.createdDate = Date()
+        newChat.updatedDate = Date()
+        
+        do {
+            try viewContext.save()
+            selectedChat = newChat
+        } catch {
+            print("Error saving new chat: \(error.localizedDescription)")
+            viewContext.rollback()
+        }
+        
+
         
     }
     
@@ -217,49 +225,43 @@ struct ContentView: View {
         windowRef = w
     }
     
-    private func getIndex(for chat: Chat) -> Int {
+    private func getIndex(for chat: ChatEntity) -> Int {
         if let index = chats.firstIndex(where: { $0.id == chat.id }) {
             return index
         } else {
             fatalError("Chat not found in array")
         }
     }
-    
-    func saveState(chatNewUuid: UUID, newMessage: String) {
-        saveAction()
-        
-        
-        // set newMessage for selected chat
-        if let index = chats.firstIndex(where: { $0.id == chatNewUuid }) {
-            chats[index].newMessage = newMessage
-        }
-        selection = [chatNewUuid]
-    }
 
     // Delete chat from the list and confirm deletion
-    func deleteChat(_ chat: Chat) {
-        if let index = chats.firstIndex(where: { $0.id == chat.id }) {
+    func deleteChat(_ chat: ChatEntity) {
             // if selected chat will be deleted, remove selection
             //if selection == [chat.id] {
                 //selection = []
             //}
 
-            let alert = NSAlert()
-            alert.messageText = "Delete chat?"
-            alert.informativeText = "Are you sure you want to delete this chat?"
-            alert.addButton(withTitle: "Delete")
-            alert.addButton(withTitle: "Cancel")
-            alert.alertStyle = .warning
-            alert.beginSheetModal(for: NSApp.keyWindow!) { response in
-                if response == .alertFirstButtonReturn {
-                    DispatchQueue.main.async {
-                        selection = []
+        let alert = NSAlert()
+        alert.messageText = "Delete chat?"
+        alert.informativeText = "Are you sure you want to delete this chat?"
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+            if response == .alertFirstButtonReturn {
+                selectedChat = nil
+                DispatchQueue.main.async {
+                    viewContext.delete(chat)
+                    do {
+                        try viewContext.save()
+                    } catch {
+                        print("Error deleting chat: \(error.localizedDescription)")
                     }
-                    chats.remove(at: index)
-                    saveAction()
                 }
+
+
             }
         }
+        
         
     }
 }
@@ -301,15 +303,15 @@ struct RotatingIcon: View {
 
 
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockMessage1 = Message(id: 1, name: "User", body: "Hello, how are you?", timestamp: Date(), own: true)
-        let mockMessage2 = Message(id: 2, name: "ChatGPT", body: "I'm doing well, thank you! How can I help you today?", timestamp: Date(), own: false)
-
-        let mockChat = Chat(id: UUID(), messagePreview: mockMessage2, messages: [mockMessage1, mockMessage2], newChat: false)
-        
-        let chats = [mockChat]
-        
-        ContentView(chats: .constant([mockChat]), saveAction: {})
-    }
-}
+//struct ContentView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        let mockMessage1 = Message(id: 1, name: "User", body: "Hello, how are you?", timestamp: Date(), own: true)
+//        let mockMessage2 = Message(id: 2, name: "ChatGPT", body: "I'm doing well, thank you! How can I help you today?", timestamp: Date(), own: false)
+//
+//        let mockChat = Chat(id: UUID(), messagePreview: mockMessage2, messages: [mockMessage1, mockMessage2], newChat: false)
+//
+//        let chats = [mockChat]
+//
+//        ContentView(chats: .constant([mockChat]))
+//    }
+//}

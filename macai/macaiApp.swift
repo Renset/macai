@@ -38,14 +38,33 @@ struct CheckForUpdatesView: View {
     }
 }
 
+class PersistenceController {
+    static let shared = PersistenceController()
+
+    let container: NSPersistentContainer
+
+    init(inMemory: Bool = false) {
+        container = NSPersistentContainer(name: "macaiDataModel")
+        if inMemory {
+            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        }
+        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        })
+    }
+}
+
 @main
 struct macaiApp: App {
     @AppStorage("gptModel") var gptModel: String = "gpt-3.5-turbo"
-    @StateObject private var store = ChatStore()
+    @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) var systemColorScheme
     
     private let updaterController: SPUStandardUpdaterController
+    let persistenceController = PersistenceController.shared
     
     init() {
         // If you want to start the updater manually, pass false to startingUpdater and call .startUpdater() later
@@ -55,32 +74,7 @@ struct macaiApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(chats: $store.chats) {
-                saveState()
-            }
-            .onAppear {
-                ChatStore.load { result in
-                    
-                    switch result {
-                        
-                    case .failure(let error):
-                        print("error")
-                        // Remove data from store
-//                        store.chats = []
-//                        saveState()
-//                        fatalError(error.localizedDescription)
-                        
-                    case .success(let chats):
-                        
-                        store.chats = chats
-                        
-                    }
-                    
-                }
-                
-            }
-
-
+            ContentView().environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
         .commands {
             CommandGroup(after: .appInfo) {
@@ -90,16 +84,8 @@ struct macaiApp: App {
         
         
         Settings {
-            PreferencesView()
+            PreferencesView().environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
     
-    func saveState() {
-        ChatStore.save(chats: store.chats) { result in
-            print("State saved");
-            if case .failure(let error) = result {
-                fatalError(error.localizedDescription)
-            }
-        }
-    }
 }

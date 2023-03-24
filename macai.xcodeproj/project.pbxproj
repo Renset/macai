@@ -24,6 +24,7 @@
 		4A5F64BC29C653BA000403F7 /* MessageInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64BB29C653BA000403F7 /* MessageInputView.swift */; };
 		4A5F64BF29C6603D000403F7 /* OmenTextField in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5F64BE29C6603D000403F7 /* OmenTextField */; };
 		4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */; };
+		4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
 		4A98B1C029CA60ED0064835A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A98B1BF29CA60ED0064835A /* Info.plist */; };
 /* End PBXBuildFile section */
@@ -64,6 +65,7 @@
 		4A5F64B929C64F9D000403F7 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		4A5F64BB29C653BA000403F7 /* MessageInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageInputView.swift; sourceTree = "<group>"; };
 		4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneKitParticlesView.swift; sourceTree = "<group>"; };
+		4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = macaiDataModel.xcdatamodel; sourceTree = "<group>"; };
 		4A98B1BF29CA60ED0064835A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -132,6 +134,7 @@
 				4A5F64BB29C653BA000403F7 /* MessageInputView.swift */,
 				4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */,
 				4A98B1BF29CA60ED0064835A /* Info.plist */,
+				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
 			);
 			path = macai;
 			sourceTree = "<group>";
@@ -311,6 +314,7 @@
 				4A55DCA729C264BC00A3800C /* TableView.swift in Sources */,
 				4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
+				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
 				4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */,
 				4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */,
 			);
@@ -739,6 +743,19 @@
 			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin XCVersionGroup section */
+		4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */,
+			);
+			currentVersion = 4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */;
+			path = macaiDataModel.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 4A399C8D29BC8FEF00E98796 /* Project object */;
 }
