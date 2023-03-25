@@ -10,7 +10,7 @@ import SwiftUI
 struct MessageCell: View {
     @ObservedObject var chat: ChatEntity
     @State var timestamp: Date
-    @Binding var message: String
+    var message: String
     @Binding var isActive: Bool
 
     var body: some View {
@@ -37,7 +37,7 @@ struct MessageCell_Previews: PreviewProvider {
         MessageCell(
             chat: chat,
             timestamp: Date(),
-            message: .constant("Hello, how are you?"),
+            message: "Hello, how are you?",
             isActive: .constant(false)
         )
         .previewLayout(.sizeThatFits)

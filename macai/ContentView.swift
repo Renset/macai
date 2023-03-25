@@ -51,7 +51,7 @@ struct ContentView: View {
                     MessageCell(
                         chat: chats[getIndex(for: chat)],
                         timestamp: messageTimestamp,
-                        message: .constant(messageBody),
+                        message: messageBody,
                         isActive: isActive
                     )
                     .contextMenu {
