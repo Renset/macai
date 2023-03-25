@@ -21,6 +21,7 @@ struct ChatBubbleView: View {
     @State var index: Int
     @State var own: Bool
     @State var waitingForResponse: Bool?
+    @State var error = false
     @State private var isPencilIconVisible = false
     @State private var wobbleAmount = 0.0
     @Environment(\.colorScheme) var colorScheme
@@ -67,6 +68,15 @@ struct ChatBubbleView: View {
                         }
                         // set width
                         .frame(width: 30)
+                    } else if (self.error) {
+                        VStack {
+                            HStack() {
+                                //self.isPencilIconVisible = true
+                                Image(systemName: "exclamationmark.bubble")
+                                    .foregroundColor(.white)
+                                Text("Error getting message from server. Try again?")
+                            }
+                        }
                     } else {
 
                         let elements = parseTableFromString(input: message)
@@ -120,11 +130,11 @@ struct ChatBubbleView: View {
                     }
                     
                 }
-                .foregroundColor(Color(own ? .white : incomingLabelColor))
+                .foregroundColor(error ? Color(.white) : Color(own ? .white : incomingLabelColor))
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color(own ? outgoingBubbleColor : incomingBubbleColor))
+                .background(error ? Color(.red) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
                 .cornerRadius(16)
             
             
@@ -230,9 +240,6 @@ struct ChatBubbleView: View {
                     if rowData.allSatisfy({ $0.allSatisfy({ $0 == "-" || $0 == ":" }) }) {
                         delimiterFound = true
                     } else {
-//                        print(">>>")
-//                        print(rowData)
-                        
                         if firstDataRow {
                             currentHeader = rowData
                             firstDataRow = false
@@ -243,9 +250,6 @@ struct ChatBubbleView: View {
                 } else {
                     let _ = print("second table found")
                     if rowData.allSatisfy({ $0.allSatisfy({ $0 == "-" || $0 == ":" }) }) {
-//                        print(">>>2")
-//                        print(rowData)
-                        
                         elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
                         currentHeader = []
                         currentTableData = []

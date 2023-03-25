@@ -54,6 +54,7 @@ struct ChatView: View {
     @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
     @State var messageCount: Int = 0
     @State private var messageField = ""
+    @State private var lastMessageError = false
 
     let url = URL(string: "https://api.openai.com/v1/chat/completions")
 
@@ -76,13 +77,37 @@ struct ChatView: View {
                                     message: messageEntity.body,
                                     index: Int(messageEntity.id),
                                     own: messageEntity.own,
-                                    waitingForResponse: messageEntity.waitingForResponse
+                                    waitingForResponse: false
                                 ).id(Int64(messageEntity.id))
                             }
                         }
 
                         if waitingForResponse {
                             ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true).id(-1)
+                        } else if lastMessageError {
+                            HStack {
+                                
+                                VStack {
+                                    ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: false, error: true)
+                                    HStack {
+                                        Button(action: {lastMessageError = false}) {
+                                            Text("Ignore")
+                                            Image(systemName: "multiply")
+                                        }
+                                        Button(action: {sendMessage(ignoreMessageInput: true)}) {
+                                            Text("Retry")
+                                            Image(systemName: "arrow.clockwise")
+                                        }
+                                        Spacer()
+                                    }
+                                    
+                                }
+                                .frame(width: 250)
+                                .padding(.bottom, 10)
+                                .id(-1)
+                                Spacer()
+                                
+                            }
                         }
 
                     }
@@ -90,7 +115,7 @@ struct ChatView: View {
                     // Add a listener to the messages array to listen for changes
                     .onReceive([chat.messages.count].publisher) { newCount in
                         // Add animation block to animate in new message
-                        if waitingForResponse {
+                        if waitingForResponse || lastMessageError {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
@@ -143,21 +168,25 @@ struct ChatView: View {
         return dateFormatter.string(from: Date())
     }
 
-    func sendMessage() {
+    func sendMessage(ignoreMessageInput: Bool = false) {
         let messageBody = self.message
+        
+        if (!ignoreMessageInput) {
+            let sendingMessage = MessageEntity(context: viewContext)
+            sendingMessage.id = Int64(chat.messages.count + 1)
+            sendingMessage.name = ""
+            sendingMessage.body = messageBody ?? ""
+            sendingMessage.timestamp = Date()
+            sendingMessage.own = true
+            sendingMessage.waitingForResponse = false
+            sendingMessage.chat = chat
 
-        let sendingMessage = MessageEntity(context: viewContext)
-        sendingMessage.id = Int64(chat.messages.count + 1)
-        sendingMessage.name = ""
-        sendingMessage.body = messageBody ?? ""
-        sendingMessage.timestamp = Date()
-        sendingMessage.own = true
-        sendingMessage.waitingForResponse = false
-        sendingMessage.chat = chat
+            chat.addToMessages(sendingMessage)
+            try? viewContext.save()
+            self.message = ""
+        }
 
-        chat.addToMessages(sendingMessage)
-        try? viewContext.save()
-        self.message = ""
+
 
         // Send message to OpenAI
         var request = URLRequest(url: url!)
@@ -194,11 +223,13 @@ struct ChatView: View {
             waitingForResponse = false
             if let error = error {
                 print("Error: \(error)")
+                lastMessageError = true
                 return
             }
 
             guard let data = data else {
                 print("No data returned from API")
+                lastMessageError = true
                 return
             }
 
@@ -220,6 +251,8 @@ struct ChatView: View {
                         receivedMessage.timestamp = Date()
                         receivedMessage.own = false
                         receivedMessage.chat = chat
+                        
+                        lastMessageError = false
 
                         DispatchQueue.main.async {
                             chat.updatedDate = Date()
@@ -235,10 +268,12 @@ struct ChatView: View {
                 }
                 catch {
                     print("Error parsing JSON: \(error.localizedDescription)")
+                    lastMessageError = true
                 }
             }
             else if let error = error {
                 print("Error fetching data: \(error.localizedDescription)")
+                lastMessageError = true
             }
 
         }
