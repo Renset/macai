@@ -93,28 +93,36 @@ class ChatStore: ObservableObject {
     func saveToCoreData(chats: [Chat], completion: @escaping (Result<Int, Error>) -> Void) {
         do {
             for oldChat in chats {
-                let chatEntity = ChatEntity(context: self.viewContext)
-                chatEntity.id = oldChat.id
-                chatEntity.newChat = oldChat.newChat
-                chatEntity.temperature = oldChat.temperature ?? 0.0
-                chatEntity.top_p = oldChat.top_p ?? 0.0
-                chatEntity.behavior = oldChat.behavior
-                chatEntity.newMessage = oldChat.newMessage
-                chatEntity.createdDate = Date()
-                chatEntity.updatedDate = Date()
-                chatEntity.requestMessages = oldChat.requestMessages
-
-                for oldMessage in oldChat.messages {
-                    let messageEntity = MessageEntity(context: self.viewContext)
-                    messageEntity.id = Int64(oldMessage.id)
-                    messageEntity.name = oldMessage.name
-                    messageEntity.body = oldMessage.body
-                    messageEntity.timestamp = oldMessage.timestamp
-                    messageEntity.own = oldMessage.own
-                    messageEntity.waitingForResponse = oldMessage.waitingForResponse ?? false
-                    messageEntity.chat = chatEntity
-
-                    chatEntity.addToMessages(messageEntity)
+                let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
+                fetchRequest.predicate = NSPredicate(format: "id == %@", oldChat.id as CVarArg)
+                
+                let existingChats = try self.viewContext.fetch(fetchRequest)
+                
+                if existingChats.isEmpty {
+                    
+                    let chatEntity = ChatEntity(context: self.viewContext)
+                    chatEntity.id = oldChat.id
+                    chatEntity.newChat = oldChat.newChat
+                    chatEntity.temperature = oldChat.temperature ?? 0.0
+                    chatEntity.top_p = oldChat.top_p ?? 0.0
+                    chatEntity.behavior = oldChat.behavior
+                    chatEntity.newMessage = oldChat.newMessage
+                    chatEntity.createdDate = Date()
+                    chatEntity.updatedDate = Date()
+                    chatEntity.requestMessages = oldChat.requestMessages
+                    
+                    for oldMessage in oldChat.messages {
+                        let messageEntity = MessageEntity(context: self.viewContext)
+                        messageEntity.id = Int64(oldMessage.id)
+                        messageEntity.name = oldMessage.name
+                        messageEntity.body = oldMessage.body
+                        messageEntity.timestamp = oldMessage.timestamp
+                        messageEntity.own = oldMessage.own
+                        messageEntity.waitingForResponse = oldMessage.waitingForResponse ?? false
+                        messageEntity.chat = chatEntity
+                        
+                        chatEntity.addToMessages(messageEntity)
+                    }
                 }
             }
 
@@ -128,6 +136,22 @@ class ChatStore: ObservableObject {
             DispatchQueue.main.async {
                 completion(.failure(error))
             }
+        }
+    }
+    
+    func deleteAllChats() {
+        let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
+
+        do {
+            let chatEntities = try self.viewContext.fetch(fetchRequest)
+
+            for chat in chatEntities {
+                self.viewContext.delete(chat)
+            }
+
+            try self.viewContext.save()
+        } catch {
+            print("Error deleting all chats: \(error)")
         }
     }
 

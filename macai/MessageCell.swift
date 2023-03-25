@@ -14,7 +14,7 @@ struct MessageCell: View {
     @Binding var isActive: Bool
 
     var body: some View {
-        NavigationLink(destination: ChatView(chat: chat, message: chat.newMessage), isActive: $isActive) {
+        NavigationLink(destination: ChatView(chat: chat), isActive: $isActive) {
             VStack(alignment: .leading) {
 
                 Text(timestamp, style: .date)

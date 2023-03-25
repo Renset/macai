@@ -48,7 +48,6 @@ class MessageEntity: NSManagedObject, Identifiable {
 struct ChatView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State var chat: ChatEntity
-    @State var message: String?
     @State private var waitingForResponse = false
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
@@ -140,16 +139,25 @@ struct ChatView: View {
             // Input field, with multiline support and send button
             HStack {
                 MessageInputView(
-                    text: $message,
+                    text: $chat.newMessage,
                     onEnter: {
-                        if self.message != "" && self.message != " " {
+                        if chat.newMessage != nil && chat.newMessage != " " {
                             self.sendMessage()
-                            DispatchQueue.main.async {
-                                self.message = ""
-                            }
                         }
                     }
                 )
+                .onDisappear(perform: {
+                    try? viewContext.save()
+                })
+                .onAppear(perform: {
+                    // Fix bug with MessageInputView (OmenTextField?) when initial text is not visible until typing
+                    // FIXME: fix the root cause instead
+                    let savedInputMessage = chat.newMessage
+                    chat.newMessage = ""
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        chat.newMessage = savedInputMessage
+                    }
+                })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .multilineTextAlignment(.leading)
                 .lineLimit(nil)
@@ -169,7 +177,7 @@ struct ChatView: View {
     }
 
     func sendMessage(ignoreMessageInput: Bool = false) {
-        let messageBody = self.message
+        let messageBody = chat.newMessage
         
         if (!ignoreMessageInput) {
             let sendingMessage = MessageEntity(context: viewContext)
@@ -183,7 +191,7 @@ struct ChatView: View {
 
             chat.addToMessages(sendingMessage)
             try? viewContext.save()
-            self.message = ""
+            chat.newMessage = ""
         }
 
 

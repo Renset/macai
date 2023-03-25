@@ -210,7 +210,6 @@ struct PreferencesView: View {
                                     let data = try Data(contentsOf: openPanel.url!)
                                     let decoder = JSONDecoder()
                                     let chats = try decoder.decode([Chat].self, from: data)
-                                    // remove all current chats from store.chats
                                     
                                     store.saveToCoreData(chats: chats) { result in
                                         print("State saved");
