@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0929CEFB7F002A139A /* MessageCell.swift */; };
+		4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
 		4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9A29BC8FEF00E98796 /* ContentView.swift */; };
 		4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399C9C29BC8FF100E98796 /* Assets.xcassets */; };
@@ -47,6 +49,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4A1F0A0929CEFB7F002A139A /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
+		4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreen.swift; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A399C9829BC8FEF00E98796 /* macaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiApp.swift; sourceTree = "<group>"; };
 		4A399C9A29BC8FEF00E98796 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -135,6 +139,8 @@
 				4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */,
 				4A98B1BF29CA60ED0064835A /* Info.plist */,
 				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
+				4A1F0A0929CEFB7F002A139A /* MessageCell.swift */,
+				4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */,
 			);
 			path = macai;
 			sourceTree = "<group>";
@@ -307,11 +313,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */,
 				4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */,
 				4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */,
 				4A5F64BC29C653BA000403F7 /* MessageInputView.swift in Sources */,
 				4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */,
 				4A55DCA729C264BC00A3800C /* TableView.swift in Sources */,
+				4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */,
 				4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
 				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
@@ -479,7 +487,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.0.6;
+				CURRENT_PROJECT_VERSION = 1.0.7;
 				DEVELOPMENT_ASSET_PATHS = "\"macai/Preview Content\"";
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -500,7 +508,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.7;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -522,7 +530,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.0.6;
+				CURRENT_PROJECT_VERSION = 1.0.7;
 				DEVELOPMENT_ASSET_PATHS = "\"macai/Preview Content\"";
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -543,7 +551,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.7;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";

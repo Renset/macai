@@ -5,8 +5,8 @@
 //  Created by Renat Notfullin on 18.03.2023.
 //
 
-import SwiftUI
 import OmenTextField
+import SwiftUI
 
 struct MessageInputView: View {
     @Binding var text: String?
@@ -14,53 +14,45 @@ struct MessageInputView: View {
     @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
     @State var isFocused: Focus?
     @State var tempText = ""
-    
+
     enum Focus {
         case focused, notFocused
     }
 
     var body: some View {
 
-            ScrollView(.vertical) {
-                VStack {
-                    OmenTextField(
-                        "Type your message here",
-                        text: $text.unwrapped(or: ""),
-                        isFocused: $isFocused.equalTo(.focused),
-                        returnKeyType: frontReturnKeyType,
-                        onCommit: {
-                            onEnter()
-                        }
-                    )
-                    
-
-                }
-                .padding(8)
-                .onAppear {
-                    // update text if the $text is not empty
-//                    print(">>>")
-//                    print($text)
-                    tempText = text ?? ""
-                    text = ""
-
-                    DispatchQueue.main.async {
-                        text = tempText
+        ScrollView(.vertical) {
+            VStack {
+                OmenTextField(
+                    "Type your message here",
+                    text: $text.unwrapped(or: ""),
+                    isFocused: $isFocused.equalTo(.focused),
+                    returnKeyType: frontReturnKeyType,
+                    onCommit: {
+                        onEnter()
                     }
-                    isFocused = .focused
-                    
-                }
-                
+                )
+
             }
-            .frame(height: 60)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isFocused == .focused ? Color.blue : Color.gray.opacity(0.5), lineWidth: isFocused == .focused ? 4 : 2)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            )
-            .onTapGesture {
+            .padding(8)
+            .onAppear {
                 isFocused = .focused
             }
-            
+
+        }
+        .frame(height: 60)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    isFocused == .focused ? Color.blue : Color.gray.opacity(0.5),
+                    lineWidth: isFocused == .focused ? 4 : 2
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        )
+        .onTapGesture {
+            isFocused = .focused
+        }
+
     }
 }
 
@@ -71,7 +63,8 @@ extension Binding {
         } set: {
             if $0 {
                 wrappedValue = value
-            } else if wrappedValue == value {
+            }
+            else if wrappedValue == value {
                 wrappedValue = nil
             }
         }
@@ -92,4 +85,3 @@ struct MessageInputView_Previews: PreviewProvider {
         MessageInputView(text: .constant("Some input message"), onEnter: {})
     }
 }
-

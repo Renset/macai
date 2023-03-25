@@ -5,8 +5,8 @@
 //  Created by Renat Notfullin on 18.03.2023.
 //
 
-import SwiftUI
 import CoreData
+import SwiftUI
 
 class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var id: UUID
@@ -19,20 +19,20 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var newMessage: String?
     @NSManaged public var createdDate: Date
     @NSManaged public var updatedDate: Date
-    
+
     func addToMessages(_ value: MessageEntity) {
-       let items = self.mutableSetValue(forKey: "messages")
-       items.add(value)
-       value.chat = self
-     
+        let items = self.mutableSetValue(forKey: "messages")
+        items.add(value)
+        value.chat = self
+
         self.objectWillChange.send()
     }
-       
-   func removeFromMessages(_ value: MessageEntity) {
-       let items = self.mutableSetValue(forKey: "messages")
-       items.remove(value)
-       value.chat = nil
-   }
+
+    func removeFromMessages(_ value: MessageEntity) {
+        let items = self.mutableSetValue(forKey: "messages")
+        items.remove(value)
+        value.chat = nil
+    }
 }
 
 class MessageEntity: NSManagedObject, Identifiable {
@@ -45,32 +45,6 @@ class MessageEntity: NSManagedObject, Identifiable {
     @NSManaged public var chat: ChatEntity?
 }
 
-
-struct MessageCell: View {
-    @ObservedObject var chat: ChatEntity
-    @State var timestamp: Date
-    @Binding var message: String
-    @Binding var isActive: Bool
-    
-
-
-    
-    var body: some View {
-        NavigationLink(destination: ChatView(chat: chat, message: chat.newMessage), isActive: $isActive) {
-            VStack(alignment: .leading) {
-                
-                Text(timestamp, style: .date)
-                    .font(.caption)
-                
-                // Show truncated message
-                Text(message)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-        }
-    }
-}
-
 struct ChatView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State var chat: ChatEntity
@@ -80,17 +54,17 @@ struct ChatView: View {
     @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
     @State var messageCount: Int = 0
     @State private var messageField = ""
-    
+
     let url = URL(string: "https://api.openai.com/v1/chat/completions")
-    
-#if os(macOS)
-    var backgroundColor = Color(NSColor.controlBackgroundColor)
-#else
-    var backgroundColor = Color(UIColor.systemBackground)
-#endif
-    
+
+    #if os(macOS)
+        var backgroundColor = Color(NSColor.controlBackgroundColor)
+    #else
+        var backgroundColor = Color(UIColor.systemBackground)
+    #endif
+
     var body: some View {
-        
+
         VStack(spacing: 0) {
             ScrollView {
                 // Add the new scroll view reader as a child to the scrollview
@@ -98,14 +72,19 @@ struct ChatView: View {
                     VStack(spacing: 12) {
                         if chat.messages.count > 0 {
                             ForEach(Array(chat.messages.sorted(by: { $0.id < $1.id })), id: \.self) { messageEntity in
-                                ChatBubbleView(message: messageEntity.body, index: Int(messageEntity.id), own: messageEntity.own, waitingForResponse: messageEntity.waitingForResponse).id(Int64(messageEntity.id))
+                                ChatBubbleView(
+                                    message: messageEntity.body,
+                                    index: Int(messageEntity.id),
+                                    own: messageEntity.own,
+                                    waitingForResponse: messageEntity.waitingForResponse
+                                ).id(Int64(messageEntity.id))
                             }
                         }
-                        
-                        if (waitingForResponse) {
+
+                        if waitingForResponse {
                             ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true).id(-1)
                         }
-                        
+
                     }
                     .padding()
                     // Add a listener to the messages array to listen for changes
@@ -115,57 +94,58 @@ struct ChatView: View {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
-                        } else if newCount > self.messageCount {
+                        }
+                        else if newCount > self.messageCount {
                             self.messageCount = newCount
-                            
+
                             let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
                             if let lastMessage = sortedMessages.last {
-                                
+
                                 withAnimation {
                                     print("scrolling to message...")
                                     scrollView.scrollTo(lastMessage.id)
                                 }
                             }
                         }
-                        
+
                     }
                 }
             }
-            
+
             // Input field, with multiline support and send button
             HStack {
-
-                MessageInputView(text: $message, onEnter: {
-                    if self.message != "" && self.message != " " {
-                        self.sendMessage()
-                        DispatchQueue.main.async {
-                            self.message = ""
+                MessageInputView(
+                    text: $message,
+                    onEnter: {
+                        if self.message != "" && self.message != " " {
+                            self.sendMessage()
+                            DispatchQueue.main.async {
+                                self.message = ""
+                            }
                         }
                     }
-                })
+                )
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .multilineTextAlignment(.leading)
                 .lineLimit(nil)
                 .padding()
             }
 
-            
-            
         }
         .background(backgroundColor)
         .navigationTitle("ChatGPT")
         //        .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     func getCurrentFormattedDate() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         return dateFormatter.string(from: Date())
     }
-    
+
     func sendMessage() {
         let messageBody = self.message
-        
+
         let sendingMessage = MessageEntity(context: viewContext)
         sendingMessage.id = Int64(chat.messages.count + 1)
         sendingMessage.name = ""
@@ -175,60 +155,63 @@ struct ChatView: View {
         sendingMessage.waitingForResponse = false
         sendingMessage.chat = chat
 
-        
         chat.addToMessages(sendingMessage)
         try? viewContext.save()
         self.message = ""
-        
+
         // Send message to OpenAI
         var request = URLRequest(url: url!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         if chat.newChat {
-            chat.requestMessages = [["role": "system", "content": "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.\nKnowledge cutoff: 2021-09-01\nCurrent date: \(getCurrentFormattedDate())"]]
+            chat.requestMessages = [
+                [
+                    "role": "system",
+                    "content":
+                        "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.\nKnowledge cutoff: 2021-09-01\nCurrent date: \(getCurrentFormattedDate())",
+                ]
+            ]
             chat.newChat = false
         }
-        
+
         chat.requestMessages.append(["role": "user", "content": messageBody ?? ""])
-        
-        
+
         let jsonDict: [String: Any] = [
             "model": gptModel,
-            "messages": chat.requestMessages
+            "messages": chat.requestMessages,
         ]
-        
+
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
-        
+
         print(String(data: request.httpBody!, encoding: .utf8))
-        
+
         let session = URLSession.shared
         waitingForResponse = true
 
-        
         let task = session.dataTask(with: request) { data, response, error in
             waitingForResponse = false
             if let error = error {
                 print("Error: \(error)")
                 return
             }
-            
+
             guard let data = data else {
                 print("No data returned from API")
                 return
             }
-            
+
             if let responseString = String(data: data, encoding: .utf8) {
                 print("Response: \(responseString)")
                 do {
                     let json = try JSONSerialization.jsonObject(with: data, options: [])
                     if let dict = json as? [String: Any],
-                       let choices = dict["choices"] as? [[String: Any]],
-                       let lastIndex = choices.indices.last,
-                       let content = choices[lastIndex]["message"] as? [String: Any],
-                       let messageRole = content["role"] as? String,
-                       let messageContent = content["content"] as? String
+                        let choices = dict["choices"] as? [[String: Any]],
+                        let lastIndex = choices.indices.last,
+                        let content = choices[lastIndex]["message"] as? [String: Any],
+                        let messageRole = content["role"] as? String,
+                        let messageContent = content["content"] as? String
                     {
                         let receivedMessage = MessageEntity(context: viewContext)
                         receivedMessage.id = Int64(chat.messages.count + 1)
@@ -237,34 +220,31 @@ struct ChatView: View {
                         receivedMessage.timestamp = Date()
                         receivedMessage.own = false
                         receivedMessage.chat = chat
-                        
-                        
-                        
+
                         DispatchQueue.main.async {
                             chat.updatedDate = Date()
                             chat.addToMessages(receivedMessage)
                             try? viewContext.save()
                             chat.requestMessages.append(["role": messageRole, "content": messageContent])
-                            
+
                             chat.objectWillChange.send()
                             print("Value of choices[\(lastIndex)].message.content: \(messageContent)")
                         }
-                        
-                        
-                        
+
                     }
-                } catch {
+                }
+                catch {
                     print("Error parsing JSON: \(error.localizedDescription)")
                 }
-            } else if let error = error {
+            }
+            else if let error = error {
                 print("Error fetching data: \(error.localizedDescription)")
             }
-            
+
         }
         task.resume()
     }
-    
-    
+
 }
 
 //struct ChatView_Previews: PreviewProvider {
