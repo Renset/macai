@@ -19,7 +19,7 @@ macai (macOS AI) is a simple yet powerful native macOS client made with the help
 Currently, macai is on very early development stage, the code has bad structure and not documented. Also, this is my very first Swift project.
 
 ## Contributions
-Contributions are welcomed. Check [macai project page](https://github.com/users/Renset/projects/1) to see planned features/bug fixes.
+Contributions are welcomed. Take a look at [macai project page](https://github.com/users/Renset/projects/1) and [Issues page](https://github.com/Renset/macai/issues) to see planned features/bug fixes, or create a new one.
 
 ## Screenshots
 
