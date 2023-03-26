@@ -7,25 +7,42 @@ macai (macOS AI) is a simple yet powerful native macOS client made with the help
 
 ## Features
 - Organized with chats, where each chat has its own context
+- System-level light/dark theme
 - Backup and restore your chats
 - Select one of the supported models (including GPT-4)
 - Formatted code blocks
 - Formatted tables, copy as JSON
 - With tabs, one can easily work with multiple chats simultaneously
+- Data is stored using CoreData
 
 ## Project status
 Currently, macai is on very early development stage, the code has bad structure and not documented. Also, this is my very first Swift project.
 
+## Contributions
+Contributions are welcomed. Check [macai project page](https://github.com/users/Renset/projects/1) to see planned features/bug fixes.
+
 ## Screenshots
 
 ### Starting screen
-<img width="528" alt="Starting screen" src="https://user-images.githubusercontent.com/364877/226735873-0be736b2-088b-463b-b1d6-88353c24ad52.png">
+<img width="530" alt="CleanShot 2023-03-26 at 22 20 23@2x" src="https://user-images.githubusercontent.com/364877/227799360-cdc8fca9-575f-4fb0-b2db-ae099a684b2d.png">
 
-### Code formatting
-<img width="522" alt="CleanShot 2023-03-16 at 22 22 07@2x" src="https://user-images.githubusercontent.com/364877/226736010-210729b3-377c-49c6-93ca-f7889d3cecdc.png">
+### Code formatting and syntax highlighting
+
+<img width="530" alt="An application window with formatted code block" src="https://user-images.githubusercontent.com/364877/227799434-0c32cf06-368d-4200-a152-b2c8e168ce3c.png">
+
+<img width="530" alt="An application window with formatted code block" src="https://user-images.githubusercontent.com/364877/227799385-a28baa0e-3826-40bb-88a0-9cd67e22dc2b.png">
 
 ### Table formatting
-<img width="490" alt="CleanShot 2023-03-16 at 17 46 49@2x" src="https://user-images.githubusercontent.com/364877/226736119-e9dd3cee-de5a-4928-8128-5376cf920a2b.png">
+
+<img width="530" alt="An application window with formatted table" src="https://user-images.githubusercontent.com/364877/227799609-71ff2932-faa2-4473-b8cf-c619d70aa04f.png">
+
+### Error handling
+
+<img width="530" alt="Error handling" src="https://user-images.githubusercontent.com/364877/227799628-3dc5a738-5cad-458c-b7fb-3c29536448e2.png">
+
+### Settings
+
+<img width="350" alt="Error handling" src="https://user-images.githubusercontent.com/364877/227799740-d6953bcd-8c4a-4283-87c7-a7b6e01572e0.png" />
 
 ## License
 AGPL-3.0, subject to change
