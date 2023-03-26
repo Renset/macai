@@ -54,6 +54,7 @@ struct ChatView: View {
     @State var messageCount: Int = 0
     @State private var messageField = ""
     @State private var lastMessageError = false
+    @State private var newMessage: String?
 
     let url = URL(string: "https://api.openai.com/v1/chat/completions")
 
@@ -139,23 +140,31 @@ struct ChatView: View {
             // Input field, with multiline support and send button
             HStack {
                 MessageInputView(
-                    text: $chat.newMessage,
+                    text: $newMessage,
                     onEnter: {
-                        if chat.newMessage != nil && chat.newMessage != " " {
+                        if newMessage != nil && newMessage != " " {
                             self.sendMessage()
                         }
                     }
                 )
                 .onDisappear(perform: {
-                    try? viewContext.save()
+                    chat.newMessage = newMessage
+                    DispatchQueue.main.async {
+                        do {
+                            try viewContext.save()
+                        } catch {
+                            print("[Warning] Couldn't save newMessage to store")
+                        }
+                        
+                    }
                 })
                 .onAppear(perform: {
                     // Fix bug with MessageInputView (OmenTextField?) when initial text is not visible until typing
                     // FIXME: fix the root cause instead
                     let savedInputMessage = chat.newMessage
-                    chat.newMessage = ""
+                    newMessage = ""
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        chat.newMessage = savedInputMessage
+                        newMessage = savedInputMessage
                     }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -177,7 +186,7 @@ struct ChatView: View {
     }
 
     func sendMessage(ignoreMessageInput: Bool = false) {
-        let messageBody = chat.newMessage
+        let messageBody = newMessage
         
         if (!ignoreMessageInput) {
             let sendingMessage = MessageEntity(context: viewContext)
@@ -191,7 +200,7 @@ struct ChatView: View {
 
             chat.addToMessages(sendingMessage)
             try? viewContext.save()
-            chat.newMessage = ""
+            newMessage = ""
         }
 
 
