@@ -3,6 +3,8 @@ macai (macOS AI) is a simple yet powerful native macOS client made with the help
 
 > Please note that macai can currently work only with your API token for ChatGPT. See how you can get your own token [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key). I consider implementing demo mode so that any interested user can try powerful ChatGPT capabilities even without using tokens.
 
+<a href="https://www.buymeacoffee.com/renset" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;"></a>
+
 ## Features
 - Organized with chats, where each chat has its own context
 - Backup and restore your chats
