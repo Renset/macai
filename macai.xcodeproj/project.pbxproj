@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0929CEFB7F002A139A /* MessageCell.swift */; };
 		4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */; };
+		4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A270AE229D4AFE7005E063C /* AppConstants.swift */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
 		4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9A29BC8FEF00E98796 /* ContentView.swift */; };
 		4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399C9C29BC8FF100E98796 /* Assets.xcassets */; };
@@ -51,6 +52,7 @@
 /* Begin PBXFileReference section */
 		4A1F0A0929CEFB7F002A139A /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
 		4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreen.swift; sourceTree = "<group>"; };
+		4A270AE229D4AFE7005E063C /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A399C9829BC8FEF00E98796 /* macaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiApp.swift; sourceTree = "<group>"; };
 		4A399C9A29BC8FEF00E98796 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
 				4A1F0A0929CEFB7F002A139A /* MessageCell.swift */,
 				4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */,
+				4A270AE229D4AFE7005E063C /* AppConstants.swift */,
 			);
 			path = macai;
 			sourceTree = "<group>";
@@ -323,6 +326,7 @@
 				4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
 				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
+				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
 				4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */,
 				4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */,
 			);

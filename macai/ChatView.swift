@@ -56,7 +56,7 @@ struct ChatView: View {
     @State private var lastMessageError = false
     @State private var newMessage: String?
 
-    let url = URL(string: "https://api.openai.com/v1/chat/completions")
+    let url = URL(string: AppConstants.apiUrlChatCompletions)
 
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
@@ -232,8 +232,10 @@ struct ChatView: View {
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
 
         print(String(data: request.httpBody!, encoding: .utf8))
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = AppConstants.requestTimeout
 
-        let session = URLSession.shared
+        let session = URLSession(configuration: configuration)
         waitingForResponse = true
 
         let task = session.dataTask(with: request) { data, response, error in
