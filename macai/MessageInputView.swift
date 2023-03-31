@@ -9,7 +9,7 @@ import OmenTextField
 import SwiftUI
 
 struct MessageInputView: View {
-    @Binding var text: String?
+    @Binding var text: String
     var onEnter: () -> Void
     @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
     @State var isFocused: Focus?
@@ -25,7 +25,7 @@ struct MessageInputView: View {
             VStack {
                 OmenTextField(
                     "Type your message here",
-                    text: $text.unwrapped(or: ""),
+                    text: $text,
                     isFocused: $isFocused.equalTo(.focused),
                     returnKeyType: frontReturnKeyType,
                     onCommit: {
@@ -35,12 +35,19 @@ struct MessageInputView: View {
 
             }
             .padding(8)
-            .onAppear {
+            .onAppear(perform: {
+                // Fix bug with MessageInputView (OmenTextField?) when initial text is not visible until typing
+                // FIXME: fix the root cause instead
                 isFocused = .focused
-            }
+                let savedInputMessage = text
+                text = ""
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    text = savedInputMessage
+                }
+            })
 
         }
-        .frame(height: 60)
+        .frame(height: 64)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(

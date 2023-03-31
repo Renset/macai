@@ -27,6 +27,7 @@
 		4A5F64BC29C653BA000403F7 /* MessageInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64BB29C653BA000403F7 /* MessageInputView.swift */; };
 		4A5F64BF29C6603D000403F7 /* OmenTextField in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5F64BE29C6603D000403F7 /* OmenTextField */; };
 		4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */; };
+		4A61B12A29D4DCFE00289D03 /* ChatOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A61B12929D4DCFE00289D03 /* ChatOptions.swift */; };
 		4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
 		4A98B1C029CA60ED0064835A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A98B1BF29CA60ED0064835A /* Info.plist */; };
@@ -71,6 +72,7 @@
 		4A5F64B929C64F9D000403F7 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		4A5F64BB29C653BA000403F7 /* MessageInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageInputView.swift; sourceTree = "<group>"; };
 		4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneKitParticlesView.swift; sourceTree = "<group>"; };
+		4A61B12929D4DCFE00289D03 /* ChatOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatOptions.swift; sourceTree = "<group>"; };
 		4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = macaiDataModel.xcdatamodel; sourceTree = "<group>"; };
 		4A98B1BF29CA60ED0064835A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -144,6 +146,7 @@
 				4A1F0A0929CEFB7F002A139A /* MessageCell.swift */,
 				4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */,
 				4A270AE229D4AFE7005E063C /* AppConstants.swift */,
+				4A61B12929D4DCFE00289D03 /* ChatOptions.swift */,
 			);
 			path = macai;
 			sourceTree = "<group>";
@@ -328,6 +331,7 @@
 				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
 				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
 				4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */,
+				4A61B12A29D4DCFE00289D03 /* ChatOptions.swift in Sources */,
 				4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

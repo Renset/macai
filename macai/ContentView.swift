@@ -23,6 +23,8 @@ struct ContentView: View {
     private var chats: FetchedResults<ChatEntity>
     @State var selectedChat: ChatEntity?
     @AppStorage("gptToken") var gptToken = ""
+    @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
+    @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
 
     @State private var windowRef: NSWindow?
 
@@ -30,6 +32,21 @@ struct ContentView: View {
     let coldColors: [Color] = [.blue, .indigo, .cyan]
     let warmShadowColor: Color = Color(red: 0.9, green: 0.5, blue: 0.0)
     let particleCount = 50
+    
+    #warning("Temporary func updateOldChatsOnceIssue7() for migrating old chats - remove after a while, when users have been updated. Issue link: https://github.com/Renset/macai/issues/7")
+    private func updateOldChatsOnceIssue7() {
+        for chat in chats {
+            chat.extractSystemMessageAndModel()
+        }
+        
+        // Save the changes to CoreData
+        do {
+            try viewContext.save()
+        } catch {
+            let nsError = error as NSError
+            print("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
+    }
 
     var body: some View {
         NavigationView {
@@ -75,6 +92,7 @@ struct ContentView: View {
             )
 
         }
+        .onAppear(perform: updateOldChatsOnceIssue7)
         .navigationTitle("Chats")
         .toolbar {
             // Button to hide and display Navigation List
@@ -128,6 +146,8 @@ struct ContentView: View {
         newChat.newMessage = ""
         newChat.createdDate = Date()
         newChat.updatedDate = Date()
+        newChat.systemMessage = systemMessage
+        newChat.gptModel = gptModel
 
         do {
             try viewContext.save()
@@ -139,6 +159,7 @@ struct ContentView: View {
         }
 
     }
+    
 
     func openPreferencesView() {
 

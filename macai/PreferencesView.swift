@@ -5,12 +5,17 @@
 //  Created by Renat Notfullin on 11.03.2023.
 //
 
-import SwiftUI
 import Foundation
+import SwiftUI
 
 struct APIRequestData: Codable {
     let model: String
-    let messages = [["role": "system", "content": "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.\nKnowledge cutoff: 2021-09-01\n"]]
+    let messages = [
+        [
+            "role": "system",
+            "content": "You are ChatGPT, a large language model trained by OpenAI. Say hi, if you're there",
+        ]
+    ]
 
 }
 
@@ -25,28 +30,32 @@ func testAPIToken(model: String, token: String, completion: @escaping (Result<Bo
     do {
         let jsonData = try JSONEncoder().encode(requestData)
         request.httpBody = jsonData
-    } catch {
+    }
+    catch {
         completion(.failure(error))
         return
     }
 
     let task = URLSession.shared.dataTask(with: request) { data, response, error in
-//        if let responseString = String(data: data ?? Data(), encoding: .utf8) {
-//            print("Response: \(responseString)")
-//        }
-        
+        //        if let responseString = String(data: data ?? Data(), encoding: .utf8) {
+        //            print("Response: \(responseString)")
+        //        }
+
         if let error = error {
             print("Error: \(error)")
             completion(.failure(error))
             return
         }
-        
+
         guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            completion(.failure(NSError(domain: "", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])))
+            (200...299).contains(httpResponse.statusCode)
+        else {
+            completion(
+                .failure(NSError(domain: "", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
+            )
             return
         }
-        
+
         // Add any additional response handling logic here
         // For this example, we'll just return true for a successful response
         completion(.success(true))
@@ -54,27 +63,61 @@ func testAPIToken(model: String, token: String, completion: @escaping (Result<Bo
     task.resume()
 }
 
-
 struct PreferencesView: View {
     @AppStorage("gptToken") var gptToken: String = ""
-    @AppStorage("gptModel") var gptModel: String = "gpt-3.5-turbo"
+    @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
+    @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @State private var lampColor: Color = .gray
     @State private var previousGptModel: String = ""
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            
+
             VStack {
                 // ChatGPT settings section
-                
+
                 HStack {
                     Text("ChatGPT Settings")
                         .font(.headline)
-                    
+
                     Spacer()
                 }
-                
+
+                HStack {
+                    Text("ChatGPT API Token:")
+                        .frame(width: 160, alignment: .leading)
+
+                    TextField("Paste your token here", text: $gptToken)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                }
+
+                // display link to get token at the right side
+                HStack {
+                    Spacer()
+                    Link(
+                        "How to get API Token",
+                        destination: URL(
+                            string: "https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key"
+                        )!
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+                .padding(.bottom)
+
+            }
+
+            Spacer()
+
+            VStack {
+                HStack {
+                    Text("New chat settings")
+                        .font(.headline)
+                    Spacer()
+                }
+
                 HStack {
                     // Select model
                     Text("ChatGPT Model:")
@@ -88,41 +131,44 @@ struct PreferencesView: View {
                         Text("gpt-4-32k").tag("gpt-4-32k")
                         Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
                     }.onReceive([self.gptModel].publisher.first()) { newValue in
-                        if (self.gptModel != self.previousGptModel) {
+                        if self.gptModel != self.previousGptModel {
                             self.lampColor = .gray
                             self.previousGptModel = self.gptModel
                         }
-                        
                     }
                 }
 
-                
                 HStack {
                     Spacer()
-                    Link("Models reference", destination: URL(string: "https://platform.openai.com/docs/models/overview")!)
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
+                    Link(
+                        "Models reference",
+                        destination: URL(string: "https://platform.openai.com/docs/models/overview")!
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
                 }
-                //
-                HStack {
-                    Text("ChatGPT API Token:")
-                        .frame(width: 160, alignment: .leading)
-                    
-                    TextField("Paste your token here", text: $gptToken)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+                .padding(.bottom)
+
+                VStack {
+                    HStack {
+                        Text("ChatGPT system message:")
+                            .frame(alignment: .leading)
+                        Spacer()
+                    }
+
+                    MessageInputView(
+                        text: $systemMessage,
+                        onEnter: {
+
+                        }
+                    )
+
                 }
-                
-                // display link to get token at the right side
-                HStack {
-                    Spacer()
-                    Link("How to get API Token", destination: URL(string: "https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key")!)
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                }
+
                 // Test API token
                 HStack {
-                    Button("Test API Token and model") {
+                    Spacer()
+                    Button(action: {
                         lampColor = .yellow
                         testAPIToken(model: gptModel, token: gptToken) { result in
                             DispatchQueue.main.async {
@@ -134,23 +180,27 @@ struct PreferencesView: View {
                                 }
                             }
                         }
+                    }) {
+                        Text("Test API token and model")
+                        Circle()
+                            .fill(lampColor)
+                            .frame(width: 8, height: 8)
+                            .shadow(color: lampColor, radius: 4, x: 0, y: 0)
+                            .padding(.leading, 6)
+                            .padding(.top, 2)
                     }
-                    Circle()
-                        .fill(lampColor)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: lampColor, radius: 4, x: 0, y: 0)
-                    
-                    Spacer()
+
                 }
                 .padding(.top, 16)
+
             }
-            
+
             Spacer()
-            
+
             VStack {
-                
+
                 Spacer()
-                
+
                 // Backup & Restore section
                 HStack {
                     Text("Backup & Restore")
@@ -158,13 +208,12 @@ struct PreferencesView: View {
                     Spacer()
                 }
 
-
                 // Export chats
                 HStack {
                     Text("Export chats history")
                     Spacer()
                     Button("Export to file...") {
-                        
+
                         store.loadFromCoreData { result in
 
                             switch result {
@@ -184,7 +233,8 @@ struct PreferencesView: View {
                                     if result == .OK {
                                         do {
                                             try data.write(to: savePanel.url!)
-                                        } catch {
+                                        }
+                                        catch {
                                             print(error)
                                         }
                                     }
@@ -196,8 +246,8 @@ struct PreferencesView: View {
 
                     }
                 }
-                
-//                // Import chats
+
+                //                // Import chats
                 HStack {
                     Text("Import chats history")
                     Spacer()
@@ -210,15 +260,16 @@ struct PreferencesView: View {
                                     let data = try Data(contentsOf: openPanel.url!)
                                     let decoder = JSONDecoder()
                                     let chats = try decoder.decode([Chat].self, from: data)
-                                    
+
                                     store.saveToCoreData(chats: chats) { result in
-                                        print("State saved");
+                                        print("State saved")
                                         if case .failure(let error) = result {
                                             fatalError(error.localizedDescription)
                                         }
                                     }
-                                    
-                                } catch {
+
+                                }
+                                catch {
                                     print(error)
                                 }
                             }
@@ -232,10 +283,10 @@ struct PreferencesView: View {
                 }
                 .padding(.top, 20)
             }
-            
+
         }
         .padding(16)
-        .frame(width: 420, height: 380)
+        .frame(width: 420, height: 520)
     }
-    
+
 }

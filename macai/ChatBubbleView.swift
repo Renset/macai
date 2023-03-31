@@ -17,11 +17,12 @@ enum TableElement {
 }
 
 struct ChatBubbleView: View {
-    @State var message: String = ""
+    var message: String = ""
     @State var index: Int
     @State var own: Bool
     @State var waitingForResponse: Bool?
     @State var error = false
+    @State var initialMessage = false
     @State private var isPencilIconVisible = false
     @State private var wobbleAmount = 0.0
     @Environment(\.colorScheme) var colorScheme
@@ -47,7 +48,7 @@ struct ChatBubbleView: View {
             if own {
                 Spacer()
             }
-
+            
                 VStack(alignment: .leading) {
                     if (self.waitingForResponse ?? false) {
                         
@@ -134,10 +135,10 @@ struct ChatBubbleView: View {
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(error ? Color(.red) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
+                .background(error ? Color(.red) : initialMessage ? Color(.systemPurple) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
                 .cornerRadius(16)
-            
-            
+                
+
             
             if !own {
                 Spacer()

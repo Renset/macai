@@ -19,7 +19,9 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var newMessage: String?
     @NSManaged public var createdDate: Date
     @NSManaged public var updatedDate: Date
-
+    @NSManaged public var systemMessage: String
+    @NSManaged public var gptModel: String
+    
     func addToMessages(_ value: MessageEntity) {
         let items = self.mutableSetValue(forKey: "messages")
         items.add(value)
@@ -32,6 +34,28 @@ class ChatEntity: NSManagedObject, Identifiable {
         let items = self.mutableSetValue(forKey: "messages")
         items.remove(value)
         value.chat = nil
+    }
+    
+    #warning("Temporary code for migrating old chats - remove after a while, when users have been updated. Issue link: https://github.com/Renset/macai/issues/7")
+    @AppStorage("gptModel") var gptModelFromSettings = AppConstants.chatGptDefaultModel
+    @AppStorage("systemMessage") var systemMessageFromSettings = AppConstants.chatGptSystemMessage
+    @NSManaged public var systemMessageProcessed: Bool
+    func extractSystemMessageAndModel() {
+        guard !systemMessageProcessed && systemMessage == nil else {
+            return
+        }
+        
+        if let systemMessageIndex = requestMessages.firstIndex(where: { $0["role"] == "system" }) {
+            systemMessage = requestMessages[systemMessageIndex]["content"]?.replacingOccurrences(of: "\n", with: " ") ?? systemMessageFromSettings
+        } else {
+            systemMessage = systemMessageFromSettings // Set your default value here
+        }
+        
+        if (gptModel == nil) {
+            gptModel = gptModelFromSettings
+        }
+        
+        systemMessageProcessed = true
     }
 }
 
@@ -50,11 +74,12 @@ struct ChatView: View {
     @State var chat: ChatEntity
     @State private var waitingForResponse = false
     @AppStorage("gptToken") var gptToken = ""
-    @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
+    @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
     @State var messageCount: Int = 0
     @State private var messageField = ""
     @State private var lastMessageError = false
-    @State private var newMessage: String?
+    @State private var newMessage: String = ""
+    @State private var editSystemMessage: Bool = false
 
     let url = URL(string: AppConstants.apiUrlChatCompletions)
 
@@ -64,6 +89,7 @@ struct ChatView: View {
         var backgroundColor = Color(UIColor.systemBackground)
     #endif
 
+
     var body: some View {
 
         VStack(spacing: 0) {
@@ -71,6 +97,22 @@ struct ChatView: View {
                 // Add the new scroll view reader as a child to the scrollview
                 ScrollViewReader { scrollView in
                     VStack(spacing: 12) {
+                        ChatBubbleView(message: "Model: \(chat.gptModel)", index: 0, own: true, waitingForResponse: false, initialMessage: true)
+                        ChatBubbleView(message: "System message: \(chat.systemMessage)", index: 0, own: true, waitingForResponse: false, initialMessage: true)
+                        
+                        if (chat.messages.count == 0 && !editSystemMessage) {
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    newMessage = chat.systemMessage
+                                    editSystemMessage = true
+                                }) {
+                                    Text("Change")
+                                }
+                            }
+                        }
+
+                        
                         if chat.messages.count > 0 {
                             ForEach(Array(chat.messages.sorted(by: { $0.id < $1.id })), id: \.self) { messageEntity in
                                 ChatBubbleView(
@@ -119,8 +161,7 @@ struct ChatView: View {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
-                        }
-                        else if newCount > self.messageCount {
+                        } else if newCount > self.messageCount {
                             self.messageCount = newCount
 
                             let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
@@ -142,47 +183,32 @@ struct ChatView: View {
                 MessageInputView(
                     text: $newMessage,
                     onEnter: {
-                        if newMessage != nil && newMessage != " " {
+                        if editSystemMessage {
+                            chat.systemMessage = newMessage
+                            newMessage = ""
+                            editSystemMessage = false
+                            saveInCoreData()
+                        } else if newMessage != nil && newMessage != " " {
                             self.sendMessage()
                         }
                     }
                 )
                 .onDisappear(perform: {
                     chat.newMessage = newMessage
-                    DispatchQueue.main.async {
-                        do {
-                            try viewContext.save()
-                        } catch {
-                            print("[Warning] Couldn't save newMessage to store")
-                        }
-                        
-                    }
+                    saveInCoreData()
                 })
-                .onAppear(perform: {
-                    // Fix bug with MessageInputView (OmenTextField?) when initial text is not visible until typing
-                    // FIXME: fix the root cause instead
-                    let savedInputMessage = chat.newMessage
-                    newMessage = ""
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        newMessage = savedInputMessage
-                    }
-                })
+
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .multilineTextAlignment(.leading)
                 .lineLimit(nil)
-                .padding()
+                .padding(.horizontal)
+                .padding(.bottom)
             }
 
         }
         .background(backgroundColor)
         .navigationTitle("ChatGPT")
         //        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    func getCurrentFormattedDate() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        return dateFormatter.string(from: Date())
     }
 
     func sendMessage(ignoreMessageInput: Bool = false) {
@@ -199,7 +225,7 @@ struct ChatView: View {
             sendingMessage.chat = chat
 
             chat.addToMessages(sendingMessage)
-            try? viewContext.save()
+            saveInCoreData()
             newMessage = ""
         }
 
@@ -215,8 +241,7 @@ struct ChatView: View {
             chat.requestMessages = [
                 [
                     "role": "system",
-                    "content":
-                        "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.\nKnowledge cutoff: 2021-09-01\nCurrent date: \(getCurrentFormattedDate())",
+                    "content": chat.systemMessage,
                 ]
             ]
             chat.newChat = false
@@ -297,6 +322,16 @@ struct ChatView: View {
 
         }
         task.resume()
+    }
+    
+    func saveInCoreData() {
+        DispatchQueue.main.async {
+            do {
+                try viewContext.save()
+            } catch {
+                print("[Warning] Couldn't save to store")
+            }
+        }
     }
 
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Sparkle
+import UserNotifications
 
 // This view model class publishes when new updates can be checked by the user
 final class CheckForUpdatesViewModel: ObservableObject {
@@ -58,7 +59,7 @@ class PersistenceController {
 
 @main
 struct macaiApp: App {
-    @AppStorage("gptModel") var gptModel: String = "gpt-3.5-turbo"
+    @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) var systemColorScheme
