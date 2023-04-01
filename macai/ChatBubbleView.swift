@@ -135,10 +135,8 @@ struct ChatBubbleView: View {
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(error ? Color(.red) : initialMessage ? Color(.systemPurple) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
+                .background(error ? Color(.red) : initialMessage ? Color(.systemGray) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
                 .cornerRadius(16)
-                
-
             
             if !own {
                 Spacer()

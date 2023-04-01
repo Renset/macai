@@ -23,7 +23,7 @@ struct ContentView: View {
     private var chats: FetchedResults<ChatEntity>
     @State var selectedChat: ChatEntity?
     @AppStorage("gptToken") var gptToken = ""
-    @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
+    @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
 
     @State private var windowRef: NSWindow?

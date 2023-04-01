@@ -6,7 +6,7 @@
         <attribute name="gptModel" optional="YES" attributeType="String" defaultValueString="gpt-3.5-turbo"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO" preserveAfterDeletion="YES"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="newMessage" optional="YES" attributeType="String"/>
+        <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="requestMessages" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName" customClassName=".Array"/>
         <attribute name="systemMessage" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="systemMessageProcessed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

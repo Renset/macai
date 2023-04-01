@@ -162,6 +162,17 @@ struct PreferencesView: View {
 
                         }
                     )
+                    
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            systemMessage = AppConstants.chatGptSystemMessage
+                        }) {
+                            Text("Reset to default")
+                        }
+                    }
+                    
+                    
 
                 }
 
@@ -286,7 +297,7 @@ struct PreferencesView: View {
 
         }
         .padding(16)
-        .frame(width: 420, height: 520)
+        .frame(width: 420, height: 560)
     }
 
 }

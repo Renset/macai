@@ -106,7 +106,7 @@ class ChatStore: ObservableObject {
                     chatEntity.temperature = oldChat.temperature ?? 0.0
                     chatEntity.top_p = oldChat.top_p ?? 0.0
                     chatEntity.behavior = oldChat.behavior
-                    chatEntity.newMessage = oldChat.newMessage
+                    chatEntity.newMessage = oldChat.newMessage ?? ""
                     chatEntity.createdDate = Date()
                     chatEntity.updatedDate = Date()
                     chatEntity.requestMessages = oldChat.requestMessages

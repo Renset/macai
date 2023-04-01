@@ -188,14 +188,20 @@ struct ChatView: View {
                             newMessage = ""
                             editSystemMessage = false
                             saveInCoreData()
-                        } else if newMessage != nil && newMessage != " " {
+                        } else if newMessage != "" && newMessage != " " {
                             self.sendMessage()
                         }
-                    }
+                    },
+                    isFocused: .focused
                 )
                 .onDisappear(perform: {
                     chat.newMessage = newMessage
                     saveInCoreData()
+                })
+                .onAppear(perform: {
+                    DispatchQueue.main.async {
+                        newMessage = chat.newMessage ?? ""
+                    }
                 })
 
                 .textFieldStyle(RoundedBorderTextFieldStyle())

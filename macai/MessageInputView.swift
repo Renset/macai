@@ -35,16 +35,6 @@ struct MessageInputView: View {
 
             }
             .padding(8)
-            .onAppear(perform: {
-                // Fix bug with MessageInputView (OmenTextField?) when initial text is not visible until typing
-                // FIXME: fix the root cause instead
-                isFocused = .focused
-                let savedInputMessage = text
-                text = ""
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    text = savedInputMessage
-                }
-            })
 
         }
         .frame(height: 64)
@@ -75,15 +65,6 @@ extension Binding {
                 wrappedValue = nil
             }
         }
-    }
-}
-
-extension Binding where Value == String? {
-    func unwrapped(or defaultValue: String) -> Binding<String> {
-        Binding<String>(
-            get: { self.wrappedValue ?? defaultValue },
-            set: { self.wrappedValue = $0 }
-        )
     }
 }
 
