@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="22D68" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21754" systemVersion="22D68" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="ChatEntity" representedClassName=".ChatEntity" syncable="YES">
         <attribute name="behavior" optional="YES" attributeType="String"/>
         <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="gptModel" optional="YES" attributeType="String" defaultValueString="gpt-3.5-turbo"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO" preserveAfterDeletion="YES"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="newMessage" optional="YES" attributeType="String"/>
+        <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="requestMessages" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName" customClassName=".Array"/>
+        <attribute name="systemMessage" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="systemMessageProcessed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="temperature" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="top_p" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>

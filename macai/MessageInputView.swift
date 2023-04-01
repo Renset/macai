@@ -9,7 +9,7 @@ import OmenTextField
 import SwiftUI
 
 struct MessageInputView: View {
-    @Binding var text: String?
+    @Binding var text: String
     var onEnter: () -> Void
     @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
     @State var isFocused: Focus?
@@ -25,7 +25,7 @@ struct MessageInputView: View {
             VStack {
                 OmenTextField(
                     "Type your message here",
-                    text: $text.unwrapped(or: ""),
+                    text: $text,
                     isFocused: $isFocused.equalTo(.focused),
                     returnKeyType: frontReturnKeyType,
                     onCommit: {
@@ -35,12 +35,9 @@ struct MessageInputView: View {
 
             }
             .padding(8)
-            .onAppear {
-                isFocused = .focused
-            }
 
         }
-        .frame(height: 60)
+        .frame(height: 64)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(
@@ -68,15 +65,6 @@ extension Binding {
                 wrappedValue = nil
             }
         }
-    }
-}
-
-extension Binding where Value == String? {
-    func unwrapped(or defaultValue: String) -> Binding<String> {
-        Binding<String>(
-            get: { self.wrappedValue ?? defaultValue },
-            set: { self.wrappedValue = $0 }
-        )
     }
 }
 
