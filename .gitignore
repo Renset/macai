@@ -3,7 +3,6 @@
 *.xcodeproj/xcuserdata/
 *.xcscmblueprint
 *.xcworkspace/xcuserdata/
-*.xcworkspace/xcshareddata/
 
 # Swift Package Manager
 ##
