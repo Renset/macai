@@ -8,7 +8,6 @@
 ##
 .build/
 Packages/
-Package.resolved
 
 # User-specific
 ##

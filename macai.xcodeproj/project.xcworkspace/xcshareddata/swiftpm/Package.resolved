@@ -1,0 +1,41 @@
+{
+  "pins" : [
+    {
+      "identity" : "attributedtext",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/gonzalezreal/AttributedText",
+      "state" : {
+        "revision" : "0e811cb14de367bbd58a94d12259687e5ee08bea",
+        "version" : "1.0.1"
+      }
+    },
+    {
+      "identity" : "highlightr",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/raspu/Highlightr",
+      "state" : {
+        "branch" : "master",
+        "revision" : "628094ff81cdebf31da6bf31be4b4ac758c127a4"
+      }
+    },
+    {
+      "identity" : "omentextfield",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Renset/OmenTextField",
+      "state" : {
+        "branch" : "main",
+        "revision" : "f83a162377b65542d4748d375837ab17604b3097"
+      }
+    },
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle",
+      "state" : {
+        "revision" : "631846cc829f0f0cae327df9bafe5a32b7ddadce",
+        "version" : "2.4.0"
+      }
+    }
+  ],
+  "version" : 2
+}
