@@ -75,6 +75,7 @@ struct ChatView: View {
     @State private var waitingForResponse = false
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
+    @AppStorage("chatContext") var chatContext = AppConstants.chatGptContextSize
     @State var messageCount: Int = 0
     @State private var messageField = ""
     @State private var lastMessageError = false
@@ -257,11 +258,11 @@ struct ChatView: View {
 
         let jsonDict: [String: Any] = [
             "model": gptModel,
-            "messages": chat.requestMessages,
+            "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(Int(chatContext) > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : Int(chatContext)))
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
-
+        print(chatContext)
         print(String(data: request.httpBody!, encoding: .utf8))
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = AppConstants.requestTimeout

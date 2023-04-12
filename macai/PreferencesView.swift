@@ -67,237 +67,259 @@ struct PreferencesView: View {
     @AppStorage("gptToken") var gptToken: String = ""
     @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
+    @AppStorage("chatContext") var chatContext: Double = AppConstants.chatGptContextSize
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @State private var lampColor: Color = .gray
     @State private var previousGptModel: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-
-            VStack {
-                // ChatGPT settings section
-
-                HStack {
-                    Text("ChatGPT Settings")
-                        .font(.headline)
-
-                    Spacer()
-                }
-
-                HStack {
-                    Text("ChatGPT API Token:")
-                        .frame(width: 160, alignment: .leading)
-
-                    TextField("Paste your token here", text: $gptToken)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                }
-
-                // display link to get token at the right side
-                HStack {
-                    Spacer()
-                    Link(
-                        "How to get API Token",
-                        destination: URL(
-                            string: "https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key"
-                        )!
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-                }
-                .padding(.bottom)
-
-            }
-
-            Spacer()
-
-            VStack {
-                HStack {
-                    Text("New chat settings")
-                        .font(.headline)
-                    Spacer()
-                }
-
-                HStack {
-                    // Select model
-                    Text("ChatGPT Model:")
-                        .frame(width: 160, alignment: .leading)
-
-                    Picker("", selection: $gptModel) {
-                        Text("gpt-3.5-turbo").tag("gpt-3.5-turbo")
-                        Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
-                        Text("gpt-4").tag("gpt-4")
-                        Text("gpt-4-0314").tag("gpt-4-0314")
-                        Text("gpt-4-32k").tag("gpt-4-32k")
-                        Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
-                    }.onReceive([self.gptModel].publisher.first()) { newValue in
-                        if self.gptModel != self.previousGptModel {
-                            self.lampColor = .gray
-                            self.previousGptModel = self.gptModel
-                        }
-                    }
-                }
-
-                HStack {
-                    Spacer()
-                    Link(
-                        "Models reference",
-                        destination: URL(string: "https://platform.openai.com/docs/models/overview")!
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-                }
-                .padding(.bottom)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
 
                 VStack {
+                    // ChatGPT settings section
+
                     HStack {
-                        Text("ChatGPT system message:")
-                            .frame(alignment: .leading)
+                        Text("ChatGPT Settings")
+                            .font(.headline)
+
                         Spacer()
                     }
 
-                    MessageInputView(
-                        text: $systemMessage,
-                        onEnter: {
+                    HStack {
+                        Text("ChatGPT API Token:")
+                            .frame(width: 160, alignment: .leading)
 
-                        }
-                    )
-                    
+                        TextField("Paste your token here", text: $gptToken)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    }
+
+                    // display link to get token at the right side
                     HStack {
                         Spacer()
-                        Button(action: {
-                            systemMessage = AppConstants.chatGptSystemMessage
-                        }) {
-                            Text("Reset to default")
-                        }
+                        Link(
+                            "How to get API Token",
+                            destination: URL(
+                                string: "https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key"
+                            )!
+                        )
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
                     }
-                    
-                    
+                    .padding(.bottom)
 
                 }
-
-                // Test API token
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        lampColor = .yellow
-                        testAPIToken(model: gptModel, token: gptToken) { result in
-                            DispatchQueue.main.async {
-                                switch result {
-                                case .success(_):
-                                    lampColor = .green
-                                case .failure(_):
-                                    lampColor = .red
-                                }
-                            }
-                        }
-                    }) {
-                        Text("Test API token and model")
-                        Circle()
-                            .fill(lampColor)
-                            .frame(width: 8, height: 8)
-                            .shadow(color: lampColor, radius: 4, x: 0, y: 0)
-                            .padding(.leading, 6)
-                            .padding(.top, 2)
-                    }
-
-                }
-                .padding(.top, 16)
-
-            }
-
-            Spacer()
-
-            VStack {
 
                 Spacer()
 
-                // Backup & Restore section
-                HStack {
-                    Text("Backup & Restore")
-                        .font(.headline)
-                    Spacer()
+                VStack {
+                    HStack {
+                        Text("New chat settings")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    HStack {
+                        // Select model
+                        Text("ChatGPT Model:")
+                            .frame(width: 160, alignment: .leading)
+
+                        Picker("", selection: $gptModel) {
+                            Text("gpt-3.5-turbo").tag("gpt-3.5-turbo")
+                            Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
+                            Text("gpt-4").tag("gpt-4")
+                            Text("gpt-4-0314").tag("gpt-4-0314")
+                            Text("gpt-4-32k").tag("gpt-4-32k")
+                            Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
+                        }.onReceive([self.gptModel].publisher.first()) { newValue in
+                            if self.gptModel != self.previousGptModel {
+                                self.lampColor = .gray
+                                self.previousGptModel = self.gptModel
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Spacer()
+                        Link(
+                            "Models reference",
+                            destination: URL(string: "https://platform.openai.com/docs/models/overview")!
+                        )
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                    }
+                    .padding(.bottom)
+
+                    VStack {
+                        HStack {
+                            Text("ChatGPT system message:")
+                                .frame(alignment: .leading)
+                            Spacer()
+                        }
+
+                        MessageInputView(
+                            text: $systemMessage,
+                            onEnter: {
+
+                            }
+                        )
+                        
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                systemMessage = AppConstants.chatGptSystemMessage
+                            }) {
+                                Text("Reset to default")
+                            }
+                        }
+                        
+                        
+
+                    }
+
+                    // Test API token
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            lampColor = .yellow
+                            testAPIToken(model: gptModel, token: gptToken) { result in
+                                DispatchQueue.main.async {
+                                    switch result {
+                                    case .success(_):
+                                        lampColor = .green
+                                    case .failure(_):
+                                        lampColor = .red
+                                    }
+                                }
+                            }
+                        }) {
+                            Text("Test model and API token")
+                            Circle()
+                                .fill(lampColor)
+                                .frame(width: 8, height: 8)
+                                .shadow(color: lampColor, radius: 4, x: 0, y: 0)
+                                .padding(.leading, 6)
+                                .padding(.top, 2)
+                        }
+
+                    }
+                    .padding(.top, 16)
+                    
+                    
+                    HStack {
+                        Slider(
+                            value: $chatContext,
+                            in: 0...10,
+                            step: 1
+                        ) {
+                            Text("Context size")
+                        } minimumValueLabel: {
+                            Text("0")
+                        } maximumValueLabel: {
+                            Text("100")
+                        }
+                        
+                        Text(String(format: ("%.0f"), chatContext))
+                    }
+                    .padding(.top, 16)
+
                 }
 
-                // Export chats
-                HStack {
-                    Text("Export chats history")
+                Spacer()
+
+                VStack {
+
                     Spacer()
-                    Button("Export to file...") {
 
-                        store.loadFromCoreData { result in
+                    // Backup & Restore section
+                    HStack {
+                        Text("Backup & Restore")
+                            .font(.headline)
+                        Spacer()
+                    }
 
-                            switch result {
+                    // Export chats
+                    HStack {
+                        Text("Export chats history")
+                        Spacer()
+                        Button("Export to file...") {
 
-                            case .failure(let error):
-                                fatalError(error.localizedDescription)
+                            store.loadFromCoreData { result in
 
-                            case .success(let chats):
-                                let encoder = JSONEncoder()
-                                encoder.outputFormatting = .prettyPrinted
-                                let data = try! encoder.encode(chats)
-                                // save to user defined location
-                                let savePanel = NSSavePanel()
-                                savePanel.allowedContentTypes = [.json]
-                                savePanel.nameFieldStringValue = "chats.json"
-                                savePanel.begin { (result) in
-                                    if result == .OK {
-                                        do {
-                                            try data.write(to: savePanel.url!)
-                                        }
-                                        catch {
-                                            print(error)
+                                switch result {
+
+                                case .failure(let error):
+                                    fatalError(error.localizedDescription)
+
+                                case .success(let chats):
+                                    let encoder = JSONEncoder()
+                                    encoder.outputFormatting = .prettyPrinted
+                                    let data = try! encoder.encode(chats)
+                                    // save to user defined location
+                                    let savePanel = NSSavePanel()
+                                    savePanel.allowedContentTypes = [.json]
+                                    savePanel.nameFieldStringValue = "chats.json"
+                                    savePanel.begin { (result) in
+                                        if result == .OK {
+                                            do {
+                                                try data.write(to: savePanel.url!)
+                                            }
+                                            catch {
+                                                print(error)
+                                            }
                                         }
                                     }
+
                                 }
 
                             }
 
                         }
-
                     }
-                }
 
-                //                // Import chats
-                HStack {
-                    Text("Import chats history")
-                    Spacer()
-                    Button("Import from file...") {
-                        let openPanel = NSOpenPanel()
-                        openPanel.allowedContentTypes = [.json]
-                        openPanel.begin { (result) in
-                            if result == .OK {
-                                do {
-                                    let data = try Data(contentsOf: openPanel.url!)
-                                    let decoder = JSONDecoder()
-                                    let chats = try decoder.decode([Chat].self, from: data)
+                    //                // Import chats
+                    HStack {
+                        Text("Import chats history")
+                        Spacer()
+                        Button("Import from file...") {
+                            let openPanel = NSOpenPanel()
+                            openPanel.allowedContentTypes = [.json]
+                            openPanel.begin { (result) in
+                                if result == .OK {
+                                    do {
+                                        let data = try Data(contentsOf: openPanel.url!)
+                                        let decoder = JSONDecoder()
+                                        let chats = try decoder.decode([Chat].self, from: data)
 
-                                    store.saveToCoreData(chats: chats) { result in
-                                        print("State saved")
-                                        if case .failure(let error) = result {
-                                            fatalError(error.localizedDescription)
+                                        store.saveToCoreData(chats: chats) { result in
+                                            print("State saved")
+                                            if case .failure(let error) = result {
+                                                fatalError(error.localizedDescription)
+                                            }
                                         }
-                                    }
 
-                                }
-                                catch {
-                                    print(error)
+                                    }
+                                    catch {
+                                        print(error)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                HStack {
-                    Text("More options for fine-tuning the ChatGPT settings are coming soon, stay tuned!")
-                        .font(.system(size: 8))
+                    HStack {
+                        Text("More options for fine-tuning the ChatGPT settings are coming soon, stay tuned!")
+                            .font(.system(size: 8))
+                    }
+                    .padding(.top, 20)
                 }
-                .padding(.top, 20)
-            }
+        }
+        
 
         }
         .padding(16)
-        .frame(width: 420, height: 560)
+        .frame(width: 450, height: 600)
     }
 
 }
