@@ -80,7 +80,7 @@ struct PreferencesView: View {
                     // ChatGPT settings section
 
                     HStack {
-                        Text("ChatGPT Settings")
+                        Text("ChatGPT Global Settings")
                             .font(.headline)
 
                         Spacer()
@@ -95,136 +95,134 @@ struct PreferencesView: View {
 
                     }
 
-                    // display link to get token at the right side
-                    HStack {
-                        Spacer()
-                        Link(
-                            "How to get API Token",
-                            destination: URL(
-                                string: "https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key"
-                            )!
-                        )
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                    }
-                    .padding(.bottom)
-
                 }
 
-                Spacer()
+                // display link to get token at the right side
+                HStack {
+                    Spacer()
+                    Link(
+                        "How to get API Token",
+                        destination: URL(
+                            string: "https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key"
+                        )!
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+
+                HStack {
+                    Slider(
+                        value: $chatContext,
+                        in: 5...100,
+                        step: 5
+                    ) {
+                        Text("Context size")
+                    } minimumValueLabel: {
+                        Text("5")
+                    } maximumValueLabel: {
+                        Text("100")
+                    }
+
+                    Text(String(format: ("%.0f messages"), chatContext))
+                        .frame(width: 90)
+                }
+                .padding(.top, 16)
+
+            }
+            .padding(.bottom)
+
+            Spacer()
+
+            VStack {
+                HStack {
+                    Text("New chat settings")
+                        .font(.headline)
+                    Spacer()
+                }
+
+                HStack {
+                    // Select model
+                    Text("ChatGPT Model:")
+                        .frame(width: 160, alignment: .leading)
+
+                    Picker("", selection: $gptModel) {
+                        Text("gpt-3.5-turbo").tag("gpt-3.5-turbo")
+                        Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
+                        Text("gpt-4").tag("gpt-4")
+                        Text("gpt-4-0314").tag("gpt-4-0314")
+                        Text("gpt-4-32k").tag("gpt-4-32k")
+                        Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
+                    }.onReceive([self.gptModel].publisher.first()) { newValue in
+                        if self.gptModel != self.previousGptModel {
+                            self.lampColor = .gray
+                            self.previousGptModel = self.gptModel
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Link(
+                        "Models reference",
+                        destination: URL(string: "https://platform.openai.com/docs/models/overview")!
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+                .padding(.bottom)
 
                 VStack {
                     HStack {
-                        Text("New chat settings")
-                            .font(.headline)
+                        Text("ChatGPT system message:")
+                            .frame(alignment: .leading)
                         Spacer()
                     }
 
-                    HStack {
-                        // Select model
-                        Text("ChatGPT Model:")
-                            .frame(width: 160, alignment: .leading)
+                    MessageInputView(
+                        text: $systemMessage,
+                        onEnter: {
 
-                        Picker("", selection: $gptModel) {
-                            Text("gpt-3.5-turbo").tag("gpt-3.5-turbo")
-                            Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
-                            Text("gpt-4").tag("gpt-4")
-                            Text("gpt-4-0314").tag("gpt-4-0314")
-                            Text("gpt-4-32k").tag("gpt-4-32k")
-                            Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
-                        }.onReceive([self.gptModel].publisher.first()) { newValue in
-                            if self.gptModel != self.previousGptModel {
-                                self.lampColor = .gray
-                                self.previousGptModel = self.gptModel
-                            }
                         }
-                    }
+                    )
 
-                    HStack {
-                        Spacer()
-                        Link(
-                            "Models reference",
-                            destination: URL(string: "https://platform.openai.com/docs/models/overview")!
-                        )
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                    }
-                    .padding(.bottom)
-
-                    VStack {
-                        HStack {
-                            Text("ChatGPT system message:")
-                                .frame(alignment: .leading)
-                            Spacer()
-                        }
-
-                        MessageInputView(
-                            text: $systemMessage,
-                            onEnter: {
-
-                            }
-                        )
-                        
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                systemMessage = AppConstants.chatGptSystemMessage
-                            }) {
-                                Text("Reset to default")
-                            }
-                        }
-                        
-                        
-
-                    }
-
-                    // Test API token
                     HStack {
                         Spacer()
                         Button(action: {
-                            lampColor = .yellow
-                            testAPIToken(model: gptModel, token: gptToken) { result in
-                                DispatchQueue.main.async {
-                                    switch result {
-                                    case .success(_):
-                                        lampColor = .green
-                                    case .failure(_):
-                                        lampColor = .red
-                                    }
-                                }
-                            }
+                            systemMessage = AppConstants.chatGptSystemMessage
                         }) {
-                            Text("Test model and API token")
-                            Circle()
-                                .fill(lampColor)
-                                .frame(width: 8, height: 8)
-                                .shadow(color: lampColor, radius: 4, x: 0, y: 0)
-                                .padding(.leading, 6)
-                                .padding(.top, 2)
+                            Text("Reset to default")
                         }
-
                     }
-                    .padding(.top, 16)
-                    
-                    
-                    HStack {
-                        Slider(
-                            value: $chatContext,
-                            in: 0...10,
-                            step: 1
-                        ) {
-                            Text("Context size")
-                        } minimumValueLabel: {
-                            Text("0")
-                        } maximumValueLabel: {
-                            Text("100")
-                        }
-                        
-                        Text(String(format: ("%.0f"), chatContext))
-                    }
-                    .padding(.top, 16)
 
                 }
+
+                // Test API token
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        lampColor = .yellow
+                        testAPIToken(model: gptModel, token: gptToken) { result in
+                            DispatchQueue.main.async {
+                                switch result {
+                                case .success(_):
+                                    lampColor = .green
+                                case .failure(_):
+                                    lampColor = .red
+                                }
+                            }
+                        }
+                    }) {
+                        Text("Test model and API token")
+                        Circle()
+                            .fill(lampColor)
+                            .frame(width: 8, height: 8)
+                            .shadow(color: lampColor, radius: 4, x: 0, y: 0)
+                            .padding(.leading, 6)
+                            .padding(.top, 2)
+                    }
+
+                }
+                .padding(.top, 16)
 
                 Spacer()
 
@@ -309,17 +307,16 @@ struct PreferencesView: View {
                     }
 
                     HStack {
-                        Text("More options for fine-tuning the ChatGPT settings are coming soon, stay tuned!")
+                        Text("More options for ChatGPT API settings are coming soon, stay tuned!")
                             .font(.system(size: 8))
                     }
                     .padding(.top, 20)
                 }
-        }
-        
+            }
 
         }
         .padding(16)
-        .frame(width: 450, height: 600)
+        .frame(width: 450, height: 580)
     }
 
 }
