@@ -262,7 +262,6 @@ struct ChatView: View {
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
-        print(chatContext)
         print(String(data: request.httpBody!, encoding: .utf8))
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = AppConstants.requestTimeout
