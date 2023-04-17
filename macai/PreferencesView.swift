@@ -67,29 +67,33 @@ struct PreferencesView: View {
     @AppStorage("gptToken") var gptToken: String = ""
     @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
+    @AppStorage("chatContext") var chatContext: Double = AppConstants.chatGptContextSize
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @State private var lampColor: Color = .gray
     @State private var previousGptModel: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
 
-            VStack {
-                // ChatGPT settings section
+                VStack {
+                    // ChatGPT settings section
 
-                HStack {
-                    Text("ChatGPT Settings")
-                        .font(.headline)
+                    HStack {
+                        Text("ChatGPT Global Settings")
+                            .font(.headline)
 
-                    Spacer()
-                }
+                        Spacer()
+                    }
 
-                HStack {
-                    Text("ChatGPT API Token:")
-                        .frame(width: 160, alignment: .leading)
+                    HStack {
+                        Text("ChatGPT API Token:")
+                            .frame(width: 160, alignment: .leading)
 
-                    TextField("Paste your token here", text: $gptToken)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        TextField("Paste your token here", text: $gptToken)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    }
 
                 }
 
@@ -105,9 +109,27 @@ struct PreferencesView: View {
                     .font(.subheadline)
                     .foregroundColor(.blue)
                 }
-                .padding(.bottom)
+
+                HStack {
+                    Slider(
+                        value: $chatContext,
+                        in: 5...100,
+                        step: 5
+                    ) {
+                        Text("Context size")
+                    } minimumValueLabel: {
+                        Text("5")
+                    } maximumValueLabel: {
+                        Text("100")
+                    }
+
+                    Text(String(format: ("%.0f messages"), chatContext))
+                        .frame(width: 90)
+                }
+                .padding(.top, 16)
 
             }
+            .padding(.bottom)
 
             Spacer()
 
@@ -162,7 +184,7 @@ struct PreferencesView: View {
 
                         }
                     )
-                    
+
                     HStack {
                         Spacer()
                         Button(action: {
@@ -171,8 +193,6 @@ struct PreferencesView: View {
                             Text("Reset to default")
                         }
                     }
-                    
-                    
 
                 }
 
@@ -192,7 +212,7 @@ struct PreferencesView: View {
                             }
                         }
                     }) {
-                        Text("Test API token and model")
+                        Text("Test model and API token")
                         Circle()
                             .fill(lampColor)
                             .frame(width: 8, height: 8)
@@ -204,100 +224,99 @@ struct PreferencesView: View {
                 }
                 .padding(.top, 16)
 
-            }
-
-            Spacer()
-
-            VStack {
-
                 Spacer()
 
-                // Backup & Restore section
-                HStack {
-                    Text("Backup & Restore")
-                        .font(.headline)
+                VStack {
+
                     Spacer()
-                }
 
-                // Export chats
-                HStack {
-                    Text("Export chats history")
-                    Spacer()
-                    Button("Export to file...") {
+                    // Backup & Restore section
+                    HStack {
+                        Text("Backup & Restore")
+                            .font(.headline)
+                        Spacer()
+                    }
 
-                        store.loadFromCoreData { result in
+                    // Export chats
+                    HStack {
+                        Text("Export chats history")
+                        Spacer()
+                        Button("Export to file...") {
 
-                            switch result {
+                            store.loadFromCoreData { result in
 
-                            case .failure(let error):
-                                fatalError(error.localizedDescription)
+                                switch result {
 
-                            case .success(let chats):
-                                let encoder = JSONEncoder()
-                                encoder.outputFormatting = .prettyPrinted
-                                let data = try! encoder.encode(chats)
-                                // save to user defined location
-                                let savePanel = NSSavePanel()
-                                savePanel.allowedContentTypes = [.json]
-                                savePanel.nameFieldStringValue = "chats.json"
-                                savePanel.begin { (result) in
-                                    if result == .OK {
-                                        do {
-                                            try data.write(to: savePanel.url!)
-                                        }
-                                        catch {
-                                            print(error)
+                                case .failure(let error):
+                                    fatalError(error.localizedDescription)
+
+                                case .success(let chats):
+                                    let encoder = JSONEncoder()
+                                    encoder.outputFormatting = .prettyPrinted
+                                    let data = try! encoder.encode(chats)
+                                    // save to user defined location
+                                    let savePanel = NSSavePanel()
+                                    savePanel.allowedContentTypes = [.json]
+                                    savePanel.nameFieldStringValue = "chats.json"
+                                    savePanel.begin { (result) in
+                                        if result == .OK {
+                                            do {
+                                                try data.write(to: savePanel.url!)
+                                            }
+                                            catch {
+                                                print(error)
+                                            }
                                         }
                                     }
+
                                 }
 
                             }
 
                         }
-
                     }
-                }
 
-                //                // Import chats
-                HStack {
-                    Text("Import chats history")
-                    Spacer()
-                    Button("Import from file...") {
-                        let openPanel = NSOpenPanel()
-                        openPanel.allowedContentTypes = [.json]
-                        openPanel.begin { (result) in
-                            if result == .OK {
-                                do {
-                                    let data = try Data(contentsOf: openPanel.url!)
-                                    let decoder = JSONDecoder()
-                                    let chats = try decoder.decode([Chat].self, from: data)
+                    //                // Import chats
+                    HStack {
+                        Text("Import chats history")
+                        Spacer()
+                        Button("Import from file...") {
+                            let openPanel = NSOpenPanel()
+                            openPanel.allowedContentTypes = [.json]
+                            openPanel.begin { (result) in
+                                if result == .OK {
+                                    do {
+                                        let data = try Data(contentsOf: openPanel.url!)
+                                        let decoder = JSONDecoder()
+                                        let chats = try decoder.decode([Chat].self, from: data)
 
-                                    store.saveToCoreData(chats: chats) { result in
-                                        print("State saved")
-                                        if case .failure(let error) = result {
-                                            fatalError(error.localizedDescription)
+                                        store.saveToCoreData(chats: chats) { result in
+                                            print("State saved")
+                                            if case .failure(let error) = result {
+                                                fatalError(error.localizedDescription)
+                                            }
                                         }
-                                    }
 
-                                }
-                                catch {
-                                    print(error)
+                                    }
+                                    catch {
+                                        print(error)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                HStack {
-                    Text("More options for fine-tuning the ChatGPT settings are coming soon, stay tuned!")
-                        .font(.system(size: 8))
+                    HStack {
+                        Text("More options for ChatGPT API settings are coming soon, stay tuned!")
+                            .font(.system(size: 8))
+                    }
+                    .padding(.top, 20)
                 }
-                .padding(.top, 20)
             }
 
         }
         .padding(16)
-        .frame(width: 420, height: 560)
+        .frame(width: 450, height: 580)
     }
 
 }
