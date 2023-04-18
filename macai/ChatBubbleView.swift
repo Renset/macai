@@ -154,7 +154,7 @@ struct ChatBubbleView: View {
         
     }
     
-    func parseTableFromString(input: String) -> [TableElement] {
+    private func parseTableFromString(input: String) -> [TableElement] {
         let lines = input.split(separator: "\n").map { String($0) }
         var elements: [TableElement] = []
         var currentHeader: [String] = []
@@ -173,20 +173,13 @@ struct ChatBubbleView: View {
         let highlightr = Highlightr()
     
         highlightr?.setTheme(to: colorScheme == .dark ? "monokai-sublime" : "color-brewer")
-        
-        //let _ = print(input)
 
         for line in lines {
             if line.hasPrefix("```") {
                 
-                if !textLines.isEmpty {
-                    let combinedText = textLines.joined(separator: "\n")
-                    elements.append(.text(combinedText))
-                    textLines = []
-                }
+                combineTextLinesIfNeeded()
                 
                 if codeBlockFound {
-                    
                     if !codeLines.isEmpty {
                         let combinedCode = codeLines.joined(separator: "\n")
                         let highlightedCode: NSAttributedString?
@@ -208,11 +201,7 @@ struct ChatBubbleView: View {
             } else if codeBlockFound {
                 codeLines.append(line)
             } else if line.hasPrefix("**Table") || line.hasPrefix("**Таблица") {
-                if !textLines.isEmpty {
-                    let combinedText = textLines.joined(separator: "\n")
-                    elements.append(.text(combinedText))
-                    textLines = []
-                }
+                combineTextLinesIfNeeded()
                 
                 if delimiterFound || !currentTableData.isEmpty {
                     elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
@@ -226,11 +215,7 @@ struct ChatBubbleView: View {
                 tableName = line.replacingOccurrences(of: "**", with: "")
 
             } else if line.hasPrefix("Table") || line.hasPrefix("Таблица") {
-                if !textLines.isEmpty {
-                    let combinedText = textLines.joined(separator: "\n")
-                    elements.append(.text(combinedText))
-                    textLines = []
-                }
+                combineTextLinesIfNeeded()
                 
                 if delimiterFound || !currentTableData.isEmpty {
                     elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
@@ -249,11 +234,8 @@ struct ChatBubbleView: View {
                     possibleTableNameFound = false
                     possibleTableName = ""
                 }
-                if !textLines.isEmpty {
-                    let combinedText = textLines.joined(separator: "\n")
-                    elements.append(.text(combinedText))
-                    textLines = []
-                }
+                
+                combineTextLinesIfNeeded()
 
                 let rowData = line.split(separator: "|")
                                  .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -315,9 +297,14 @@ struct ChatBubbleView: View {
             elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
         }
 
-        if !textLines.isEmpty {
-            let combinedText = textLines.joined(separator: "\n")
-            elements.append(.text(combinedText))
+        combineTextLinesIfNeeded()
+        
+        func combineTextLinesIfNeeded() {
+            if !textLines.isEmpty {
+                let combinedText = textLines.joined(separator: "\n")
+                elements.append(.text(combinedText))
+                textLines = []
+            }
         }
 
         return elements
