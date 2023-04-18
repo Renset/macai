@@ -1,9 +1,15 @@
 # macai
-macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). You can download signed binary or support project on [Gumroad](https://renset.gumroad.com/l/macai).
+macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). 
 
-> Please note that macai can currently work only with your API token for ChatGPT. See how you can get your own token [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key). I consider implementing demo mode so that any interested user can try powerful ChatGPT capabilities even without using tokens.
+> Please note that macai can currently work only with your API token for ChatGPT. See how you can get your own token [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key)
 
-<a href="https://www.buymeacoffee.com/renset" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;"></a>
+## Downloads
+You can download latest signed binary on [Releases](https://github.com/Renset/macai/releases) page. 
+
+You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
+
+## Build from source
+Checkout main branch and open project in Xcode 14.3 or later
 
 ## Features
 - Organized with chats, where each chat has its own context
