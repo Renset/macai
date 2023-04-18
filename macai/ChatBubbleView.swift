@@ -142,6 +142,14 @@ struct ChatBubbleView: View {
                 Spacer()
             }
         }
+        .contextMenu {
+            Button(action: {
+                copyMessageToClipboard()
+            }) {
+                Label("Copy message", systemImage: "doc.on.doc")
+            }
+        }
+        
         
         
     }
@@ -170,6 +178,13 @@ struct ChatBubbleView: View {
 
         for line in lines {
             if line.hasPrefix("```") {
+                
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
+                
                 if codeBlockFound {
                     
                     if !codeLines.isEmpty {
@@ -193,6 +208,12 @@ struct ChatBubbleView: View {
             } else if codeBlockFound {
                 codeLines.append(line)
             } else if line.hasPrefix("**Table") || line.hasPrefix("**Таблица") {
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
+                
                 if delimiterFound || !currentTableData.isEmpty {
                     elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
                     currentHeader = []
@@ -205,6 +226,12 @@ struct ChatBubbleView: View {
                 tableName = line.replacingOccurrences(of: "**", with: "")
 
             } else if line.hasPrefix("Table") || line.hasPrefix("Таблица") {
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
+                
                 if delimiterFound || !currentTableData.isEmpty {
                     elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
                     currentHeader = []
@@ -278,10 +305,8 @@ struct ChatBubbleView: View {
                     possibleTableNameFound = false
                     possibleTableName = ""
                 }
-                
-                
-                elements.append(.text(line))
-                
+
+                textLines.append(line)
             }
         
         }
@@ -296,5 +321,11 @@ struct ChatBubbleView: View {
         }
 
         return elements
+    }
+    
+    private func copyMessageToClipboard() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(message, forType: .string)
     }
 }
