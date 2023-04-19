@@ -22,6 +22,8 @@ struct Chat: Codable {
     var top_p: Float64?
     var behavior: String?
     var newMessage: String?
+    var gptModel: String?
+    var systemMessage: String?
 
     init(chatEntity: ChatEntity) {
         self.id = chatEntity.id
@@ -31,6 +33,8 @@ struct Chat: Codable {
         self.behavior = chatEntity.behavior
         self.newMessage = chatEntity.newMessage
         self.requestMessages = chatEntity.requestMessages
+        self.gptModel = chatEntity.gptModel
+        self.systemMessage = chatEntity.systemMessage
 
         if let messageEntities = chatEntity.messages as? Set<MessageEntity> {
             self.messages = messageEntities.map { Message(messageEntity: $0) }
