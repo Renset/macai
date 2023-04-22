@@ -81,6 +81,7 @@ struct ChatView: View {
     @State private var lastMessageError = false
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
+    @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
 
     let url = URL(string: AppConstants.apiUrlChatCompletions)
 
@@ -108,7 +109,7 @@ struct ChatView: View {
                                     newMessage = chat.systemMessage
                                     editSystemMessage = true
                                 }) {
-                                    Text("Change")
+                                    Text("Edit system message")
                                 }
                             }
                         }
@@ -188,7 +189,7 @@ struct ChatView: View {
                             chat.systemMessage = newMessage
                             newMessage = ""
                             editSystemMessage = false
-                            saveInCoreData()
+                            store.saveInCoreData()
                         } else if newMessage != "" && newMessage != " " {
                             self.sendMessage()
                         }
@@ -197,7 +198,7 @@ struct ChatView: View {
                 )
                 .onDisappear(perform: {
                     chat.newMessage = newMessage
-                    saveInCoreData()
+                    store.saveInCoreData()
                 })
                 .onAppear(perform: {
                     DispatchQueue.main.async {
@@ -232,7 +233,7 @@ struct ChatView: View {
             sendingMessage.chat = chat
 
             chat.addToMessages(sendingMessage)
-            saveInCoreData()
+            store.saveInCoreData()
             newMessage = ""
         }
 
@@ -329,17 +330,6 @@ struct ChatView: View {
         }
         task.resume()
     }
-    
-    func saveInCoreData() {
-        DispatchQueue.main.async {
-            do {
-                try viewContext.save()
-            } catch {
-                print("[Warning] Couldn't save to store")
-            }
-        }
-    }
-
 }
 
 //struct ChatView_Previews: PreviewProvider {

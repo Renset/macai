@@ -316,7 +316,10 @@ struct PreferencesView: View {
 
         }
         .padding(16)
-        .frame(width: 450, height: 580)
+        .frame(width: 420, height: 580)
+        .onAppear(perform: {
+            store.saveInCoreData()
+        })
     }
 
 }

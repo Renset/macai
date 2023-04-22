@@ -37,6 +37,7 @@ struct WelcomeScreen: View {
                                 openPreferencesView()
                             }
                         }
+                        .padding(.bottom, 60)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -46,15 +47,18 @@ struct WelcomeScreen: View {
                     VStack {
                         WelcomeIcon()
 
-                        if chatsCount == 0 {
-                            Text("No chats were created yet. Create new one?")
-                            Button("Create new chat") {
-                                newChat()
+                        VStack {
+                            if chatsCount == 0 {
+                                Text("No chats were created yet. Create new one?")
+                                Button("Create new chat") {
+                                    newChat()
+                                }
+                            }
+                            else {
+                                Text("Select chat to get started, or create new one")
                             }
                         }
-                        else {
-                            Text("Select chat to get started, or create new one")
-                        }
+                        .padding(.bottom, 60)
 
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -76,28 +80,29 @@ struct WelcomeIcon: View {
                 state = value.translation
             }
 
-        Image("WelcomeIcon")
+        Image("WelcomePic")
             .resizable()
             .scaledToFit()
-            .frame(maxWidth: 256, maxHeight: 256)
-            .shadow(color: Color(red: 1, green: 0.853, blue: 0.281), radius: 15, x: -10, y: 10)
-            .shadow(color: Color(red: 1, green: 0.593, blue: 0.261), radius: 15, x: 10, y: 15)
-            .shadow(color: Color(red: 0.9, green: 0.5, blue: 0.0), radius: 38, x: 0, y: 20)
+            .frame(maxWidth: 2688, maxHeight: 1792)
+            .shadow(color: Color(red: 65/255, green: 50/255, blue: 145/255), radius: 60, x: -10, y: 10)
+            .shadow(color: Color(red: 51/255, green: 129/255, blue: 191/255), radius: 15, x: 10, y: 15)
+            .shadow(color: Color(red: 81/255, green: 195/255, blue: 228/255), radius: 120, x: 0, y: 20)
             .rotation3DEffect(
-                Angle(degrees: Double(dragOffset.width / 20)),
+                Angle(degrees: Double(dragOffset.width / 60)),
                 axis: (x: 0, y: 1, z: 0),
                 anchor: .center,
                 anchorZ: 0.0,
                 perspective: 0.2
             )
             .rotation3DEffect(
-                Angle(degrees: Double(-dragOffset.height / 20)),
+                Angle(degrees: Double(-dragOffset.height / 60)),
                 axis: (x: 1, y: 0, z: 0),
                 anchor: .center,
                 anchorZ: 0.0,
                 perspective: 0.2
             )
             .gesture(dragGesture)
+            .padding(30)
     }
 }
 

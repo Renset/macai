@@ -75,6 +75,16 @@ class ChatStore: ObservableObject {
 
         migrateFromJSONIfNeeded()
     }
+    
+    func saveInCoreData() {
+        DispatchQueue.main.async {
+            do {
+                try self.viewContext.save()
+            } catch {
+                print("[Warning] Couldn't save to store")
+            }
+        }
+    }
 
     func loadFromCoreData(completion: @escaping (Result<[Chat], Error>) -> Void) {
         let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
@@ -114,6 +124,8 @@ class ChatStore: ObservableObject {
                     chatEntity.createdDate = Date()
                     chatEntity.updatedDate = Date()
                     chatEntity.requestMessages = oldChat.requestMessages
+                    chatEntity.gptModel = oldChat.gptModel ?? AppConstants.chatGptDefaultModel
+                    chatEntity.systemMessage = oldChat.systemMessage ?? AppConstants.chatGptSystemMessage
                     
                     for oldMessage in oldChat.messages {
                         let messageEntity = MessageEntity(context: self.viewContext)
