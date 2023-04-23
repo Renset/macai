@@ -104,6 +104,82 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4A272A6729F5CB5300F93D0D /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				4A5F64B929C64F9D000403F7 /* ChatView.swift */,
+				4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */,
+				4A5F64BB29C653BA000403F7 /* MessageInputView.swift */,
+				4A55DCA629C264BC00A3800C /* TableView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		4A272A6929F5CD4700F93D0D /* Preferences */ = {
+			isa = PBXGroup;
+			children = (
+				4A399CC329BCE67800E98796 /* PreferencesView.swift */,
+			);
+			path = Preferences;
+			sourceTree = "<group>";
+		};
+		4A272A6A29F5CD5E00F93D0D /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
+				4A399CC529BCF02500E98796 /* ChatStore.swift */,
+			);
+			path = Store;
+			sourceTree = "<group>";
+		};
+		4A272A6B29F5CD7500F93D0D /* ChatList */ = {
+			isa = PBXGroup;
+			children = (
+				4A1F0A0929CEFB7F002A139A /* MessageCell.swift */,
+			);
+			path = ChatList;
+			sourceTree = "<group>";
+		};
+		4A272A6C29F5CD9D00F93D0D /* WelcomeScreen */ = {
+			isa = PBXGroup;
+			children = (
+				4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */,
+				4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */,
+			);
+			path = WelcomeScreen;
+			sourceTree = "<group>";
+		};
+		4A272A6D29F5CE0D00F93D0D /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				4A399C9A29BC8FEF00E98796 /* ContentView.swift */,
+				4A272A6C29F5CD9D00F93D0D /* WelcomeScreen */,
+				4A272A6B29F5CD7500F93D0D /* ChatList */,
+				4A272A6A29F5CD5E00F93D0D /* Store */,
+				4A272A6929F5CD4700F93D0D /* Preferences */,
+				4A272A6729F5CB5300F93D0D /* Chat */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		4A272A6E29F5CE3900F93D0D /* Models */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		4A272A6F29F5CE5700F93D0D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4A399C9C29BC8FF100E98796 /* Assets.xcassets */,
+				4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */,
+				4A399C9E29BC8FF100E98796 /* macai.entitlements */,
+				4A98B1BF29CA60ED0064835A /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		4A399C8C29BC8FEF00E98796 = {
 			isa = PBXGroup;
 			children = (
@@ -128,33 +204,13 @@
 		4A399C9729BC8FEF00E98796 /* macai */ = {
 			isa = PBXGroup;
 			children = (
+				4A272A6F29F5CE5700F93D0D /* Resources */,
+				4A272A6E29F5CE3900F93D0D /* Models */,
+				4A272A6D29F5CE0D00F93D0D /* UI */,
 				4A399C9829BC8FEF00E98796 /* macaiApp.swift */,
-				4A399C9A29BC8FEF00E98796 /* ContentView.swift */,
-				4A399C9C29BC8FF100E98796 /* Assets.xcassets */,
-				4A399C9E29BC8FF100E98796 /* macai.entitlements */,
-				4A399C9F29BC8FF100E98796 /* Preview Content */,
-				4A399CC329BCE67800E98796 /* PreferencesView.swift */,
-				4A399CC529BCF02500E98796 /* ChatStore.swift */,
-				4A55DCA629C264BC00A3800C /* TableView.swift */,
-				4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */,
-				4A5F64B929C64F9D000403F7 /* ChatView.swift */,
-				4A5F64BB29C653BA000403F7 /* MessageInputView.swift */,
-				4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */,
-				4A98B1BF29CA60ED0064835A /* Info.plist */,
-				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
-				4A1F0A0929CEFB7F002A139A /* MessageCell.swift */,
-				4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */,
 				4A270AE229D4AFE7005E063C /* AppConstants.swift */,
 			);
 			path = macai;
-			sourceTree = "<group>";
-		};
-		4A399C9F29BC8FF100E98796 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 		4A399CA929BC8FF200E98796 /* macaiTests */ = {
