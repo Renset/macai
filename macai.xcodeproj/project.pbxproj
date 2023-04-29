@@ -15,7 +15,6 @@
 		4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9A29BC8FEF00E98796 /* ContentView.swift */; };
 		4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399C9C29BC8FF100E98796 /* Assets.xcassets */; };
 		4A399CA129BC8FF100E98796 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */; };
-		4A399CAB29BC8FF200E98796 /* macaiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CAA29BC8FF200E98796 /* macaiTests.swift */; };
 		4A399CB529BC8FF200E98796 /* macaiUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CB429BC8FF200E98796 /* macaiUITests.swift */; };
 		4A399CB729BC8FF200E98796 /* macaiUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CB629BC8FF200E98796 /* macaiUITestsLaunchTests.swift */; };
 		4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC329BCE67800E98796 /* PreferencesView.swift */; };
@@ -31,6 +30,8 @@
 		4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
 		4A98B1C029CA60ED0064835A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A98B1BF29CA60ED0064835A /* Info.plist */; };
+		4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6529F86B5900661B2D /* MessageParser.swift */; };
+		4ABDBE6B29F86E8D00661B2D /* MessageParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,7 +63,6 @@
 		4A399C9E29BC8FF100E98796 /* macai.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = macai.entitlements; sourceTree = "<group>"; };
 		4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		4A399CA629BC8FF200E98796 /* macaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = macaiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4A399CAA29BC8FF200E98796 /* macaiTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiTests.swift; sourceTree = "<group>"; };
 		4A399CB029BC8FF200E98796 /* macaiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = macaiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A399CB429BC8FF200E98796 /* macaiUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiUITests.swift; sourceTree = "<group>"; };
 		4A399CB629BC8FF200E98796 /* macaiUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -75,6 +75,8 @@
 		4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneKitParticlesView.swift; sourceTree = "<group>"; };
 		4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = macaiDataModel.xcdatamodel; sourceTree = "<group>"; };
 		4A98B1BF29CA60ED0064835A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4ABDBE6529F86B5900661B2D /* MessageParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParser.swift; sourceTree = "<group>"; };
+		4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParserTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,7 +159,6 @@
 				4A399C9A29BC8FEF00E98796 /* ContentView.swift */,
 				4A272A6C29F5CD9D00F93D0D /* WelcomeScreen */,
 				4A272A6B29F5CD7500F93D0D /* ChatList */,
-				4A272A6A29F5CD5E00F93D0D /* Store */,
 				4A272A6929F5CD4700F93D0D /* Preferences */,
 				4A272A6729F5CB5300F93D0D /* Chat */,
 			);
@@ -184,7 +185,7 @@
 		4A272A7029F5D9C200F93D0D /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				4A270AE229D4AFE7005E063C /* AppConstants.swift */,
+				4ABDBE6529F86B5900661B2D /* MessageParser.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -213,8 +214,10 @@
 		4A399C9729BC8FEF00E98796 /* macai */ = {
 			isa = PBXGroup;
 			children = (
+				4ABDBE6429F86B3900661B2D /* Configuration */,
 				4A272A7029F5D9C200F93D0D /* Utilities */,
 				4A272A6F29F5CE5700F93D0D /* Resources */,
+				4A272A6A29F5CD5E00F93D0D /* Store */,
 				4A272A6E29F5CE3900F93D0D /* Models */,
 				4A272A6D29F5CE0D00F93D0D /* UI */,
 				4A399C9829BC8FEF00E98796 /* macaiApp.swift */,
@@ -227,7 +230,7 @@
 		4A399CA929BC8FF200E98796 /* macaiTests */ = {
 			isa = PBXGroup;
 			children = (
-				4A399CAA29BC8FF200E98796 /* macaiTests.swift */,
+				4ABDBE6729F86E6300661B2D /* Utilities */,
 			);
 			path = macaiTests;
 			sourceTree = "<group>";
@@ -246,6 +249,22 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4ABDBE6429F86B3900661B2D /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				4A270AE229D4AFE7005E063C /* AppConstants.swift */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		4ABDBE6729F86E6300661B2D /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */,
+			);
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -399,6 +418,7 @@
 				4A55DCA729C264BC00A3800C /* TableView.swift in Sources */,
 				4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */,
 				4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */,
+				4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
 				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
 				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
@@ -412,7 +432,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4A399CAB29BC8FF200E98796 /* macaiTests.swift in Sources */,
+				4ABDBE6B29F86E8D00661B2D /* MessageParserTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

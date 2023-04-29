@@ -10,7 +10,7 @@ import SwiftUI
 import Highlightr
 import AttributedText
 
-enum MessageElements {
+enum TableElement {
     case text(String)
     case table(header: [String], data: [[String]], name: String)
     case code(code: NSAttributedString?, lang: String)
@@ -135,7 +135,7 @@ struct ChatBubbleView: View {
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(error ? Color(.red) : initialMessage ? Color(.systemOrange) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
+                .background(error ? Color(.red) : initialMessage ? Color(.systemGray) : Color(own ? outgoingBubbleColor : incomingBubbleColor))
                 .cornerRadius(16)
             
             if !own {
@@ -154,9 +154,9 @@ struct ChatBubbleView: View {
         
     }
     
-    private func parseTableFromString(input: String) -> [MessageElements] {
+    func parseTableFromString(input: String) -> [TableElement] {
         let lines = input.split(separator: "\n").map { String($0) }
-        var elements: [MessageElements] = []
+        var elements: [TableElement] = []
         var currentHeader: [String] = []
         var currentTableData: [[String]] = []
         var delimiterFound = false
@@ -173,14 +173,32 @@ struct ChatBubbleView: View {
         let highlightr = Highlightr()
     
         highlightr?.setTheme(to: colorScheme == .dark ? "monokai-sublime" : "color-brewer")
+        
+        //let _ = print(input)
 
         for line in lines {
             if line.hasPrefix("```") {
                 
-                combineTextLinesIfNeeded()
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
                 
                 if codeBlockFound {
-                    appendCodeBlockIfNeeded()
+                    
+                    if !codeLines.isEmpty {
+                        let combinedCode = codeLines.joined(separator: "\n")
+                        let highlightedCode: NSAttributedString?
+                        
+                        if (codeBlockLanguage != "") {
+                            highlightedCode = highlightr?.highlight(combinedCode, as: codeBlockLanguage)
+                        } else {
+                            highlightedCode = highlightr?.highlight(combinedCode)
+                        }
+                        
+                        elements.append(.code(code: highlightedCode, lang: codeBlockLanguage))
+                    }
                     codeBlockFound = false
                     codeBlockLanguage = ""
                 } else {
@@ -190,17 +208,36 @@ struct ChatBubbleView: View {
             } else if codeBlockFound {
                 codeLines.append(line)
             } else if line.hasPrefix("**Table") || line.hasPrefix("**Таблица") {
-                combineTextLinesIfNeeded()
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
                 
-                appendTableIfNeeded()
+                if delimiterFound || !currentTableData.isEmpty {
+                    elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
+                    currentHeader = []
+                    currentTableData = []
+                    delimiterFound = false
+                    firstDataRow = true
+                }
                 
                 tableNameFound = true
                 tableName = line.replacingOccurrences(of: "**", with: "")
 
             } else if line.hasPrefix("Table") || line.hasPrefix("Таблица") {
-                combineTextLinesIfNeeded()
-                
-                appendTableIfNeeded()
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
+                if delimiterFound || !currentTableData.isEmpty {
+                    elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
+                    currentHeader = []
+                    currentTableData = []
+                    delimiterFound = false
+                    firstDataRow = true
+                }
                 
                 possibleTableNameFound = true
                 possibleTableName = line
@@ -211,8 +248,11 @@ struct ChatBubbleView: View {
                     possibleTableNameFound = false
                     possibleTableName = ""
                 }
-                
-                combineTextLinesIfNeeded()
+                if !textLines.isEmpty {
+                    let combinedText = textLines.joined(separator: "\n")
+                    elements.append(.text(combinedText))
+                    textLines = []
+                }
 
                 let rowData = line.split(separator: "|")
                                  .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -274,40 +314,9 @@ struct ChatBubbleView: View {
             elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
         }
 
-        combineTextLinesIfNeeded()
-        appendCodeBlockIfNeeded()
-        
-        func combineTextLinesIfNeeded() {
-            if !textLines.isEmpty {
-                let combinedText = textLines.joined(separator: "\n")
-                elements.append(.text(combinedText))
-                textLines = []
-            }
-        }
-
-        func appendTableIfNeeded() {
-            if delimiterFound || !currentTableData.isEmpty {
-                elements.append(.table(header: currentHeader, data: currentTableData, name: tableName))
-                currentHeader = []
-                currentTableData = []
-                delimiterFound = false
-                firstDataRow = true
-            }
-        }
-        
-        func appendCodeBlockIfNeeded() {
-            if !codeLines.isEmpty {
-                let combinedCode = codeLines.joined(separator: "\n")
-                let highlightedCode: NSAttributedString?
-                
-                if (codeBlockLanguage != "") {
-                    highlightedCode = highlightr?.highlight(combinedCode, as: codeBlockLanguage)
-                } else {
-                    highlightedCode = highlightr?.highlight(combinedCode)
-                }
-                
-                elements.append(.code(code: highlightedCode, lang: codeBlockLanguage))
-            }
+        if !textLines.isEmpty {
+            let combinedText = textLines.joined(separator: "\n")
+            elements.append(.text(combinedText))
         }
 
         return elements
