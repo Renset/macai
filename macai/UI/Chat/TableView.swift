@@ -57,7 +57,6 @@ struct TableRowView: View {
 struct TableView: View {
     let header: [String]
     let tableData: [[String]]
-    let tableName: String
     
     private func copyTableToClipboard() {
         let headerString = header.joined(separator: "\t")
@@ -98,8 +97,6 @@ struct TableView: View {
 
         VStack {
             HStack {
-                Text(tableName)
-                    .fontWeight(.bold)
                 Spacer()
                 Button(action: copyTableToClipboard) {
                     Text("JSON")

@@ -44,16 +44,19 @@ class MessageParserTests: XCTestCase {
 
         switch result[0] {
         case .text(let text):
-            XCTAssertEqual(text, "This is a sample text.")
+            XCTAssertEqual(text, """
+            This is a sample text.
+            
+            Table: Test Table
+            """)
         default:
             XCTFail("Expected .text element")
         }
 
         switch result[1] {
-        case .table(header: let header, data: let data, name: let name):
+        case .table(header: let header, data: let data):
             XCTAssertEqual(header, ["Column 1", "Column 2"])
             XCTAssertEqual(data, [["Value 1", "Value 2"], ["Value 3", "Value 4"]])
-            XCTAssertEqual(name, "Table: Test Table")
         default:
             XCTFail("Expected .table element")
         }
@@ -88,7 +91,7 @@ class MessageParserTests: XCTestCase {
 
         switch result[0] {
         case .text(let text):
-            XCTAssertEqual(text, "Here's a FizzBuzz implementation in Shakespeare Programming Language:")
+            XCTAssertEqual(text, "Here's a FizzBuzz implementation in Shakespeare Programming Language:\n")
         default:
             XCTFail("Expected .text element")
         }
@@ -98,6 +101,7 @@ class MessageParserTests: XCTestCase {
             XCTAssertEqual(String(highlightedCode.code!.string), """
             The Infamous FizzBuzz Program.
             By ChatGPT.
+            
             Act 1: The Setup
             Scene 1: Initializing Variables.
             [Enter Romeo and Juliet]
@@ -145,18 +149,17 @@ class MessageParserTests: XCTestCase {
         """
 
         let result = parser.parseMessageFromString(input: input)
-        XCTAssertEqual(result.count, 6)
+        XCTAssertEqual(result.count, 11)
 
-        switch result[0] {
-        case .table(header: let header, data: let data, name: let name):
+        switch result[1] {
+        case .table(header: let header, data: let data):
             XCTAssertEqual(header, ["Column 1", "Column 2"])
             XCTAssertEqual(data, [["Value 1", "Value 2"], ["Value 3", "Value 4"]])
-            XCTAssertEqual(name, "Table: Test Table")
         default:
             XCTFail("Expected .table element")
         }
 
-        switch result[1] {
+        switch result[3] {
         case .code(code: let highlightedCode):
             XCTAssertEqual(String(highlightedCode.code!.string), """
             This is a code block
@@ -165,36 +168,37 @@ class MessageParserTests: XCTestCase {
             XCTFail("Expected .code element")
         }
 
-        switch result[2] {
-        case .table(header: let header, data: let data, name: let name):
+        switch result[5] {
+        case .table(header: let header, data: let data):
             XCTAssertEqual(header, ["Column 1", "Column 2"])
             XCTAssertEqual(data, [["Value 1", "Value 2"], ["Value 3", "Value 4"]])
-            XCTAssertEqual(name, "Table 2: Test Table")
         default:
             XCTFail("Expected .table element")
         }
         
-        switch result[3] {
-        case .table(header: let header, data: let data, name: let name):
+        switch result[7] {
+        case .table(header: let header, data: let data):
             XCTAssertEqual(header, ["Column 1", "Column 2"])
             XCTAssertEqual(data, [["Value 1", "Value 2"], ["Value 3", "Value 4"]])
-            XCTAssertEqual(name, "Table 3: Test Table")
         default:
             XCTFail("Expected .table element")
         }
         
-        switch result[4] {
+        switch result[8] {
         case .text(let text):
-            XCTAssertEqual(text, "Some random text. Bla-bla-bla...")
+            XCTAssertEqual(text, """
+            Some random text. Bla-bla-bla...
+
+            **Table 4: Test Table
+            """)
         default:
             XCTFail("Expected .text element")
         }
         
-        switch result[5] {
-        case .table(header: let header, data: let data, name: let name):
+        switch result[9] {
+        case .table(header: let header, data: let data):
             XCTAssertEqual(header, ["Column 1", "Column 2"])
             XCTAssertEqual(data, [["Value 1", "Value 2"], ["Value 3", "Value 4"]])
-            XCTAssertEqual(name, "Table 4: Test Table")
         default:
             XCTFail("Expected .table element")
         }
