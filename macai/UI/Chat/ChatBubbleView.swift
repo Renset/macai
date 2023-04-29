@@ -85,7 +85,7 @@ struct ChatBubbleView: View {
                             switch elements[index] {
                             case .text(let text):
 
-                                Text(text)
+                                Text(.init(text))
                                     .textSelection(.enabled)
                             case .table(let header, let data):
                                 TableView(header: header, tableData: data)
