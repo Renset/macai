@@ -8,67 +8,6 @@
 import CoreData
 import SwiftUI
 
-class ChatEntity: NSManagedObject, Identifiable {
-    @NSManaged public var id: UUID
-    @NSManaged public var messages: Set<MessageEntity>
-    @NSManaged public var requestMessages: [[String: String]]
-    @NSManaged public var newChat: Bool
-    @NSManaged public var temperature: Double
-    @NSManaged public var top_p: Double
-    @NSManaged public var behavior: String?
-    @NSManaged public var newMessage: String?
-    @NSManaged public var createdDate: Date
-    @NSManaged public var updatedDate: Date
-    @NSManaged public var systemMessage: String
-    @NSManaged public var gptModel: String
-    
-    func addToMessages(_ value: MessageEntity) {
-        let items = self.mutableSetValue(forKey: "messages")
-        items.add(value)
-        value.chat = self
-
-        self.objectWillChange.send()
-    }
-
-    func removeFromMessages(_ value: MessageEntity) {
-        let items = self.mutableSetValue(forKey: "messages")
-        items.remove(value)
-        value.chat = nil
-    }
-    
-    #warning("Temporary code for migrating old chats - remove after a while, when users have been updated. Issue link: https://github.com/Renset/macai/issues/7")
-    @AppStorage("gptModel") var gptModelFromSettings = AppConstants.chatGptDefaultModel
-    @AppStorage("systemMessage") var systemMessageFromSettings = AppConstants.chatGptSystemMessage
-    @NSManaged public var systemMessageProcessed: Bool
-    func extractSystemMessageAndModel() {
-        guard !systemMessageProcessed && systemMessage == nil else {
-            return
-        }
-        
-        if let systemMessageIndex = requestMessages.firstIndex(where: { $0["role"] == "system" }) {
-            systemMessage = requestMessages[systemMessageIndex]["content"]?.replacingOccurrences(of: "\n", with: " ") ?? systemMessageFromSettings
-        } else {
-            systemMessage = systemMessageFromSettings // Set your default value here
-        }
-        
-        if (gptModel == nil) {
-            gptModel = gptModelFromSettings
-        }
-        
-        systemMessageProcessed = true
-    }
-}
-
-class MessageEntity: NSManagedObject, Identifiable {
-    @NSManaged public var id: Int64
-    @NSManaged public var name: String
-    @NSManaged public var body: String
-    @NSManaged public var timestamp: Date
-    @NSManaged public var own: Bool
-    @NSManaged public var waitingForResponse: Bool
-    @NSManaged public var chat: ChatEntity?
-}
-
 struct ChatView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State var chat: ChatEntity

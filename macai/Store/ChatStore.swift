@@ -11,60 +11,6 @@ import SwiftUI
 
 let migrationKey = "com.example.chatApp.migrationFromJSONCompleted"
 
-/// Legacy Chat struct, used for migration from old storage, for exporting and importing data in JSON
-struct Chat: Codable {
-    var id: UUID
-    var messagePreview: Message?
-    var messages: [Message] = []
-    var requestMessages = [["role": "user", "content": ""]]
-    var newChat: Bool = true
-    var temperature: Float64?
-    var top_p: Float64?
-    var behavior: String?
-    var newMessage: String?
-    var gptModel: String?
-    var systemMessage: String?
-
-    init(chatEntity: ChatEntity) {
-        self.id = chatEntity.id
-        self.newChat = chatEntity.newChat
-        self.temperature = chatEntity.temperature
-        self.top_p = chatEntity.top_p
-        self.behavior = chatEntity.behavior
-        self.newMessage = chatEntity.newMessage
-        self.requestMessages = chatEntity.requestMessages
-        self.gptModel = chatEntity.gptModel
-        self.systemMessage = chatEntity.systemMessage
-
-        if let messageEntities = chatEntity.messages as? Set<MessageEntity> {
-            self.messages = messageEntities.map { Message(messageEntity: $0) }
-        }
-
-        if let lastMessageEntity = chatEntity.messages.max(by: { $0.id < $1.id }) {
-            self.messagePreview = Message(messageEntity: lastMessageEntity)
-        }
-    }
-}
-
-/// Legacy Message struct, used for migration from old storage, for exporting and importing data in JSON
-struct Message: Codable, Equatable {
-    var id: Int
-    var name: String
-    var body: String
-    var timestamp: Date
-    var own: Bool
-    var waitingForResponse: Bool?
-
-    init(messageEntity: MessageEntity) {
-        self.id = Int(messageEntity.id)
-        self.name = messageEntity.name
-        self.body = messageEntity.body
-        self.timestamp = messageEntity.timestamp
-        self.own = messageEntity.own
-        self.waitingForResponse = messageEntity.waitingForResponse
-    }
-}
-
 class ChatStore: ObservableObject {
     let persistenceController: PersistenceController
     let viewContext: NSManagedObjectContext
