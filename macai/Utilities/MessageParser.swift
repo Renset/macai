@@ -10,7 +10,7 @@ import Highlightr
 import SwiftUI
 
 struct MessageParser {
-    @Environment(\.colorScheme) var colorScheme
+    @State var colorScheme: ColorScheme
     
     func parseMessageFromString(input: String) -> [MessageElements] {
         let lines = input.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
