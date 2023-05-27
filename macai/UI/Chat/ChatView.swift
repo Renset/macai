@@ -155,30 +155,39 @@ struct ChatView: View {
         }
         .background(backgroundColor)
         .navigationTitle("ChatGPT")
-        //        .navigationBarTitleDisplayMode(.inline)
     }
+}
 
+extension ChatView {
     func sendMessage(ignoreMessageInput: Bool = false) {
         let messageBody = newMessage
         
         if (!ignoreMessageInput) {
-            let sendingMessage = MessageEntity(context: viewContext)
-            sendingMessage.id = Int64(chat.messages.count + 1)
-            sendingMessage.name = ""
-            sendingMessage.body = messageBody ?? ""
-            sendingMessage.timestamp = Date()
-            sendingMessage.own = true
-            sendingMessage.waitingForResponse = false
-            sendingMessage.chat = chat
-
-            chat.addToMessages(sendingMessage)
-            store.saveInCoreData()
-            newMessage = ""
+            saveNewMessageInStore(with: messageBody)
         }
+        
+        let request = prepareRequest(with: messageBody)
+        send(using: request) { data, response, error in
+            processResponse(with: data, response: response, error: error)
+        }
+    }
+    
+    private func saveNewMessageInStore(with messageBody: String) -> Void {
+        let sendingMessage = MessageEntity(context: viewContext)
+        sendingMessage.id = Int64(chat.messages.count + 1)
+        sendingMessage.name = ""
+        sendingMessage.body = messageBody
+        sendingMessage.timestamp = Date()
+        sendingMessage.own = true
+        sendingMessage.waitingForResponse = false
+        sendingMessage.chat = chat
 
-
-
-        // Send message to OpenAI
+        chat.addToMessages(sendingMessage)
+        store.saveInCoreData()
+        newMessage = ""
+    }
+    
+    private func prepareRequest(with messageBody: String) -> URLRequest {
         var request = URLRequest(url: url!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
@@ -194,7 +203,7 @@ struct ChatView: View {
             chat.newChat = false
         }
 
-        chat.requestMessages.append(["role": "user", "content": messageBody ?? ""])
+        chat.requestMessages.append(["role": "user", "content": messageBody ])
 
         let jsonDict: [String: Any] = [
             "model": gptModel,
@@ -202,7 +211,11 @@ struct ChatView: View {
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
-        print(String(data: request.httpBody!, encoding: .utf8))
+        
+        return request
+    }
+    
+    private func send(using request: URLRequest, completion: @escaping (Data?, URLResponse?, Error?) -> Void) {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = AppConstants.requestTimeout
 
@@ -210,21 +223,110 @@ struct ChatView: View {
         waitingForResponse = true
 
         let task = session.dataTask(with: request) { data, response, error in
-            waitingForResponse = false
+            completion(data, response, error)
+        }
+        task.resume()
+    }
+    
+    private func processResponse(with data: Data?, response: URLResponse?, error: Error?) {
+        DispatchQueue.main.async {
+            handleErrors(data: data, response: response, error: error)
+
+            guard let data = data else { return }
+
+            guard let (messageContent, messageRole) = parseJSONResponse(data: data) else {
+                print("Error parsing JSON")
+                self.lastMessageError = true
+                return
+            }
+
+            updateUIWithResponse(content: messageContent, role: messageRole)
+        }
+    }
+
+    private func handleErrors(data: Data?, response: URLResponse?, error: Error?) {
+        self.waitingForResponse = false
+
+        if let error = error {
+            print("Error: \(error)")
+            self.lastMessageError = true
+            return
+        }
+
+        guard data != nil else {
+            print("No data returned from API")
+            self.lastMessageError = true
+            return
+        }
+    }
+
+    private func parseJSONResponse(data: Data) -> (String, String)? {
+        if let responseString = String(data: data, encoding: .utf8) {
+            #if DEBUG
+            print("Response: \(responseString)")
+            #endif
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: [])
+                if let dict = json as? [String: Any],
+                    let choices = dict["choices"] as? [[String: Any]],
+                    let lastIndex = choices.indices.last,
+                    let content = choices[lastIndex]["message"] as? [String: Any],
+                    let messageRole = content["role"] as? String,
+                    let messageContent = content["content"] as? String
+                {
+                    return (messageContent, messageRole)
+                }
+            }
+            catch {
+                print("Error parsing JSON: \(error.localizedDescription)")
+                return nil
+            }
+        }
+        return nil
+    }
+
+    private func updateUIWithResponse(content: String, role: String) {
+        let receivedMessage = MessageEntity(context: self.viewContext)
+        receivedMessage.id = Int64(self.chat.messages.count + 1)
+        receivedMessage.name = "ChatGPT"
+        receivedMessage.body = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        receivedMessage.timestamp = Date()
+        receivedMessage.own = false
+        receivedMessage.chat = self.chat
+
+        self.lastMessageError = false
+
+        self.chat.updatedDate = Date()
+        self.chat.addToMessages(receivedMessage)
+        self.viewContext.saveWithRetry(attempts: 3)
+        self.chat.requestMessages.append(["role": role, "content": content])
+
+        self.chat.objectWillChange.send()
+        #if DEBUG
+        print("Value of choices[\(self.chat.requestMessages.count - 1)].message.content: \(content)")
+        #endif
+    }
+    
+    private func processResponseOld(with data: Data?, response: URLResponse?, error: Error?) {
+        DispatchQueue.main.async {
+            self.waitingForResponse = false
             if let error = error {
                 print("Error: \(error)")
-                lastMessageError = true
+                self.lastMessageError = true
                 return
             }
 
             guard let data = data else {
                 print("No data returned from API")
-                lastMessageError = true
+                self.lastMessageError = true
                 return
             }
 
             if let responseString = String(data: data, encoding: .utf8) {
+                #if DEBUG
                 print("Response: \(responseString)")
+                #endif
+                
                 do {
                     let json = try JSONSerialization.jsonObject(with: data, options: [])
                     if let dict = json as? [String: Any],
@@ -234,42 +336,44 @@ struct ChatView: View {
                         let messageRole = content["role"] as? String,
                         let messageContent = content["content"] as? String
                     {
-                        let receivedMessage = MessageEntity(context: viewContext)
-                        receivedMessage.id = Int64(chat.messages.count + 1)
+                        let receivedMessage = MessageEntity(context: self.viewContext)
+                        receivedMessage.id = Int64(self.chat.messages.count + 1)
                         receivedMessage.name = "ChatGPT"
-                        receivedMessage.body = messageContent.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        receivedMessage.body = messageContent.trimmingCharacters(in: .whitespacesAndNewlines)
                         receivedMessage.timestamp = Date()
                         receivedMessage.own = false
-                        receivedMessage.chat = chat
+                        receivedMessage.chat = self.chat
+
+                        self.lastMessageError = false
+
+                        self.chat.updatedDate = Date()
+                        self.chat.addToMessages(receivedMessage)
+    
+                        self.viewContext.saveWithRetry(attempts: 3)
                         
-                        lastMessageError = false
+                        self.chat.requestMessages.append(["role": messageRole, "content": messageContent])
 
-                        DispatchQueue.main.async {
-                            chat.updatedDate = Date()
-                            chat.addToMessages(receivedMessage)
-                            try? viewContext.save()
-                            chat.requestMessages.append(["role": messageRole, "content": messageContent])
-
-                            chat.objectWillChange.send()
-                            print("Value of choices[\(lastIndex)].message.content: \(messageContent)")
-                        }
-
+                        self.chat.objectWillChange.send()
+                        
+                        #if DEBUG
+                        print("Value of choices[\(lastIndex)].message.content: \(messageContent)")
+                        #endif
                     }
                 }
                 catch {
                     print("Error parsing JSON: \(error.localizedDescription)")
-                    lastMessageError = true
+                    self.lastMessageError = true
                 }
             }
             else if let error = error {
                 print("Error fetching data: \(error.localizedDescription)")
-                lastMessageError = true
+                self.lastMessageError = true
             }
-
         }
-        task.resume()
     }
+
 }
+
 
 //struct ChatView_Previews: PreviewProvider {
 //    static var previews: some View {
