@@ -57,4 +57,4 @@ In most cases, tables in ChatGPT repsonses can be formatted as follows:
 
 
 ## License
-AGPL-3.0, subject to change
+[MIT](https://github.com/Renset/macai/blob/main/LICENSE.md)
