@@ -14,7 +14,7 @@ class MessageParserTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        parser = MessageParser()
+        parser = MessageParser(colorScheme: .light)
     }
 
     override func tearDown() {
