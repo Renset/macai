@@ -1,4 +1,7 @@
 # macai
+<img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"> <img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"> <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"> <img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai">
+<img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"> 
+
 macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). 
 
 > Please note that macai can currently work only with your API token for ChatGPT. See how you can get your own token [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key)
