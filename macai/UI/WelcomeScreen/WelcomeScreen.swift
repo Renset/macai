@@ -45,10 +45,9 @@ struct WelcomeScreen: View {
                 else {
                     //
                     VStack {
-                        WelcomeIcon()
-
                         VStack {
                             if chatsCount == 0 {
+                                WelcomeIcon()
                                 Text("No chats were created yet. Create new one?")
                                 Button("Create new chat") {
                                     newChat()

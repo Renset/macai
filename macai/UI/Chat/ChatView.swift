@@ -15,6 +15,7 @@ struct ChatView: View {
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
     @AppStorage("chatContext") var chatContext = AppConstants.chatGptContextSize
+    @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @State var messageCount: Int = 0
     @State private var messageField = ""
     @State private var lastMessageError = false
@@ -155,6 +156,10 @@ struct ChatView: View {
         }
         .background(backgroundColor)
         .navigationTitle("ChatGPT")
+        .onAppear(perform: {
+            self.lastOpenedChatId = chat.id.uuidString
+            print("lastOpenedChatId: \(lastOpenedChatId)")
+        })
     }
 }
 

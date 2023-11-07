@@ -19,8 +19,8 @@ struct APIRequestData: Codable {
 
 }
 
-func testAPIToken(model: String, token: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-    let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+func testAPIToken(apiUrl: String, model: String, token: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+    let url = URL(string: apiUrl)!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -68,9 +68,12 @@ struct PreferencesView: View {
     @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("chatContext") var chatContext: Double = AppConstants.chatGptContextSize
+    @AppStorage("isCustomGptModel") var isCustomGptModel: Bool = false
+    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @State private var lampColor: Color = .gray
     @State private var previousGptModel: String = ""
+    @State private var selectedGptModel: String = ""
 
     var body: some View {
         ScrollView {
@@ -84,6 +87,15 @@ struct PreferencesView: View {
                             .font(.headline)
 
                         Spacer()
+                    }
+
+                    HStack {
+                        Text("ChatGPT API URL:")
+                            .frame(width: 160, alignment: .leading)
+
+                        TextField("Paste your URL here", text: $apiUrl)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
                     }
 
                     HStack {
@@ -129,7 +141,7 @@ struct PreferencesView: View {
                 .padding(.top, 16)
 
             }
-            .padding(.bottom)
+            .padding(16)
 
             Spacer()
 
@@ -145,7 +157,7 @@ struct PreferencesView: View {
                     Text("ChatGPT Model:")
                         .frame(width: 160, alignment: .leading)
 
-                    Picker("", selection: $gptModel) {
+                    Picker("", selection: $selectedGptModel) {
                         Text("gpt-3.5-turbo").tag("gpt-3.5-turbo")
                         Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
                         Text("gpt-4").tag("gpt-4")
@@ -154,11 +166,26 @@ struct PreferencesView: View {
                         Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
                         Text("gpt-4-1106-preview").tag("gpt-4-1106-preview")
                         Text("gpt-4-vision-preview").tag("gpt-4-vision-preview")
-                    }.onReceive([self.gptModel].publisher.first()) { newValue in
+                        Text("Enter custom model").tag("custom")
+
+                    }.onReceive([self.selectedGptModel].publisher.first()) { newValue in
+                        if newValue == "custom" {
+                            self.isCustomGptModel = true
+                        } else {
+                            self.isCustomGptModel = false
+                        }
+
                         if self.gptModel != self.previousGptModel {
                             self.lampColor = .gray
                             self.previousGptModel = self.gptModel
                         }
+                    }
+                }
+
+                if (self.isCustomGptModel) {
+                    VStack {
+                        TextField("Enter custom model name", text: $gptModel)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                 }
 
@@ -203,7 +230,7 @@ struct PreferencesView: View {
                     Spacer()
                     Button(action: {
                         lampColor = .yellow
-                        testAPIToken(model: gptModel, token: gptToken) { result in
+                        testAPIToken(apiUrl: apiUrl, model: gptModel, token: gptToken) { result in
                             DispatchQueue.main.async {
                                 switch result {
                                 case .success(_):
@@ -307,7 +334,38 @@ struct PreferencesView: View {
                             }
                         }
                     }
+                }
+                Spacer()
+                VStack {
+                    HStack {
+                        Text("Danger Zone")
+                            .font(.headline)
+                        Spacer()
+                    }
+                    
+                    HStack {
+                        Button(action: {
+                            let alert = NSAlert()
+                            alert.messageText = "Are you sure you want to delete all chats?"
+                            alert.informativeText = "This action cannot be undone. It's recommended to make an export of your chats before deleting them."
+                            alert.alertStyle = .warning
+                            alert.addButton(withTitle: "Delete")
+                            alert.addButton(withTitle: "Cancel")
+                            alert.beginSheetModal(for: NSApp.mainWindow!) { (response) in
+                                if response == .alertFirstButtonReturn {
+                                    store.deleteAllChats()
+                                }
+                            }
+                        }, label: {
+                            Text("Delete all chats").foregroundColor(.red)
+                        })
+                        Spacer()
+                    }
 
+
+                }
+
+                VStack {
                     HStack {
                         Text("More options for ChatGPT API settings are coming soon, stay tuned!")
                             .font(.system(size: 8))
@@ -315,11 +373,15 @@ struct PreferencesView: View {
                     .padding(.top, 20)
                 }
             }
-
+            .padding(16)
         }
-        .padding(16)
-        .frame(width: 420, height: 580)
+        .frame(width: 420, height: 650)
         .onAppear(perform: {
+            if (self.isCustomGptModel) {
+                self.selectedGptModel = "custom"
+            } else {
+                self.selectedGptModel = self.gptModel
+            }
             store.saveInCoreData()
         })
     }

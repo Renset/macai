@@ -150,6 +150,7 @@ class ChatStore: ObservableObject {
             print("Migration from JSON successful")
         }
         catch {
+            UserDefaults.standard.set(true, forKey: migrationKey)
             print("Error migrating chats: \(error)")
         }
 

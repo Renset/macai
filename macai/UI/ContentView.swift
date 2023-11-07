@@ -25,6 +25,7 @@ struct ContentView: View {
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
+    @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
 
     @State private var windowRef: NSWindow?
 
@@ -92,7 +93,16 @@ struct ContentView: View {
             )
 
         }
-        .onAppear(perform: updateOldChatsOnceIssue7)
+        .onAppear(perform: {
+            updateOldChatsOnceIssue7()
+            
+            if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
+                if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
+                    selectedChat = lastOpenedChat
+                }
+            }
+
+        })
         .navigationTitle("Chats")
         .toolbar {
             // Button to hide and display Navigation List
@@ -151,7 +161,10 @@ struct ContentView: View {
 
         do {
             try viewContext.save()
-            selectedChat = newChat
+            // Fix bug when new chat is not selected after creation by using DispatchQueue
+            DispatchQueue.main.async {
+                selectedChat = newChat
+            }
         }
         catch {
             print("Error saving new chat: \(error.localizedDescription)")
