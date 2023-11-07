@@ -152,6 +152,8 @@ struct PreferencesView: View {
                         Text("gpt-4-0314").tag("gpt-4-0314")
                         Text("gpt-4-32k").tag("gpt-4-32k")
                         Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
+                        Text("gpt-4-1106-preview").tag("gpt-4-1106-preview")
+                        Text("gpt-4-vision-preview").tag("gpt-4-vision-preview")
                     }.onReceive([self.gptModel].publisher.first()) { newValue in
                         if self.gptModel != self.previousGptModel {
                             self.lampColor = .gray
