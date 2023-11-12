@@ -19,7 +19,7 @@ struct WelcomeScreen: View {
 
             ZStack {
                 // if new user, show beautiful welcome particles
-                if chatsCount == 0 {
+                if chatsCount == 0 && !gptTokenIsPresent {
                     SceneKitParticlesView()
                         .edgesIgnoringSafeArea(.all)
                 }
@@ -29,6 +29,7 @@ struct WelcomeScreen: View {
 
                     VStack {
                         WelcomeIcon()
+                            .padding(64)
 
                         VStack {
                             Text("Welcome to macai!").font(.title)
@@ -48,6 +49,7 @@ struct WelcomeScreen: View {
                         VStack {
                             if chatsCount == 0 {
                                 WelcomeIcon()
+                                    .padding(64)
                                 Text("No chats were created yet. Create new one?")
                                 Button("Create new chat") {
                                     newChat()
@@ -79,13 +81,14 @@ struct WelcomeIcon: View {
                 state = value.translation
             }
 
-        Image("WelcomePic")
+        Image("WelcomeIcon")
             .resizable()
             .scaledToFit()
-            .frame(maxWidth: 2688, maxHeight: 1792)
-            .shadow(color: Color(red: 65/255, green: 50/255, blue: 145/255), radius: 60, x: -10, y: 10)
-            .shadow(color: Color(red: 51/255, green: 129/255, blue: 191/255), radius: 15, x: 10, y: 15)
-            .shadow(color: Color(red: 81/255, green: 195/255, blue: 228/255), radius: 120, x: 0, y: 20)
+            .frame(maxWidth: 256, maxHeight: 256)
+        
+            .shadow(color: Color(red: 0.86, green: 0.46, blue: 0.00), radius: 60, x: -10, y: 10)
+            .shadow(color: Color(red: 0.98, green: 0.86, blue: 0.29), radius: 30, x: 10, y: 15)
+            .shadow(color: Color(red: 1.00, green: 0.67, blue: 0.00), radius: 60, x: 18, y: -10)
             .rotation3DEffect(
                 Angle(degrees: Double(dragOffset.width / 60)),
                 axis: (x: 0, y: 1, z: 0),
@@ -101,7 +104,6 @@ struct WelcomeIcon: View {
                 perspective: 0.2
             )
             .gesture(dragGesture)
-            .padding(30)
     }
 }
 
