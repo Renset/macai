@@ -1,6 +1,6 @@
 # macai
-<img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"> <img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"> <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"> <img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai">
-<img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"> 
+<a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
+<a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
 macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). 
 
@@ -36,7 +36,7 @@ Contributions are welcomed. Take a look at [macai project page](https://github.c
 
 ### Starting screen
 
-<img width="924" alt="Welcome Screen: an image with abstract robo-austronaut sitting before laptop" src="https://user-images.githubusercontent.com/364877/233807727-3ace9764-010a-4f59-bd87-6743f10b723b.png">
+<img width="1002" alt="Welcome screen of macai ChatGPT client: dark themed window with an icon of happy looking retro-futuristic robot in front of sparkles. Button 'Open Settings' is displayed to allow a user to set her API token" src="https://github.com/Renset/macai/assets/364877/32064592-1fb9-460d-a63b-095d9fbc4c18"  />
 
 ### Customized system message
 An example of custom system message and ChatGPT responses:
@@ -55,8 +55,8 @@ In most cases, tables in ChatGPT repsonses can be formatted as follows:
 <img width="924" alt="An application window with formatted table" src="https://user-images.githubusercontent.com/364877/233807858-97e7dbd5-3051-45bd-bc90-51f7e0123ebc.png">
 
 ### Settings
+<img width="744" alt="Settings window with ChatGPT API settings: API URL, API token and Test API credentials button" src="https://github.com/Renset/macai/assets/364877/7571f78a-f054-4207-ad48-d3ac4f21bdc1" />
 
-<img width="532" alt="A window with settings" src="https://user-images.githubusercontent.com/364877/233808020-aeff883f-1b9d-4d44-8897-edfbf03a8cd3.png">
 
 
 ## License
