@@ -74,6 +74,11 @@ struct ContentView: View {
                     )
                     .contextMenu {
                         Button(action: {
+                            renameChat(chat)
+                        }) {
+                            Label("Rename", systemImage: "pencil")
+                        }
+                        Button(action: {
                             deleteChat(chat)
                         }) {
                             Label("Delete", systemImage: "trash")
@@ -225,6 +230,29 @@ struct ContentView: View {
                 }
             }
         }
+    }
 
+    // Rename chat in popover
+    func renameChat(_ chat: ChatEntity) {
+        let alert = NSAlert()
+        alert.messageText = "Rename chat"
+        alert.informativeText = "Enter new name for this chat"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .informational
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        textField.stringValue = chat.name
+        alert.accessoryView = textField
+        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+            if response == .alertFirstButtonReturn {
+                chat.name = textField.stringValue
+                do {
+                    try viewContext.save()
+                }
+                catch {
+                    print("Error renaming chat: \(error.localizedDescription)")
+                }
+            }
+        }
     }
 }

@@ -19,6 +19,12 @@ struct MessageCell: View {
 
                 Text(timestamp, style: .date)
                     .font(.caption)
+                
+                if (chat.name != "") {
+                    Text(chat.name)
+                        .font(.headline)
+                        .animation(.easeInOut(duration: 0.5))
+                }
 
                 // Show last message as truncated text
                 Text(message)
