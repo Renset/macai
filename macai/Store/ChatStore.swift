@@ -72,6 +72,7 @@ class ChatStore: ObservableObject {
                     chatEntity.requestMessages = oldChat.requestMessages
                     chatEntity.gptModel = oldChat.gptModel ?? AppConstants.chatGptDefaultModel
                     chatEntity.systemMessage = oldChat.systemMessage ?? AppConstants.chatGptSystemMessage
+                    chatEntity.name = oldChat.name ?? ""
                     
                     for oldMessage in oldChat.messages {
                         let messageEntity = MessageEntity(context: self.viewContext)

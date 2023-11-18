@@ -8,9 +8,10 @@
 import SwiftUI
 
 struct GeneralSettingsView: View {
-    @Binding var gptToken: String
-    @Binding var apiUrl: String
-    @Binding var chatContext: Double
+    @AppStorage("gptToken") var gptToken: String = ""
+    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
+    @AppStorage("chatContext") var chatContext: Double = AppConstants.chatGptContextSize
+    @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @Binding var lampColor: Color
     @FocusState private var isFocused: Bool
 
@@ -93,6 +94,24 @@ struct GeneralSettingsView: View {
                 ButtonTestApiTokenAndModel(lampColor: $lampColor)
             }
             .padding(.top, 16)
+
+            VStack {
+                    Toggle(isOn: $useChatGptForNames) {
+                        HStack {
+                            Text("Automatically generate chat names")
+                            Button(action: {
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help("Chat name will be generated based on chat messages. To reduce API costs, model chat-gpt-3.5-turbo will be used for this purpose.")
+
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
 
         }
         .padding(32)

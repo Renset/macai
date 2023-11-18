@@ -22,6 +22,7 @@ struct ChatView: View {
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
+    @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
 
     let url = URL(string: AppConstants.apiUrlChatCompletions)
 
@@ -172,8 +173,37 @@ extension ChatView {
         }
         
         let request = prepareRequest(with: messageBody)
+        self.waitingForResponse = true
+
         send(using: request) { data, response, error in
             processResponse(with: data, response: response, error: error)
+            generateChatNameIfNeeded()
+        }
+    }
+
+    private func generateChatNameIfNeeded() {
+        guard self.chat.name == "", useChatGptForNames, self.chat.messages.count > 0 else {
+            #if DEBUG
+            print("Chat name not needed, skipping generation")
+            #endif
+            return }
+
+        let requestContent = "Return a short chat name for this chat based on the previous message content and system message if it's not default. Start chat name with one appropriate emoji"
+        let request = prepareRequest(with: requestContent, model: "gpt-3.5-turbo")
+
+        send(using: request) { data, response, error in
+            DispatchQueue.main.async {
+                guard let data = data else { return }
+
+                guard let (messageContent, _) = parseJSONResponse(data: data) else {
+                    print("Error parsing JSON")
+                    return
+                }
+
+                let chatName = messageContent.trimmingCharacters(in: .whitespacesAndNewlines)
+                self.chat.name = chatName
+                self.viewContext.saveWithRetry(attempts: 3)
+            }
         }
     }
     
@@ -192,7 +222,7 @@ extension ChatView {
         newMessage = ""
     }
     
-    private func prepareRequest(with messageBody: String) -> URLRequest {
+    private func prepareRequest(with messageBody: String, model: String = "") -> URLRequest {
         var request = URLRequest(url: url!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
@@ -211,7 +241,7 @@ extension ChatView {
         chat.requestMessages.append(["role": "user", "content": messageBody ])
 
         let jsonDict: [String: Any] = [
-            "model": gptModel,
+            "model": (model != "") ? model : gptModel,
             "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(Int(chatContext) > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : Int(chatContext)))
         ]
 
@@ -225,7 +255,6 @@ extension ChatView {
         configuration.timeoutIntervalForRequest = AppConstants.requestTimeout
 
         let session = URLSession(configuration: configuration)
-        waitingForResponse = true
 
         let task = session.dataTask(with: request) { data, response, error in
             completion(data, response, error)
@@ -311,74 +340,8 @@ extension ChatView {
         print("Value of choices[\(self.chat.requestMessages.count - 1)].message.content: \(content)")
         #endif
     }
-    
-    private func processResponseOld(with data: Data?, response: URLResponse?, error: Error?) {
-        DispatchQueue.main.async {
-            self.waitingForResponse = false
-            if let error = error {
-                print("Error: \(error)")
-                self.lastMessageError = true
-                return
-            }
-
-            guard let data = data else {
-                print("No data returned from API")
-                self.lastMessageError = true
-                return
-            }
-
-            if let responseString = String(data: data, encoding: .utf8) {
-                #if DEBUG
-                print("Response: \(responseString)")
-                #endif
-                
-                do {
-                    let json = try JSONSerialization.jsonObject(with: data, options: [])
-                    if let dict = json as? [String: Any],
-                        let choices = dict["choices"] as? [[String: Any]],
-                        let lastIndex = choices.indices.last,
-                        let content = choices[lastIndex]["message"] as? [String: Any],
-                        let messageRole = content["role"] as? String,
-                        let messageContent = content["content"] as? String
-                    {
-                        let receivedMessage = MessageEntity(context: self.viewContext)
-                        receivedMessage.id = Int64(self.chat.messages.count + 1)
-                        receivedMessage.name = "ChatGPT"
-                        receivedMessage.body = messageContent.trimmingCharacters(in: .whitespacesAndNewlines)
-                        receivedMessage.timestamp = Date()
-                        receivedMessage.own = false
-                        receivedMessage.chat = self.chat
-
-                        self.lastMessageError = false
-
-                        self.chat.updatedDate = Date()
-                        self.chat.addToMessages(receivedMessage)
-    
-                        self.viewContext.saveWithRetry(attempts: 3)
-                        
-                        self.chat.requestMessages.append(["role": messageRole, "content": messageContent])
-
-                        self.chat.objectWillChange.send()
-                        
-                        #if DEBUG
-                        print("Value of choices[\(lastIndex)].message.content: \(messageContent)")
-                        #endif
-                    }
-                }
-                catch {
-                    print("Error parsing JSON: \(error.localizedDescription)")
-                    self.lastMessageError = true
-                }
-            }
-            else if let error = error {
-                print("Error fetching data: \(error.localizedDescription)")
-                self.lastMessageError = true
-            }
-        }
-    }
 
 }
-
 
 //struct ChatView_Previews: PreviewProvider {
 //    static var previews: some View {

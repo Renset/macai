@@ -20,18 +20,12 @@ struct APIRequestData: Codable {
 }
 
 struct PreferencesView: View {
-    @AppStorage("gptToken") var gptToken: String = ""
-    @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
-    @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
-    @AppStorage("chatContext") var chatContext: Double = AppConstants.chatGptContextSize
-    @AppStorage("isCustomGptModel") var isCustomGptModel: Bool = false
-    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @State private var lampColor: Color = .gray
 
     var body: some View {
         TabView {
-            GeneralSettingsView(gptToken: $gptToken, apiUrl: $apiUrl, chatContext: $chatContext, lampColor: $lampColor)
+            GeneralSettingsView(lampColor: $lampColor)
                 .tabItem {
                     Label("ChatGPT API", systemImage: "gearshape")
                 }
@@ -51,7 +45,7 @@ struct PreferencesView: View {
                     Label("Danger Zone", systemImage: "flame.fill")
                 }
         }
-        .frame(width: 600, height: 380)
+        .frame(width: 600, height: 420)
         .padding()
         .onAppear(perform: {
             store.saveInCoreData()
