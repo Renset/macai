@@ -23,7 +23,7 @@ struct MessageCell: View {
                 if (chat.name != "") {
                     Text(chat.name)
                         .font(.headline)
-                        .animation(.easeInOut(duration: 0.5))
+                        .animation(Animation.easeInOut(duration: 0.5))
                 }
 
                 // Show last message as truncated text

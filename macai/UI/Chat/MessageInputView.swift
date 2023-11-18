@@ -37,7 +37,7 @@ struct MessageInputView: View {
             .padding(8)
 
         }
-        .frame(height: 64)
+        .frame(height: text.count > 250 ? 128 : text.count > 50 ? 64 : 32)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(
@@ -49,7 +49,6 @@ struct MessageInputView: View {
         .onTapGesture {
             isFocused = .focused
         }
-
     }
 }
 
