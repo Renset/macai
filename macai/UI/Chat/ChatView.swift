@@ -188,7 +188,7 @@ extension ChatView {
             #endif
             return }
 
-        let requestContent = "Return a short chat name for this chat based on the previous message content and system message if it's not default. Start chat name with one appropriate emoji"
+        let requestContent = "Return a short chat name as summary for this chat based on the previous message content and system message if it's not default. Start chat name with one appropriate emoji. Don't answer to my message, just generate a name."
         let request = prepareRequest(with: requestContent, model: "gpt-3.5-turbo")
 
         send(using: request) { data, response, error in

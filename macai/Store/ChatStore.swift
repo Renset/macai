@@ -25,7 +25,7 @@ class ChatStore: ObservableObject {
     func saveInCoreData() {
         DispatchQueue.main.async {
             do {
-                try self.viewContext.save()
+                try  self.viewContext.saveWithRetry(attempts: 3)
             } catch {
                 print("[Warning] Couldn't save to store")
             }

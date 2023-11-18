@@ -72,12 +72,13 @@ struct ContentView: View {
                         message: messageBody,
                         isActive: isActive
                     )
-                    .contextMenu {
+                    .contextMenu {                        
                         Button(action: {
                             renameChat(chat)
                         }) {
                             Label("Rename", systemImage: "pencil")
                         }
+                        Divider()
                         Button(action: {
                             deleteChat(chat)
                         }) {
@@ -96,7 +97,6 @@ struct ContentView: View {
                 openPreferencesView: openPreferencesView,
                 newChat: newChat
             )
-
         }
         .onAppear(perform: {
             updateOldChatsOnceIssue7()

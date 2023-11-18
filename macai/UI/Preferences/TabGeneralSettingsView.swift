@@ -55,7 +55,7 @@ struct GeneralSettingsView: View {
                     TextField("Paste your token here", text: $gptToken)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .focused($isFocused)
-                        .blur(radius: !gptToken.isEmpty && !isFocused ? 3 : 0.0, opaque: true)
+                        .blur(radius: !gptToken.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
                 }
             }
 
