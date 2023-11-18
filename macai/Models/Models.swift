@@ -22,6 +22,7 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var updatedDate: Date
     @NSManaged public var systemMessage: String
     @NSManaged public var gptModel: String
+    @NSManaged public var name: String
     
     func addToMessages(_ value: MessageEntity) {
         let items = self.mutableSetValue(forKey: "messages")
@@ -83,6 +84,7 @@ struct Chat: Codable {
     var newMessage: String?
     var gptModel: String?
     var systemMessage: String?
+    var name: String?
 
     init(chatEntity: ChatEntity) {
         self.id = chatEntity.id
@@ -94,6 +96,7 @@ struct Chat: Codable {
         self.requestMessages = chatEntity.requestMessages
         self.gptModel = chatEntity.gptModel
         self.systemMessage = chatEntity.systemMessage
+        self.name = chatEntity.name
 
         if let messageEntities = chatEntity.messages as? Set<MessageEntity> {
             self.messages = messageEntities.map { Message(messageEntity: $0) }

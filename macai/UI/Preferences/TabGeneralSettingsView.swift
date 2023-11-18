@@ -44,7 +44,6 @@ struct GeneralSettingsView: View {
                         }) {
                             Text("Reset to default")
                         }
-
                     }
                 }
 
@@ -56,7 +55,6 @@ struct GeneralSettingsView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .focused($isFocused)
                         .blur(radius: !gptToken.isEmpty && !isFocused ? 3 : 0.0, opaque: true)
-
                 }
             }
 

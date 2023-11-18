@@ -155,7 +155,7 @@ struct ChatView: View {
 
         }
         .background(backgroundColor)
-        .navigationTitle("ChatGPT")
+        .navigationTitle(chat.name != "" ? chat.name : "ChatGPT")
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
