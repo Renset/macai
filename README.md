@@ -2,7 +2,7 @@
 <a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
 <a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
-macai (macOS AI) is a simple yet powerful native macOS client made with the help of ChatGPT to interact with modern AI tools (currently, only ChatGPT is supported). 
+macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI tools (currently, only ChatGPT is supported). 
 
 > Please note that macai can currently work only with your API token for ChatGPT. See how you can get your own token [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key)
 
@@ -52,11 +52,10 @@ The syntax of the code provided in ChatGPT response will be highlighted ([185 la
 ### Table formatting
 In most cases, tables in ChatGPT repsonses can be formatted as follows:
 
-<img width="924" alt="An application window with formatted table" src="https://user-images.githubusercontent.com/364877/233807858-97e7dbd5-3051-45bd-bc90-51f7e0123ebc.png">
+<img width="986" alt="An application window with formatted table" src="https://github.com/Renset/macai/assets/364877/8d92ecf1-e574-4cc4-ad7d-392d52e48241">
 
 ### Settings
-<img width="744" alt="Settings window with ChatGPT API settings: API URL, API token and Test API credentials button" src="https://github.com/Renset/macai/assets/364877/7571f78a-f054-4207-ad48-d3ac4f21bdc1" />
-
+<img width="744" alt="Settings window with ChatGPT API settings: API URL, API token and Test API credentials button" src="https://github.com/Renset/macai/assets/364877/817b224d-ccae-4f95-a36e-4d30c2c65fc8" />
 
 
 ## License
