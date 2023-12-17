@@ -37,7 +37,7 @@ struct MessageInputView: View {
             .padding(8)
 
         }
-        .frame(height: text.count > 250 ? 128 : text.count > 80 ? 64 : 32)
+        .frame(height: getFrameHeight(inputText: text))
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(
@@ -50,6 +50,28 @@ struct MessageInputView: View {
             isFocused = .focused
         }
     }
+}
+
+private func getFrameHeight(inputText: String) -> CGFloat? {
+    if inputText.count > 250 {
+        return 96
+    }
+    
+    if inputText.count > 120 {
+        return 64
+    }
+    
+    if inputText.count > 80 {
+        return 48
+    }
+    
+    let lineBreakCount = inputText.split(separator: "\n", maxSplits: 6, omittingEmptySubsequences: false).count - 1
+    
+    if lineBreakCount > 0 {
+        return 32 + CGFloat(lineBreakCount * 16)
+    }
+    
+    return 32
 }
 
 extension Binding {
