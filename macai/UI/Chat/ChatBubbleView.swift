@@ -23,6 +23,7 @@ struct ChatBubbleView: View {
     @State var waitingForResponse: Bool?
     @State var error = false
     @State var initialMessage = false
+    @State var isStreaming: Bool?
     @State private var isPencilIconVisible = false
     @State private var wobbleAmount = 0.0
     @Environment(\.colorScheme) var colorScheme
@@ -81,7 +82,6 @@ struct ChatBubbleView: View {
                     ForEach(0..<elements.count, id: \.self) { index in
                         switch elements[index] {
                         case .text(let text):
-
                             Text(.init(text))
                                 .textSelection(.enabled)
                         case .table(let header, let data):
@@ -133,7 +133,27 @@ struct ChatBubbleView: View {
             )
             .cornerRadius(16)
             if !own {
+                
+                //if isStreaming ?? false {
+                    // TODO: uncomment when state update is fixed
+//                    VStack {
+//                        Image(systemName: "pencil")
+//                            .foregroundColor(.blue)
+//                            .offset(x: wobbleAmount, y: 0)
+//                            .padding(.top, 8)
+//                            .rotationEffect(.degrees(-wobbleAmount * 0.8))
+//                            .animation(
+//                                .easeIn(duration: 0.3).repeatForever(autoreverses: true),
+//                                value: wobbleAmount
+//                            )
+//                            .onAppear {
+//                                wobbleAmount = 5
+//                            }
+//                        Spacer()
+//                    }
+                //}
                 Spacer()
+                
             }
         }
         .contextMenu {

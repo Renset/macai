@@ -13,6 +13,7 @@ struct AppConstants {
     static let chatGptDefaultModel = "gpt-3.5-turbo"
     static let chatGptContextSize: Double = 10
     static let chatGptSystemMessage: String = String(format: "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible. Knowledge cutoff: 2021-09-01. Current date: %@", getCurrentFormattedDate())
+    static let chatGptGenerateChatInstruction: String = "Return a short chat name as summary for this chat based on the previous message content and system message if it's not default. Start chat name with one appropriate emoji. Don't answer to my message, just generate a name."
 }
 
 func getCurrentFormattedDate() -> String {

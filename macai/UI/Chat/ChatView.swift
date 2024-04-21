@@ -21,11 +21,13 @@ struct ChatView: View {
     @State private var lastMessageError = false
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
+    @State private var isStreaming: Bool = false
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
+    @AppStorage("useStream") var useStream: Bool = true
 
     let url = URL(string: AppConstants.apiUrlChatCompletions)
-
+    
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
     #else
@@ -62,7 +64,8 @@ struct ChatView: View {
                                     message: messageEntity.body,
                                     index: Int(messageEntity.id),
                                     own: messageEntity.own,
-                                    waitingForResponse: false
+                                    waitingForResponse: false,
+                                    isStreaming: isStreaming
                                 ).id(Int64(messageEntity.id))
                             }
                         }
@@ -79,7 +82,9 @@ struct ChatView: View {
                                             Text("Ignore")
                                             Image(systemName: "multiply")
                                         }
-                                        Button(action: {sendMessage(ignoreMessageInput: true)}) {
+                                        Button(action: {
+                                            sendMessage(ignoreMessageInput: true)}
+                                        ) {
                                             Text("Retry")
                                             Image(systemName: "arrow.clockwise")
                                         }
@@ -165,6 +170,60 @@ struct ChatView: View {
 }
 
 extension ChatView {
+    private func processDeltaResponse(with data: Data?) {
+        guard let data = data else {
+            print("No data received.")
+            return
+        }
+        
+        let dataString = String(data: data, encoding: .utf8)
+        if (dataString == "[DONE]") {
+            handleChatCompletion()
+            return
+        } else {
+            print(dataString)
+        }
+        
+        do {
+            let jsonResponse = try JSONSerialization.jsonObject(with: data, options: [])
+            guard let dictionary = jsonResponse as? [String: Any],
+                  let choices = dictionary["choices"] as? [[String: Any]],
+                  let firstChoice = choices.first else {
+                print("Failed to parse JSON correctly")
+                return
+            }
+            
+            if let delta = firstChoice["delta"] as? [String: String],
+               let contentPart = delta["content"] {
+                self.isStreaming = true
+                DispatchQueue.main.async {
+                    self.updateUIWithResponse(content: contentPart, role: "assistant")
+                }
+            }
+            
+            if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
+                handleChatCompletion()
+            }
+        } catch {
+            print(String(data: data, encoding: .utf8))
+            print("Error parsing JSON: \(error)")
+        }
+    }
+    
+    private func handleChatCompletion() {
+        print("Chat interaction completed.")
+        DispatchQueue.main.async {
+            self.resetCurrentMessage()
+            // TODO: force the child view for update to reflect the new state
+            self.isStreaming = false
+            generateChatNameIfNeeded()
+        }
+    }
+    
+    func resetCurrentMessage() {
+        self.viewContext.rollback()
+    }
+
     func sendMessage(ignoreMessageInput: Bool = false) {
         let messageBody = newMessage
         
@@ -175,11 +234,63 @@ extension ChatView {
         let request = prepareRequest(with: messageBody)
         self.waitingForResponse = true
 
-        send(using: request) { data, response, error in
-            processResponse(with: data, response: response, error: error)
-            generateChatNameIfNeeded()
+        if useStream {
+            Task {
+                do {
+                    Task {
+                        let request = prepareRequest(with: messageBody)
+                        try? await sendAsync(using: request) { data in
+                            self.processDeltaResponse(with: data)
+                        }
+                    }
+                } catch {
+                    print("An error occurred: \(error)")
+                }
+            }
+        } else {
+            send(using: request) { data, response, error in
+                processResponse(with: data, response: response, error: error)
+                generateChatNameIfNeeded()
+            }
         }
     }
+
+    private func sendAsync(using request: URLRequest, processLine: @escaping (Data) -> Void) async throws {
+        let (stream, response) = try await URLSession.shared.bytes(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 200...299:
+                    #if DEBUG
+                    print("Got successful response code from server")
+                    #endif
+                case 400...599:
+                    self.waitingForResponse = false
+                    self.lastMessageError = true
+                    return
+                default:
+                    print("Unhandled status code: \(httpResponse.statusCode)")
+                    return
+                }
+            } else {
+                throw URLError(.badServerResponse)
+            }
+        for try await line in stream.lines {
+            if let lineData = line.data(using: .utf8) {
+                let prefix = "data: "
+                var index = line.startIndex
+                if line.starts(with: prefix) {
+                    index = line.index(line.startIndex, offsetBy: prefix.count)
+                }
+                let jsonData = String(line[index...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                if let jsonData = jsonData.data(using: .utf8) {
+                    processLine(jsonData)  // Process the JSON data
+                    self.waitingForResponse = false
+                }
+            }
+
+        }
+    }
+
 
     private func generateChatNameIfNeeded() {
         guard self.chat.name == "", useChatGptForNames, self.chat.messages.count > 0 else {
@@ -188,8 +299,8 @@ extension ChatView {
             #endif
             return }
 
-        let requestContent = "Return a short chat name as summary for this chat based on the previous message content and system message if it's not default. Start chat name with one appropriate emoji. Don't answer to my message, just generate a name."
-        let request = prepareRequest(with: requestContent, model: "gpt-3.5-turbo")
+        let requestContent = AppConstants.chatGptGenerateChatInstruction
+        let request = prepareRequest(with: requestContent, model: "gpt-3.5-turbo", forceStreamFalse: true)
 
         send(using: request) { data, response, error in
             DispatchQueue.main.async {
@@ -203,6 +314,15 @@ extension ChatView {
                 let chatName = messageContent.trimmingCharacters(in: .whitespacesAndNewlines)
                 self.chat.name = chatName
                 self.viewContext.saveWithRetry(attempts: 3)
+                
+                // remove 'generate chat name' instruction from requestMessages
+                #if DEBUG
+                print("Length of requestMessages before deletion: \(self.chat.requestMessages.count)")
+                #endif
+                self.chat.requestMessages = self.chat.requestMessages.filter { $0["content"] != AppConstants.chatGptGenerateChatInstruction }
+                #if DEBUG
+                print("Length of requestMessages after deletion: \(self.chat.requestMessages.count)")
+                #endif
             }
         }
     }
@@ -222,7 +342,7 @@ extension ChatView {
         newMessage = ""
     }
     
-    private func prepareRequest(with messageBody: String, model: String = "") -> URLRequest {
+    private func prepareRequest(with messageBody: String, model: String = "", forceStreamFalse: Bool = false) -> URLRequest {
         var request = URLRequest(url: url!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
@@ -242,6 +362,7 @@ extension ChatView {
 
         let jsonDict: [String: Any] = [
             "model": (model != "") ? model : gptModel,
+            "stream": forceStreamFalse ? false : useStream,
             "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(Int(chatContext) > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : Int(chatContext)))
         ]
 
@@ -320,6 +441,29 @@ extension ChatView {
     }
 
     private func updateUIWithResponse(content: String, role: String) {
+        if useStream {
+            let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
+                if let lastMessage = sortedMessages.last {
+                    if lastMessage.own {
+                        addNewMessageToChat(content: content, role: role)
+                    } else {
+                        lastMessage.body += content
+                        lastMessage.own = false
+                        lastMessage.timestamp = Date()
+                        lastMessage.waitingForResponse = false
+                        // Force the view to update
+                        self.chat.objectWillChange.send()
+                        self.viewContext.saveWithRetry(attempts: 3)
+                    }
+                }
+            
+        } else {
+            addNewMessageToChat(content: content, role: role)
+        }
+
+    }
+
+    private func addNewMessageToChat(content: String, role: String) {
         let receivedMessage = MessageEntity(context: self.viewContext)
         receivedMessage.id = Int64(self.chat.messages.count + 1)
         receivedMessage.name = "ChatGPT"
