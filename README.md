@@ -44,7 +44,8 @@ Run with Ollama is very easy:
 1. Install Ollama from the [official website](https://ollama.com)
 2. Follow installation guides
 3. After installation, select model (llama3 is recommended) and run ollama using command: `ollama run llama3`
-4. In macai LLM settings, set ChatGPT/LLM API Url to `http://localhost:11434/api/chat`
+4. In macai LLM settings, set ChatGPT/LLM API Url to `http://localhost:11434/api/chat`:
+   ![CleanShot 2024-04-22 at 17 16 18@2x](https://github.com/Renset/macai/assets/364877/40b5736f-ae7b-48a4-bc46-0ca81272127b)
 5. In macai New Chat settings, set model to `llama3`
 6. Changing default instructions is recommended
 7. Test and enjoy! 
