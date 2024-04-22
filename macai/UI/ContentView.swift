@@ -26,6 +26,7 @@ struct ContentView: View {
     @AppStorage("gptModel") var gptModel = "gpt-3.5-turbo"
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
+    @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlChatCompletions
 
     @State private var windowRef: NSWindow?
 
@@ -94,6 +95,7 @@ struct ContentView: View {
             WelcomeScreen(
                 chatsCount: chats.count,
                 gptTokenIsPresent: gptToken != "",
+                customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
                 openPreferencesView: openPreferencesView,
                 newChat: newChat
             )

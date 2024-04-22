@@ -27,7 +27,7 @@ struct PreferencesView: View {
         TabView {
             GeneralSettingsView(lampColor: $lampColor)
                 .tabItem {
-                    Label("ChatGPT API", systemImage: "gearshape")
+                    Label("LLM Settings", systemImage: "gearshape")
                 }
 
             ChatSettingsView(lampColor: $lampColor)

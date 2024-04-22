@@ -25,8 +25,7 @@ struct ChatView: View {
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @AppStorage("useStream") var useStream: Bool = true
-
-    let url = URL(string: AppConstants.apiUrlChatCompletions)
+    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
@@ -161,7 +160,7 @@ struct ChatView: View {
 
         }
         .background(backgroundColor)
-        .navigationTitle(chat.name != "" ? chat.name : "ChatGPT")
+        .navigationTitle(chat.name != "" ? chat.name : apiUrl == AppConstants.apiUrlChatCompletions ? "ChatGPT" : "macai LLM chat")
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
@@ -186,24 +185,38 @@ extension ChatView {
         
         do {
             let jsonResponse = try JSONSerialization.jsonObject(with: data, options: [])
-            guard let dictionary = jsonResponse as? [String: Any],
-                  let choices = dictionary["choices"] as? [[String: Any]],
-                  let firstChoice = choices.first else {
-                print("Failed to parse JSON correctly")
-                return
-            }
             
-            if let delta = firstChoice["delta"] as? [String: String],
-               let contentPart = delta["content"] {
-                self.isStreaming = true
-                DispatchQueue.main.async {
-                    self.updateUIWithResponse(content: contentPart, role: "assistant")
+            if let dict = jsonResponse as? [String: Any] {
+                // ChatGPT-compatible API
+                if let choices = dict["choices"] as? [[String: Any]],
+                   let firstChoice = choices.first,
+                   let delta = firstChoice["delta"] as? [String: String],
+                   let contentPart = delta["content"] {
+                    self.isStreaming = true
+                    DispatchQueue.main.async {
+                        self.updateUIWithResponse(content: contentPart, role: "assistant")
+                    }
+                    if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
+                        handleChatCompletion()
+                    }
+                }
+                
+                // Ollama-compatible API
+                if let message = dict["message"] as? [String: Any],
+                   let messageRole = message["role"] as? String,
+                   let done = dict["done"] as? Bool,
+                   let messageContent = message["content"] as? String {
+                    self.isStreaming = true
+                    DispatchQueue.main.async {
+                        self.updateUIWithResponse(content: messageContent, role: messageRole)
+                    }
+                    
+                    if done {
+                        handleChatCompletion()
+                    }
                 }
             }
-            
-            if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
-                handleChatCompletion()
-            }
+               
         } catch {
             print(String(data: data, encoding: .utf8))
             print("Error parsing JSON: \(error)")
@@ -300,7 +313,7 @@ extension ChatView {
             return }
 
         let requestContent = AppConstants.chatGptGenerateChatInstruction
-        let request = prepareRequest(with: requestContent, model: "gpt-3.5-turbo", forceStreamFalse: true)
+        let request = prepareRequest(with: requestContent, forceStreamFalse: true)
 
         send(using: request) { data, response, error in
             DispatchQueue.main.async {
@@ -343,7 +356,7 @@ extension ChatView {
     }
     
     private func prepareRequest(with messageBody: String, model: String = "", forceStreamFalse: Bool = false) -> URLRequest {
-        var request = URLRequest(url: url!)
+        var request = URLRequest(url: URL(string: apiUrl)!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -422,14 +435,22 @@ extension ChatView {
             #endif
             do {
                 let json = try JSONSerialization.jsonObject(with: data, options: [])
-                if let dict = json as? [String: Any],
-                    let choices = dict["choices"] as? [[String: Any]],
-                    let lastIndex = choices.indices.last,
-                    let content = choices[lastIndex]["message"] as? [String: Any],
-                    let messageRole = content["role"] as? String,
-                    let messageContent = content["content"] as? String
-                {
-                    return (messageContent, messageRole)
+                if let dict = json as? [String: Any] {
+                    // ChatGPT-compatible API
+                    if let choices = dict["choices"] as? [[String: Any]],
+                       let lastIndex = choices.indices.last,
+                       let content = choices[lastIndex]["message"] as? [String: Any],
+                       let messageRole = content["role"] as? String,
+                       let messageContent = content["content"] as? String {
+                        return (messageContent, messageRole)
+                    }
+                    
+                    // ChatGPT-compatible API
+                    if let message = dict["message"] as? [String: Any],
+                       let messageRole = message["role"] as? String,
+                       let messageContent = message["content"] as? String {
+                        return (messageContent, messageRole)
+                    }
                 }
             }
             catch {

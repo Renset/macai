@@ -20,7 +20,7 @@ struct GeneralSettingsView: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack {
                 HStack {
-                    Text("ChatGPT API Settings")
+                    Text("LLM API Settings")
                         .font(.headline)
 
                     Spacer()
@@ -35,7 +35,7 @@ struct GeneralSettingsView: View {
 
                 VStack {
                     HStack {
-                        Text("ChatGPT API URL:")
+                        Text("ChatGPT/LLM API URL:")
                             .frame(width: 160, alignment: .leading)
 
                         TextField("Paste your URL here", text: $apiUrl)
@@ -99,14 +99,14 @@ struct GeneralSettingsView: View {
             VStack {
                     Toggle(isOn: $useChatGptForNames) {
                         HStack {
-                            Text("Automatically generate chat names")
+                            Text("Automatically generate chat names (using selected model)")
                             Button(action: {
                             }) {
                                 Image(systemName: "questionmark.circle")
                                     .foregroundColor(.blue)
                             }
                             .buttonStyle(PlainButtonStyle())
-                            .help("Chat name will be generated based on chat messages. To reduce API costs, model chat-gpt-3.5-turbo will be used for this purpose.")
+                            .help("Chat name will be generated based on chat messages. Selected model will be used to generate chat name")
 
                             Spacer()
                         }

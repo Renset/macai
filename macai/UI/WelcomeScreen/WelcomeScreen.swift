@@ -10,6 +10,7 @@ import SwiftUI
 struct WelcomeScreen: View {
     var chatsCount: Int
     var gptTokenIsPresent: Bool
+    var customUrl: Bool
     let openPreferencesView: () -> Void
     let newChat: () -> Void
     
@@ -109,6 +110,6 @@ struct WelcomeIcon: View {
 
 struct WelcomeScreen_Previews: PreviewProvider {
     static var previews: some View {
-        WelcomeScreen(chatsCount: 0, gptTokenIsPresent: true, openPreferencesView: {}, newChat: {})
+        WelcomeScreen(chatsCount: 0, gptTokenIsPresent: true, customUrl: false, openPreferencesView: {}, newChat: {})
     }
 }

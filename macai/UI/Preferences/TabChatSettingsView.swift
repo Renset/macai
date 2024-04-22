@@ -36,7 +36,7 @@ struct ChatSettingsView: View {
 
                 HStack {
                     // Select model
-                    Text("ChatGPT Model:")
+                    Text("LLM Model:")
                         .frame(width: 160, alignment: .leading)
 
                     Picker("", selection: $selectedGptModel) {
@@ -49,6 +49,7 @@ struct ChatSettingsView: View {
                         Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
                         Text("gpt-4-1106-preview").tag("gpt-4-1106-preview")
                         Text("gpt-4-vision-preview").tag("gpt-4-vision-preview")
+                        Text("llama3").tag("llama3")
                         Text("Enter custom model").tag("custom")
                     }.onChange(of: selectedGptModel) { newValue in
                         if (newValue == "custom") {
@@ -85,7 +86,7 @@ struct ChatSettingsView: View {
 
                 VStack {
                     HStack {
-                        Text("ChatGPT system message:")
+                        Text("System message:")
                             .frame(alignment: .leading)
                         Spacer()
                     }
