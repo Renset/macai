@@ -44,6 +44,7 @@ struct ChatSettingsView: View {
                         Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
                         Text("gpt-4-turbo").tag("gpt-4-turbo")
                         Text("gpt-4").tag("gpt-4")
+                        Text("gpt-4o").tag("gpt-4o")
                         Text("gpt-4-0314").tag("gpt-4-0314")
                         Text("gpt-4-32k").tag("gpt-4-32k")
                         Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
