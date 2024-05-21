@@ -22,6 +22,7 @@ struct ChatView: View {
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
     @State private var isStreaming: Bool = false
+    @State private var isHovered = false
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @AppStorage("useStream") var useStream: Bool = true
@@ -41,22 +42,31 @@ struct ChatView: View {
                 // Add the new scroll view reader as a child to the scrollview
                 ScrollViewReader { scrollView in
                     VStack(spacing: 12) {
-                        ChatBubbleView(message: "Model: \(chat.gptModel)", index: 0, own: true, waitingForResponse: false, initialMessage: true)
-                        ChatBubbleView(message: "System message: \(chat.systemMessage)", index: 0, own: true, waitingForResponse: false, initialMessage: true)
-                        
-                        if (chat.messages.count == 0 && !editSystemMessage) {
+                        Accordion(title: chat.gptModel, isExpanded: chat.messages.count == 0) {
                             HStack {
+                                VStack(alignment: .leading, content: {
+                                    Text("System message: \(chat.systemMessage)")
+                                    if (chat.messages.count == 0 && !editSystemMessage && isHovered) {
+                                        Button(action: {
+                                            newMessage = chat.systemMessage
+                                            editSystemMessage = true
+                                        }) {
+                                            Label("Edit", systemImage: "pencil")
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
+                                        .foregroundColor(.gray)
+                                    }
+                                })
+                                .frame(maxWidth: .infinity)
+                                .padding(-4)
                                 Spacer()
-                                Button(action: {
-                                    newMessage = chat.systemMessage
-                                    editSystemMessage = true
-                                }) {
-                                    Text("Edit system message")
-                                }
                             }
                         }
+                        .frame(maxWidth: .infinity)
+                        .onHover { hovering in
+                            isHovered = hovering
+                        }
 
-                        
                         if chat.messages.count > 0 {
                             ForEach(Array(chat.messages.sorted(by: { $0.id < $1.id })), id: \.self) { messageEntity in
                                 ChatBubbleView(
