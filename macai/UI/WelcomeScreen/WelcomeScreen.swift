@@ -35,8 +35,15 @@ struct WelcomeScreen: View {
                         VStack {
                             Text("Welcome to macai!").font(.title)
                             Text("To get started, please set ChatGPT API token in settings")
-                            Button("Open Settings") {
-                                openPreferencesView()
+                            if #available(macOS 14.0, *) {
+                                SettingsLink {
+                                    Text("Open Settings")
+                                }
+                            }
+                            else {
+                                Button("Open Settings") {
+                                    openPreferencesView()
+                                }
                             }
                         }
                         .padding(.bottom, 60)

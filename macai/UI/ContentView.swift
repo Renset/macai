@@ -135,11 +135,18 @@ struct ContentView: View {
 
             // Button to change settings of the app
             ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    // Open Preferences View
-                    openPreferencesView()
-                }) {
-                    Image(systemName: "gear")
+                if #available(macOS 14.0, *) {
+                    SettingsLink {
+                        Image(systemName: "gear")
+                    }
+                }
+                else {
+                    Button(action: {
+                        // Open Preferences View
+                        openPreferencesView()
+                    }) {
+                        Image(systemName: "gear")
+                    }
                 }
             }
 
@@ -182,24 +189,14 @@ struct ContentView: View {
     
 
     func openPreferencesView() {
-
-        // handle previously opened window here somehow if needed
-        if let curWindow = windowRef {
-            curWindow.makeKeyAndOrderFront(nil)
-            return
+        if #available(macOS 13.0, *) {
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }
-        let w = NSWindow(
-            contentRect: NSRect(x: 100, y: 100, width: 450, height: 400),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        w.center()
-        w.contentView = NSHostingView(rootView: PreferencesView())
-        w.makeKeyAndOrderFront(nil)
-        w.isReleasedWhenClosed = false  // <--- important
-        windowRef = w
+        else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
     }
+    
 
     private func getIndex(for chat: ChatEntity) -> Int {
         if let index = chats.firstIndex(where: { $0.id == chat.id }) {
