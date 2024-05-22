@@ -5,7 +5,7 @@
 macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI tools (ChatGPT- and Ollama-compatible API are supported). 
 
 ## Downloads
-You can download latest signed binary on [Releases](https://github.com/Renset/macai/releases) page. 
+You can download latest binary, notarized by Apple, on [Releases](https://github.com/Renset/macai/releases) page. 
 
 You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
 
