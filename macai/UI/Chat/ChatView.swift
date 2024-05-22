@@ -23,6 +23,7 @@ struct ChatView: View {
     @State private var editSystemMessage: Bool = false
     @State private var isStreaming: Bool = false
     @State private var isHovered = false
+    @State private var currentStreamingMessage: String = ""
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @AppStorage("useStream") var useStream: Bool = true
@@ -185,12 +186,11 @@ extension ChatView {
             return
         }
         
+        let defaultRole = "assistant"
         let dataString = String(data: data, encoding: .utf8)
         if (dataString == "[DONE]") {
-            handleChatCompletion()
+            handleChatCompletion(role: defaultRole)
             return
-        } else {
-            print(dataString)
         }
         
         do {
@@ -203,11 +203,12 @@ extension ChatView {
                    let delta = firstChoice["delta"] as? [String: String],
                    let contentPart = delta["content"] {
                     self.isStreaming = true
+                    self.currentStreamingMessage += contentPart
                     DispatchQueue.main.async {
-                        self.updateUIWithResponse(content: contentPart, role: "assistant")
+                        self.updateUIWithResponse(content: self.currentStreamingMessage, role: defaultRole)
                     }
                     if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
-                        handleChatCompletion()
+                        handleChatCompletion(role: defaultRole)
                     }
                 }
                 
@@ -217,12 +218,13 @@ extension ChatView {
                    let done = dict["done"] as? Bool,
                    let messageContent = message["content"] as? String {
                     self.isStreaming = true
+                    self.currentStreamingMessage += messageContent
                     DispatchQueue.main.async {
-                        self.updateUIWithResponse(content: messageContent, role: messageRole)
+                        self.updateUIWithResponse(content: self.currentStreamingMessage, role: messageRole)
                     }
                     
                     if done {
-                        handleChatCompletion()
+                        handleChatCompletion(role: messageRole)
                     }
                 }
             }
@@ -233,14 +235,20 @@ extension ChatView {
         }
     }
     
-    private func handleChatCompletion() {
+    private func handleChatCompletion(role: String) {
         print("Chat interaction completed.")
         DispatchQueue.main.async {
             self.resetCurrentMessage()
             // TODO: force the child view for update to reflect the new state
             self.isStreaming = false
+            self.addNewMessageToRequestMessages(content: self.currentStreamingMessage, role: role)
+            resetCurrentStreamingMessage()
             generateChatNameIfNeeded()
         }
+    }
+    
+    private func resetCurrentStreamingMessage() {
+        self.currentStreamingMessage = ""
     }
     
     func resetCurrentMessage() {
@@ -254,7 +262,7 @@ extension ChatView {
             saveNewMessageInStore(with: messageBody)
         }
         
-        let request = prepareRequest(with: messageBody)
+        resetCurrentStreamingMessage()
         self.waitingForResponse = true
 
         if useStream {
@@ -271,6 +279,7 @@ extension ChatView {
                 }
             }
         } else {
+            let request = prepareRequest(with: messageBody)
             send(using: request) { data, response, error in
                 processResponse(with: data, response: response, error: error)
                 generateChatNameIfNeeded()
@@ -478,7 +487,7 @@ extension ChatView {
                     if lastMessage.own {
                         addNewMessageToChat(content: content, role: role)
                     } else {
-                        lastMessage.body += content
+                        lastMessage.body = content
                         lastMessage.own = false
                         lastMessage.timestamp = Date()
                         lastMessage.waitingForResponse = false
@@ -487,9 +496,9 @@ extension ChatView {
                         self.viewContext.saveWithRetry(attempts: 3)
                     }
                 }
-            
         } else {
             addNewMessageToChat(content: content, role: role)
+            addNewMessageToRequestMessages(content: content, role: role)
         }
 
     }
@@ -508,12 +517,16 @@ extension ChatView {
         self.chat.updatedDate = Date()
         self.chat.addToMessages(receivedMessage)
         self.viewContext.saveWithRetry(attempts: 3)
-        self.chat.requestMessages.append(["role": role, "content": content])
+        
 
         self.chat.objectWillChange.send()
         #if DEBUG
         print("Value of choices[\(self.chat.requestMessages.count - 1)].message.content: \(content)")
         #endif
+    }
+    
+    private func addNewMessageToRequestMessages(content: String, role: String) {
+        self.chat.requestMessages.append(["role": role, "content": content])
     }
 
 }
