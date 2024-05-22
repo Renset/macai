@@ -518,7 +518,6 @@ extension ChatView {
         self.chat.addToMessages(receivedMessage)
         self.viewContext.saveWithRetry(attempts: 3)
         
-
         self.chat.objectWillChange.send()
         #if DEBUG
         print("Value of choices[\(self.chat.requestMessages.count - 1)].message.content: \(content)")
@@ -527,6 +526,7 @@ extension ChatView {
     
     private func addNewMessageToRequestMessages(content: String, role: String) {
         self.chat.requestMessages.append(["role": role, "content": content])
+        self.viewContext.saveWithRetry(attempts: 3)
     }
 
 }
