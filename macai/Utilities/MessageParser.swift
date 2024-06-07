@@ -23,16 +23,23 @@ struct MessageParser {
         var isCodeBlockOpened = false
         var codeBlockLanguage = ""
         let highlightr = Highlightr()
+        var leadingSpaces = 0
 
         highlightr?.setTheme(to: colorScheme == .dark ? "monokai-sublime" : "color-brewer")
 
         for line in lines {
             if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                // memorize how many leading spaces the line has
+                leadingSpaces = line.count - line.trimmingCharacters(in: .whitespaces).count
                 combineTextLinesIfNeeded()
                 appendTableIfNeeded()
                 toggleCodeBlock(line: line)
             } else if isCodeBlockOpened {
-                codeLines.append(line)
+                if (leadingSpaces > 0) {
+                    codeLines.append(String(line.dropFirst(leadingSpaces)))
+                } else {
+                    codeLines.append(line)
+                }
             }  else if line.trimmingCharacters(in: .whitespaces).first == "|" {
                 handleTableLine(line: line)
             } else {
@@ -50,8 +57,10 @@ struct MessageParser {
                 appendCodeBlockIfNeeded()
                 isCodeBlockOpened = false
                 codeBlockLanguage = ""
+                leadingSpaces = 0
             } else {
-                codeBlockLanguage = line.replacingOccurrences(of: "```", with: "")
+                // extract codeBlockLanguage and remove leading spaces
+                codeBlockLanguage = line.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "```", with: "")
                 isCodeBlockOpened = true
             }
         }
@@ -131,7 +140,7 @@ struct MessageParser {
                     highlightedCode = highlightr?.highlight(combinedCode)
                 }
 
-                elements.append(.code(code: highlightedCode, lang: codeBlockLanguage))
+                elements.append(.code(code: highlightedCode, lang: codeBlockLanguage, indent: leadingSpaces))
                 codeLines = []
             }
         }

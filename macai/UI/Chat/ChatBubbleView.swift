@@ -13,7 +13,7 @@ import SwiftUI
 enum MessageElements {
     case text(String)
     case table(header: [String], data: [[String]])
-    case code(code: NSAttributedString?, lang: String)
+    case code(code: NSAttributedString?, lang: String, indent: Int)
 }
 
 struct ChatBubbleView: View {
@@ -31,6 +31,7 @@ struct ChatBubbleView: View {
     @State private var messageAttributeString: NSAttributedString?
     @State private var attributedStrings: [Int: NSAttributedString] = [:]
     @State private var codeHighlighted: Bool = false
+    @State private var isCopied = false
 
     #if os(macOS)
         var outgoingBubbleColor = NSColor.systemBlue
@@ -87,37 +88,11 @@ struct ChatBubbleView: View {
                         case .table(let header, let data):
                             TableView(header: header, tableData: data)
                                 .padding()
-
-                        case .code(let code, let lang):
-                            VStack {
-                                if lang != "" {
-                                    HStack {
-
-                                        Text(lang)
-                                            .fontWeight(.bold)
-
-                                        Spacer()
-                                    }
-                                    .padding(.bottom, 2)
-                                }
-
-                                VStack {
-
-                                    AttributedText(code ?? NSAttributedString(string: ""))
-                                        .textSelection(.enabled)
-                                        .padding(12)
-
-                                }
-                                .background(
-                                    colorScheme == .dark
-                                        ? Color(NSColor(red: 20 / 255, green: 20 / 255, blue: 20 / 255, alpha: 1))
-                                        : .white
-                                )
-                                .cornerRadius(8)
-
-                            }
-                            .padding(.top, 8)
+                        case .code(let code, let lang, let indent):
+                            CodeView(code: code, lang: lang)
                             .padding(.bottom, 8)
+                            .padding(.leading, CGFloat(indent)*4)
+                            
                         }
                     }
                 }
@@ -160,7 +135,7 @@ struct ChatBubbleView: View {
             Button(action: {
                 copyMessageToClipboard()
             }) {
-                Label("Copy message", systemImage: "doc.on.doc")
+                Label("Copy raw message", systemImage: "doc.on.doc")
             }
         }
     }
