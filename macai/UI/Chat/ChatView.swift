@@ -374,7 +374,7 @@ extension ChatView {
         newMessage = ""
     }
     
-    private func prepareRequest(with messageBody: String, model: String = "", forceStreamFalse: Bool = false) -> URLRequest {
+    private func prepareRequest(with messageBody: String, forceStreamFalse: Bool = false) -> URLRequest {
         var request = URLRequest(url: URL(string: apiUrl)!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
@@ -393,7 +393,7 @@ extension ChatView {
         chat.requestMessages.append(["role": "user", "content": messageBody ])
 
         let jsonDict: [String: Any] = [
-            "model": (model != "") ? model : gptModel,
+            "model": (chat.gptModel != "") ? chat.gptModel : gptModel,
             "stream": forceStreamFalse ? false : useStream,
             "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(Int(chatContext) > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : Int(chatContext)))
         ]
