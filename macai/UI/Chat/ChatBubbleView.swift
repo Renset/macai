@@ -7,7 +7,6 @@
 
 import AttributedText
 import Foundation
-import Highlightr
 import SwiftUI
 
 enum MessageElements {
@@ -23,15 +22,11 @@ struct ChatBubbleView: View {
     @State var waitingForResponse: Bool?
     @State var error = false
     @State var initialMessage = false
-    @State var isStreaming: Bool?
+    @Binding var isStreaming: Bool
     @State private var isPencilIconVisible = false
     @State private var wobbleAmount = 0.0
     @Environment(\.colorScheme) var colorScheme
-
-    @State private var messageAttributeString: NSAttributedString?
-    @State private var attributedStrings: [Int: NSAttributedString] = [:]
-    @State private var codeHighlighted: Bool = false
-    @State private var isCopied = false
+    var viewContext: NSManagedObjectContext
 
     #if os(macOS)
         var outgoingBubbleColor = NSColor.systemBlue
@@ -79,22 +74,7 @@ struct ChatBubbleView: View {
                     }
                 }
                 else {
-                    let elements = MessageParser(colorScheme: colorScheme).parseMessageFromString(input: message)
-                    ForEach(0..<elements.count, id: \.self) { index in
-                        switch elements[index] {
-                        case .text(let text):
-                            Text(.init(text))
-                                .textSelection(.enabled)
-                        case .table(let header, let data):
-                            TableView(header: header, tableData: data)
-                                .padding()
-                        case .code(let code, let lang, let indent):
-                            CodeView(code: code, lang: lang)
-                            .padding(.bottom, 8)
-                            .padding(.leading, CGFloat(indent)*4)
-                            
-                        }
-                    }
+                    MessageContentView(isStreaming: $isStreaming, message: message, colorScheme: colorScheme, viewContext: viewContext)
                 }
             }
             .foregroundColor(error ? Color(.white) : Color(own ? .white : incomingLabelColor))

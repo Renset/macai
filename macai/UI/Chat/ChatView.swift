@@ -7,6 +7,20 @@
 
 import CoreData
 import SwiftUI
+import Combine
+
+class ChatViewModel: ObservableObject {
+    @Published var messages: Set<MessageEntity> = []
+    
+    init(messages: Set<MessageEntity>) {
+        self.messages = messages
+    }
+
+    var sortedMessages: [MessageEntity] {
+        return self.messages.sorted(by: { $0.id < $1.id })
+    }
+}
+
 
 struct ChatView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -28,6 +42,9 @@ struct ChatView: View {
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @AppStorage("useStream") var useStream: Bool = true
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
+    @ObservedObject var chatViewModel: ChatViewModel
+    @State private var renderTime: Double = 0
+    @State private var cancellable: AnyCancellable?
     
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
@@ -37,7 +54,8 @@ struct ChatView: View {
 
 
     var body: some View {
-
+        let chatViewModel = ChatViewModel(messages: chat.messages)
+        
         VStack(spacing: 0) {
             ScrollView {
                 // Add the new scroll view reader as a child to the scrollview
@@ -69,24 +87,26 @@ struct ChatView: View {
                         }
 
                         if chat.messages.count > 0 {
-                            ForEach(Array(chat.messages.sorted(by: { $0.id < $1.id })), id: \.self) { messageEntity in
-                                ChatBubbleView(
-                                    message: messageEntity.body,
-                                    index: Int(messageEntity.id),
-                                    own: messageEntity.own,
-                                    waitingForResponse: false,
-                                    isStreaming: isStreaming
-                                ).id(Int64(messageEntity.id))
+                            VStack {
+                                ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
+                                    ChatBubbleView(
+                                        message: messageEntity.body,
+                                        index: Int(messageEntity.id),
+                                        own: messageEntity.own,
+                                        waitingForResponse: false,
+                                        isStreaming: $isStreaming,
+                                        viewContext: viewContext
+                                    ).id(Int64(messageEntity.id))
+                                }
                             }
                         }
 
                         if waitingForResponse {
-                            ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true).id(-1)
+                            ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true, isStreaming: $isStreaming, viewContext: viewContext).id(-1)
                         } else if lastMessageError {
                             HStack {
-                                
                                 VStack {
-                                    ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: false, error: true)
+                                    ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: false, error: true, isStreaming: $isStreaming, viewContext: viewContext)
                                     HStack {
                                         Button(action: {lastMessageError = false}) {
                                             Text("Ignore")
@@ -106,7 +126,6 @@ struct ChatView: View {
                                 .padding(.bottom, 10)
                                 .id(-1)
                                 Spacer()
-                                
                             }
                         }
 
@@ -131,10 +150,10 @@ struct ChatView: View {
                                 }
                             }
                         }
-
                     }
                 }
             }
+            .modifier(MeasureModifier(renderTime: $renderTime))
 
             // Input field, with multiline support and send button
             HStack {
@@ -175,6 +194,12 @@ struct ChatView: View {
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
+            Self._printChanges()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let startTime = CFAbsoluteTimeGetCurrent()
+                _ = self.body
+                renderTime = CFAbsoluteTimeGetCurrent() - startTime
+            }
         })
     }
 }
@@ -237,9 +262,11 @@ extension ChatView {
     
     private func handleChatCompletion(role: String) {
         print("Chat interaction completed.")
+        self.isStreaming = false
         DispatchQueue.main.async {
             self.resetCurrentMessage()
             // TODO: force the child view for update to reflect the new state
+            self.chat.objectWillChange.send()
             self.isStreaming = false
             self.addNewMessageToRequestMessages(content: self.currentStreamingMessage, role: role)
             resetCurrentStreamingMessage()
@@ -529,6 +556,24 @@ extension ChatView {
         self.viewContext.saveWithRetry(attempts: 3)
     }
 
+}
+
+struct MeasureModifier: ViewModifier {
+    @Binding var renderTime: Double
+    
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                let start = DispatchTime.now()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    let end = DispatchTime.now()
+                    let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
+                    let timeInterval = Double(nanoTime) / 1_000_000 // Convert to milliseconds
+                    renderTime = timeInterval
+                    print("Render time: \(timeInterval) ms")
+                }
+            }
+    }
 }
 
 //struct ChatView_Previews: PreviewProvider {

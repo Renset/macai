@@ -8,11 +8,14 @@
 import Foundation
 import Highlightr
 import SwiftUI
+import CoreData
+import CommonCrypto
 
 struct MessageParser {
     @State var colorScheme: ColorScheme
+    var viewContext: NSManagedObjectContext
     
-    func parseMessageFromString(input: String) -> [MessageElements] {
+    func parseMessageFromString(input: String, shouldSkipCodeHighlighting: Bool) -> [MessageElements] {
         let lines = input.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
         var elements: [MessageElements] = []
         var currentHeader: [String] = []
@@ -134,10 +137,19 @@ struct MessageParser {
                 let combinedCode = codeLines.joined(separator: "\n")
                 let highlightedCode: NSAttributedString?
 
-                if !codeBlockLanguage.isEmpty {
-                    highlightedCode = highlightr?.highlight(combinedCode, as: codeBlockLanguage)
+                if shouldSkipCodeHighlighting == true {
+                    let systemSize = NSFont.systemFontSize
+                    let font = NSFont.monospacedSystemFont(ofSize: systemSize, weight: .regular)
+                    let attributes: [NSAttributedString.Key: Any] = [
+                        .font: font
+                    ]
+                    
+                    highlightedCode = NSAttributedString(string: combinedCode, attributes: attributes)
+                } else if let cachedAttributedString = fetchAttributedString(for: combinedCode) {
+                    highlightedCode = cachedAttributedString
                 } else {
-                    highlightedCode = highlightr?.highlight(combinedCode)
+                    highlightedCode = highlightr?.highlight(combinedCode, as: codeBlockLanguage.isEmpty ? nil : codeBlockLanguage)
+                    cacheAttributedString(highlightedCode ?? NSAttributedString(string: ""), for: combinedCode)
                 }
 
                 elements.append(.code(code: highlightedCode, lang: codeBlockLanguage, indent: leadingSpaces))
@@ -152,6 +164,24 @@ struct MessageParser {
         }
 
         return elements
+    }
+    
+    func cacheAttributedString(_ attributedString: NSAttributedString, for rawMessage: String) {
+        let stringHash = rawMessage.sha256()
+        let entity = AttributedStringEntity(context: viewContext)
+        entity.id = stringHash
+        entity.string = attributedString
+        try? viewContext.save()
+    }
+    
+    func fetchAttributedString(for rawMessage: String) -> NSAttributedString? {
+        let stringHash = rawMessage.sha256()
+        let fetchRequest: NSFetchRequest<AttributedStringEntity> = AttributedStringEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", stringHash)
+        if let result = try? viewContext.fetch(fetchRequest), let entity = result.first {
+            return entity.string
+        }
+        return nil
     }
 }
 
