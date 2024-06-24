@@ -14,29 +14,22 @@ Checkout main branch and open project in Xcode 14.3 or later
 
 ## Features
 - ChatGPT/Ollama and other compatible API support
-- Organized with chats, where each chat has its own context
 - Customized system messages (instructions) per chat
 - System-defined light/dark theme
 - Backup and restore your chats
 - Customized context size
-- Any model with compatible API can be used
-- Formatted code blocks
-- Formatted tables, copy as JSON
-- With tabs, one can easily work with multiple chats simultaneously
-- Data is stored using CoreData
+- Any LLM with compatible API can be used
+- Formatted code blocks with syntax highlighting
+- Formatted tables with copy as CSV and as JSON functions
+- Formatted equations
+- Data is stored locally using CoreData
 - Streamed responses
 - Automatically generate chat names
-
-## Project status
-Project is in the active development phase.
-
-## Contributions
-Contributions are welcomed. Take a look at [macai project page](https://github.com/users/Renset/projects/1) and [Issues page](https://github.com/Renset/macai/issues) to see planned features/bug fixes, or create a new one.
 
 ## Run with ChatGPT
 To run macai with ChatGPT, you need to have ChatGPT API token. You can get it [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key).
 Add the token to the settings and you are ready to go.
-Note: by default, gpt-3.5-turbo model is selected. You can change it in the New Chat settings.
+Note: by default, gpt-4o model is selected. You can change it in the New Chat settings.
 
 ## Run with [Ollama](https://ollama.com)
 Ollama is the open-source back-end for various LLM models. 
@@ -48,7 +41,16 @@ Run with Ollama is very easy:
    ![CleanShot 2024-04-22 at 17 16 18@2x](https://github.com/Renset/macai/assets/364877/40b5736f-ae7b-48a4-bc46-0ca81272127b)
 5. In macai New Chat settings, set model to `llama3`
 6. Changing default instructions is recommended
-7. Test and enjoy! 
+7. Test and enjoy!
+
+## System requirements
+macOS 12.0 and later (both Intel and Apple chips are supported)
+
+## Project status
+Project is in the active development phase.
+
+## Contributions
+Contributions are welcomed. Take a look at [macai project page](https://github.com/users/Renset/projects/1) and [Issues page](https://github.com/Renset/macai/issues) to see planned features/bug fixes, or create a new one.
 
 ## Screenshots
 
@@ -71,6 +73,9 @@ The syntax of the code provided in ChatGPT response will be highlighted ([185 la
 In most cases, tables in ChatGPT repsonses can be formatted as follows:
 
 <img width="986" alt="An application window with formatted table" src="https://github.com/Renset/macai/assets/364877/8d92ecf1-e574-4cc4-ad7d-392d52e48241">
+
+### Equation formatting
+<img width="983" alt="Chat window with formatted LaTeX equations" src="https://github.com/Renset/macai/assets/364877/61522005-9cb0-4ca5-8d47-0542c70b3ad0" />
 
 ### Settings
 <img width="744" alt="Settings window with ChatGPT API settings: API URL, API token and Test API credentials button" src="https://github.com/Renset/macai/assets/364877/817b224d-ccae-4f95-a36e-4d30c2c65fc8" />
