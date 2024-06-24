@@ -14,7 +14,7 @@ struct CodeView: View {
     let code: NSAttributedString?
     let lang: String
     @State private var isCopied = false
-    @State private var isHovered = false
+    var isHovered = true
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
@@ -69,9 +69,6 @@ struct CodeView: View {
                     : .white
             )
             .cornerRadius(8)
-        }
-        .onHover { hovering in
-            isHovered = hovering
         }
     }
     

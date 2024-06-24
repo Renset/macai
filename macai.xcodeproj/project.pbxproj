@@ -19,6 +19,8 @@
 		4A399CB729BC8FF200E98796 /* macaiUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CB629BC8FF200E98796 /* macaiUITestsLaunchTests.swift */; };
 		4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC329BCE67800E98796 /* PreferencesView.swift */; };
 		4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC529BCF02500E98796 /* ChatStore.swift */; };
+		4A471B862C29C56800C66926 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 4A471B852C29C56800C66926 /* SwiftMath */; };
+		4A471B882C29CD3D00C66926 /* AdaptiveMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */; };
 		4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
 		4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
 		4A55DCA729C264BC00A3800C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
@@ -36,7 +38,6 @@
 		4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6529F86B5900661B2D /* MessageParser.swift */; };
 		4ABDBE6B29F86E8D00661B2D /* MessageParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */; };
 		4ACAD6632C13AE8F0081BDAC /* CodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACAD6622C13AE8F0081BDAC /* CodeView.swift */; };
-		4ADEEFA42C278B8C002B98AC /* MessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADEEFA32C278B8C002B98AC /* MessageContentView.swift */; };
 		4AFDEB782AFF904400BA8642 /* TabGeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB772AFF904400BA8642 /* TabGeneralSettingsView.swift */; };
 		4AFDEB7A2AFF908700BA8642 /* TabChatSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB792AFF908700BA8642 /* TabChatSettingsView.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
@@ -77,6 +78,7 @@
 		4A399CB629BC8FF200E98796 /* macaiUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		4A399CC329BCE67800E98796 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		4A399CC529BCF02500E98796 /* ChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStore.swift; sourceTree = "<group>"; };
+		4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMathView.swift; sourceTree = "<group>"; };
 		4A55DCA629C264BC00A3800C /* TableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableView.swift; sourceTree = "<group>"; };
 		4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
 		4A5F64B929C64F9D000403F7 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -90,7 +92,6 @@
 		4ABDBE6529F86B5900661B2D /* MessageParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParser.swift; sourceTree = "<group>"; };
 		4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParserTests.swift; sourceTree = "<group>"; };
 		4ACAD6622C13AE8F0081BDAC /* CodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeView.swift; sourceTree = "<group>"; };
-		4ADEEFA32C278B8C002B98AC /* MessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageContentView.swift; sourceTree = "<group>"; };
 		4AFDEB772AFF904400BA8642 /* TabGeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabGeneralSettingsView.swift; sourceTree = "<group>"; };
 		4AFDEB792AFF908700BA8642 /* TabChatSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabChatSettingsView.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
@@ -104,6 +105,7 @@
 			files = (
 				4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */,
 				4A5C395229D8765200BCB534 /* OmenTextField in Frameworks */,
+				4A471B862C29C56800C66926 /* SwiftMath in Frameworks */,
 				4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */,
 				4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */,
 			);
@@ -135,7 +137,7 @@
 				4A55DCA629C264BC00A3800C /* TableView.swift */,
 				4A867C1A2BFD640500887AD0 /* Accordion.swift */,
 				4ACAD6622C13AE8F0081BDAC /* CodeView.swift */,
-				4ADEEFA32C278B8C002B98AC /* MessageContentView.swift */,
+				4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -315,6 +317,7 @@
 				4A51EC6429C32B0B00973D83 /* AttributedText */,
 				4A7E1BDA29C910F900E57DC2 /* Sparkle */,
 				4A5C395129D8765200BCB534 /* OmenTextField */,
+				4A471B852C29C56800C66926 /* SwiftMath */,
 			);
 			productName = macai;
 			productReference = 4A399C9529BC8FEF00E98796 /* macai.app */;
@@ -393,6 +396,7 @@
 				4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */,
 				4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */,
+				4A471B842C29C56800C66926 /* XCRemoteSwiftPackageReference "SwiftMath" */,
 			);
 			productRefGroup = 4A399C9629BC8FEF00E98796 /* Products */;
 			projectDirPath = "";
@@ -451,7 +455,6 @@
 				4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
 				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
-				4ADEEFA42C278B8C002B98AC /* MessageContentView.swift in Sources */,
 				4AFDEB7A2AFF908700BA8642 /* TabChatSettingsView.swift in Sources */,
 				4AFDEB782AFF904400BA8642 /* TabGeneralSettingsView.swift in Sources */,
 				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
@@ -460,6 +463,7 @@
 				4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */,
 				4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */,
 				4A7AFF182B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift in Sources */,
+				4A471B882C29CD3D00C66926 /* AdaptiveMathView.swift in Sources */,
 				4A272A7429F5DAA800F93D0D /* Models.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -829,6 +833,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		4A471B842C29C56800C66926 /* XCRemoteSwiftPackageReference "SwiftMath" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mgriebling/SwiftMath";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.0;
+			};
+		};
 		4A51EC6029C32AF600973D83 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/raspu/Highlightr";
@@ -864,6 +876,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		4A471B852C29C56800C66926 /* SwiftMath */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A471B842C29C56800C66926 /* XCRemoteSwiftPackageReference "SwiftMath" */;
+			productName = SwiftMath;
+		};
 		4A51EC6129C32AF700973D83 /* Highlightr */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4A51EC6029C32AF600973D83 /* XCRemoteSwiftPackageReference "Highlightr" */;

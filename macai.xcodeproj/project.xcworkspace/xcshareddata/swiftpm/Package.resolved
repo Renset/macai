@@ -1,5 +1,5 @@
 {
-  "originHash" : "71519be76e607ad4e7e6a1d261eb9bd084df0cad40df3f9ae9eb024341840c59",
+  "originHash" : "797388c421ccbf8590e85adde955b10abae6b6fa9472b0d9db02802a709781f3",
   "pins" : [
     {
       "identity" : "attributedtext",
@@ -16,7 +16,7 @@
       "location" : "https://github.com/raspu/Highlightr",
       "state" : {
         "branch" : "master",
-        "revision" : "628094ff81cdebf31da6bf31be4b4ac758c127a4"
+        "revision" : "fa483d37c692961ecc2391eac568ba3d3935e663"
       }
     },
     {
@@ -33,8 +33,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
-        "revision" : "47d3d90aee3c52b6f61d04ceae426e607df62347",
-        "version" : "2.5.2"
+        "revision" : "b456fd404954a9e13f55aa0c88cd5a40b8399638",
+        "version" : "2.6.3"
+      }
+    },
+    {
+      "identity" : "swiftmath",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mgriebling/SwiftMath",
+      "state" : {
+        "revision" : "3964a0c4b13abcb5b58c8ebb8041ce67f393c414",
+        "version" : "1.4.0"
       }
     }
   ],

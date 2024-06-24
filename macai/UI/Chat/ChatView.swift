@@ -94,19 +94,18 @@ struct ChatView: View {
                                         index: Int(messageEntity.id),
                                         own: messageEntity.own,
                                         waitingForResponse: false,
-                                        isStreaming: $isStreaming,
-                                        viewContext: viewContext
+                                        isStreaming: $isStreaming
                                     ).id(Int64(messageEntity.id))
                                 }
                             }
                         }
 
                         if waitingForResponse {
-                            ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true, isStreaming: $isStreaming, viewContext: viewContext).id(-1)
+                            ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true, isStreaming: $isStreaming).id(-1)
                         } else if lastMessageError {
                             HStack {
                                 VStack {
-                                    ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: false, error: true, isStreaming: $isStreaming, viewContext: viewContext)
+                                    ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: false, error: true, isStreaming: $isStreaming)
                                     HStack {
                                         Button(action: {lastMessageError = false}) {
                                             Text("Ignore")

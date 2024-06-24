@@ -13,7 +13,6 @@ import CommonCrypto
 
 struct MessageParser {
     @State var colorScheme: ColorScheme
-    var viewContext: NSManagedObjectContext
     
     func parseMessageFromString(input: String, shouldSkipCodeHighlighting: Bool) -> [MessageElements] {
         let lines = input.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
@@ -22,8 +21,10 @@ struct MessageParser {
         var currentTableData: [[String]] = []
         var textLines: [String] = []
         var codeLines: [String] = []
+        var formulaLines: [String] = []
         var firstTableRowProcessed = false
         var isCodeBlockOpened = false
+        var isFormulaBlockOpened = false
         var codeBlockLanguage = ""
         let highlightr = Highlightr()
         var leadingSpaces = 0
@@ -43,8 +44,22 @@ struct MessageParser {
                 } else {
                     codeLines.append(line)
                 }
-            }  else if line.trimmingCharacters(in: .whitespaces).first == "|" {
+            } else if line.trimmingCharacters(in: .whitespaces).first == "|" {
                 handleTableLine(line: line)
+            } else if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\[") {
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                if line.replacingOccurrences(of: " ", with: "") == "\\[" { // multi-line equation
+                    openFormulaBlock()
+                } else {
+                    handleFormulaLine(line: line)
+                    appendFormulaLines()
+                }
+            } else if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\]") {
+                closeFormulaBlock()
+                appendFormulaLines()
+            } else if isFormulaBlockOpened {
+                handleFormulaLine(line: line)
             } else {
                 if !currentTableData.isEmpty {
                     appendTable()
@@ -66,6 +81,24 @@ struct MessageParser {
                 codeBlockLanguage = line.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "```", with: "")
                 isCodeBlockOpened = true
             }
+        }
+        
+        func openFormulaBlock() {
+            isFormulaBlockOpened = true
+        }
+        
+        func closeFormulaBlock() {
+            isFormulaBlockOpened = false
+        }
+        
+        func handleFormulaLine(line: String) {
+            let formulaString = line.replacingOccurrences(of: "\\[", with: "").replacingOccurrences(of: "\\]", with: "")
+            formulaLines.append(formulaString)
+        }
+        
+        func appendFormulaLines() {
+            let combinedLines = formulaLines.joined(separator: "\n")
+            elements.append(.formula(combinedLines))
         }
 
         func handleTableLine(line: String) {
@@ -145,11 +178,8 @@ struct MessageParser {
                     ]
                     
                     highlightedCode = NSAttributedString(string: combinedCode, attributes: attributes)
-                } else if let cachedAttributedString = fetchAttributedString(for: combinedCode) {
-                    highlightedCode = cachedAttributedString
                 } else {
                     highlightedCode = highlightr?.highlight(combinedCode, as: codeBlockLanguage.isEmpty ? nil : codeBlockLanguage)
-                    cacheAttributedString(highlightedCode ?? NSAttributedString(string: ""), for: combinedCode)
                 }
 
                 elements.append(.code(code: highlightedCode, lang: codeBlockLanguage, indent: leadingSpaces))
@@ -165,25 +195,4 @@ struct MessageParser {
 
         return elements
     }
-    
-    func cacheAttributedString(_ attributedString: NSAttributedString, for rawMessage: String) {
-        let stringHash = rawMessage.sha256()
-        let entity = AttributedStringEntity(context: viewContext)
-        entity.id = stringHash
-        entity.string = attributedString
-        try? viewContext.save()
-    }
-    
-    func fetchAttributedString(for rawMessage: String) -> NSAttributedString? {
-        let stringHash = rawMessage.sha256()
-        let fetchRequest: NSFetchRequest<AttributedStringEntity> = AttributedStringEntity.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", stringHash)
-        if let result = try? viewContext.fetch(fetchRequest), let entity = result.first {
-            return entity.string
-        }
-        return nil
-    }
 }
-
-
-
