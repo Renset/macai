@@ -11,6 +11,7 @@
 		4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */; };
 		4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A270AE229D4AFE7005E063C /* AppConstants.swift */; };
 		4A272A7429F5DAA800F93D0D /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A272A7329F5DAA800F93D0D /* Models.swift */; };
+		4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A37B8542C2A399800F36CC4 /* Credits.rtf */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
 		4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9A29BC8FEF00E98796 /* ContentView.swift */; };
 		4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399C9C29BC8FF100E98796 /* Assets.xcassets */; };
@@ -66,6 +67,7 @@
 		4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreen.swift; sourceTree = "<group>"; };
 		4A270AE229D4AFE7005E063C /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		4A272A7329F5DAA800F93D0D /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		4A37B8542C2A399800F36CC4 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A399C9829BC8FEF00E98796 /* macaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiApp.swift; sourceTree = "<group>"; };
 		4A399C9A29BC8FEF00E98796 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 		4A399C8C29BC8FEF00E98796 = {
 			isa = PBXGroup;
 			children = (
+				4A37B8542C2A399800F36CC4 /* Credits.rtf */,
 				4A399C9729BC8FEF00E98796 /* macai */,
 				4A399CA929BC8FF200E98796 /* macaiTests */,
 				4A399CB329BC8FF200E98796 /* macaiUITests */,
@@ -417,6 +420,7 @@
 				4A98B1C029CA60ED0064835A /* Info.plist in Resources */,
 				4A399CA129BC8FF100E98796 /* Preview Assets.xcassets in Resources */,
 				4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */,
+				4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -627,7 +631,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.4.3;
+				CURRENT_PROJECT_VERSION = 1.5.0;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -646,7 +650,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.4.3;
+				MARKETING_VERSION = 1.5.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -669,7 +673,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.4.3;
+				CURRENT_PROJECT_VERSION = 1.5.0;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -688,7 +692,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.4.3;
+				MARKETING_VERSION = 1.5.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
