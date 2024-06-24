@@ -129,6 +129,7 @@ struct ChatView: View {
                         }
 
                     }
+                    .id("chatContainer")
                     .padding()
                     // Add a listener to the messages array to listen for changes
                     .onReceive([chat.messages.count].publisher) { newCount in
@@ -137,17 +138,22 @@ struct ChatView: View {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
-                        } else if newCount > self.messageCount {
+                        } else if newCount > self.messageCount  {
                             self.messageCount = newCount
 
                             let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
                             if let lastMessage = sortedMessages.last {
-
                                 withAnimation {
                                     print("scrolling to message...")
                                     scrollView.scrollTo(lastMessage.id)
                                 }
                             }
+                        }
+                    }
+                    .onAppear() {
+                        withAnimation {
+                            print("scrolling to message...")
+                            scrollView.scrollTo("chatContainer", anchor: .bottom)
                         }
                     }
                 }
