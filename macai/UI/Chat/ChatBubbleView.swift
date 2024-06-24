@@ -115,7 +115,7 @@ struct ChatBubbleView: View {
                                 Text(formula).textSelection(.enabled)
                             } else {
                                 AdaptiveMathView(equation: formula, fontSize: NSFont.systemFontSize + CGFloat(2))
-                                    .padding(.vertical, 8)
+                                    .padding(.vertical, 16)
                             }
 
                         }

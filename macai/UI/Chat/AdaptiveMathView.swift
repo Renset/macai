@@ -24,36 +24,14 @@ struct MathView: NSViewRepresentable {
         view.font = MTFontManager().termesFont(withSize: fontSize)
         view.textColor = .textColor
         view.textAlignment = .left
-        view.labelMode = .display
+        view.labelMode = .text
         return view
     }
     
     func updateNSView(_ view: MTMathUILabel, context: Context) {
         view.latex = equation
         view.fontSize = fontSize
-        DispatchQueue.main.async {
-            context.coordinator.updateSize(for: view)
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject {
-        var parent: MathView
-        
-        init(_ parent: MathView) {
-            self.parent = parent
-            super.init()
-        }
-        
-        func updateSize(for view: MTMathUILabel) {
-            let size = view.intrinsicContentSize
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .init("MathViewSizeChanged"), object: size)
-            }
-        }
+        view.setNeedsDisplay(view.bounds)
     }
 }
 
@@ -63,12 +41,18 @@ struct AdaptiveMathView: View {
     @State private var size: CGSize = .zero
     
     var body: some View {
-        MathView(equation: equation, fontSize: fontSize)
-            .frame(width: size.width, height: size.height)
-            .onReceive(NotificationCenter.default.publisher(for: .init("MathViewSizeChanged"))) { notification in
-                if let newSize = notification.object as? CGSize {
-                    self.size = newSize
+        GeometryReader { geometry in
+            MathView(equation: equation, fontSize: fontSize)
+                .background(GeometryReader { innerGeometry in
+                    Color.clear.preference(key: MathViewSizePreferenceKey.self, value: innerGeometry.size)
+                })
+                .onPreferenceChange(MathViewSizePreferenceKey.self) { newSize in
+                    DispatchQueue.main.async {
+                        self.size = newSize
+                    }
                 }
-            }
+        }
+        .frame(width: size.width, height: size.height)
     }
 }
+
