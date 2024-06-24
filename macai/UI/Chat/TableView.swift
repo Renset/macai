@@ -57,6 +57,8 @@ struct TableRowView: View {
 struct TableView: View {
     let header: [String]
     let tableData: [[String]]
+    @State private var isCopied = false
+    @State private var isCopiedJSON = false
     
     private func copyTableToClipboard() {
         let headerString = header.joined(separator: "\t")
@@ -98,17 +100,40 @@ struct TableView: View {
         VStack {
             HStack {
                 Spacer()
-                Button(action: copyTableToClipboard) {
+                Button(action: {
+                    copyTableAsJSONToClipboard()
+                    withAnimation{
+                        isCopiedJSON = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        withAnimation {
+                            isCopiedJSON = false
+                        }
+                    }
+                }) {
+                    Image(systemName: isCopiedJSON ? "checkmark" : "doc.on.doc")
                     Text("JSON")
-                    Image(systemName: "doc.on.doc")
                 }
                 .padding(0)
+                .padding(.trailing, 16)
+                .buttonStyle(PlainButtonStyle())
 
                 
-                Button(action: copyTableToClipboard) {
-                    Image(systemName: "doc.on.doc")
+                Button(action: {
+                    copyTableToClipboard()
+                    withAnimation{
+                        isCopied = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        withAnimation {
+                            isCopied = false
+                        }
+                    }
+                }) {
+                    Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
                 }
                 .padding(0)
+                .buttonStyle(PlainButtonStyle())
             }
             .padding(.bottom, 2)
             VStack(spacing: 0) {

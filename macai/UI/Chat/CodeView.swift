@@ -20,40 +20,40 @@ struct CodeView: View {
     var body: some View {
         VStack {
             VStack {
-                if lang != "" {
+                HStack {
                     HStack {
-                        HStack {
+                        if lang != "" {
                             Text(lang)
                                 .fontWeight(.bold)
-                            Spacer()
-                            // Flat button to copy code to clipboard
-                            // Display Check mark if copied
-                            if isHovered {
-                                Button(action: {
-                                    copyToClipboard(code?.string ?? "")
-                                    withAnimation{
-                                        isCopied = true
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                        withAnimation {
-                                            isCopied = false
-                                        }
-                                    }
-                                }) {
-                                    Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                                        .frame(height: 12)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
                         }
-                        .padding(6)
+                        Spacer()
+                        // Flat button to copy code to clipboard
+                        // Display Check mark if copied
+                        if isHovered {
+                            Button(action: {
+                                copyToClipboard(code?.string ?? "")
+                                withAnimation{
+                                    isCopied = true
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                    withAnimation {
+                                        isCopied = false
+                                    }
+                                }
+                            }) {
+                                Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                                    .frame(height: 12)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
-                    .background(
-                        colorScheme == .dark
-                            ? Color(NSColor(red: 30 / 255, green: 30 / 255, blue: 30 / 255, alpha: 1))
-                        : Color(NSColor(red: 220 / 255, green: 220 / 255, blue: 220 / 255, alpha: 1))
-                    )
+                    .padding(6)
                 }
+                .background(
+                    colorScheme == .dark
+                        ? Color(NSColor(red: 30 / 255, green: 30 / 255, blue: 30 / 255, alpha: 1))
+                    : Color(NSColor(red: 220 / 255, green: 220 / 255, blue: 220 / 255, alpha: 1))
+                )
 
                 AttributedText(code ?? NSAttributedString(string: ""))
                     .textSelection(.enabled)
