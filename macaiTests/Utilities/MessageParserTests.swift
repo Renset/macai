@@ -39,7 +39,7 @@ class MessageParserTests: XCTestCase {
         This is another sample text.
         """
 
-        let result = parser.parseMessageFromString(input: input)
+        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
         XCTAssertEqual(result.count, 3)
 
         switch result[0] {
@@ -86,7 +86,7 @@ class MessageParserTests: XCTestCase {
         [Enter Romeo and Juliet]
         """
         
-        let result = parser.parseMessageFromString(input: input)
+        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
         XCTAssertEqual(result.count, 2)
 
         switch result[0] {
@@ -148,7 +148,7 @@ class MessageParserTests: XCTestCase {
         
         """
 
-        let result = parser.parseMessageFromString(input: input)
+        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
         XCTAssertEqual(result.count, 11)
 
         switch result[1] {
@@ -202,6 +202,66 @@ class MessageParserTests: XCTestCase {
         default:
             XCTFail("Expected .table element")
         }
+    }
+    
+    func testParseMessageFromStringMathEquation() {
+        let input = """
+        Sure, here’s a complex formula from the field of string theory, specifically the action for the bosonic string:
+
+        \\[
+        S = -\\frac{1}{4\\pi\\alpha'} \\int d\\tau \\, d\\sigma \\, \\sqrt{-h} \\left( h^{ab} \\partial_a X^\\mu \\partial_b X_\\mu + \\alpha' R^{(2)} \\Phi(X) \\right)
+        \\]
+
+        Where:
+        - \\( S \\) is the action.
+        - \\( \\alpha' \\) is the string tension parameter.
+        - \\( \\tau \\) and \\( \\sigma \\) are the worldsheet coordinates.
+        - \\( h \\) is the determinant of the worldsheet metric \\( h_{ab} \\).
+        - \\( h^{ab} \\) is the inverse of the worldsheet metric.
+        - \\( \\partial_a \\) denotes partial differentiation with respect to the worldsheet coordinates.
+        - \\( X^\\mu \\) are the target space coordinates of the string.
+        - \\( R^{(2)} \\) is the Ricci scalar of the worldsheet.
+        - \\( \\Phi(X) \\) is the dilaton field.
+        """
+
+        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
+        XCTAssertEqual(result.count, 3)
+        
+        switch result[0] {
+        case .text(let text):
+            XCTAssertEqual(text, """
+            Sure, here’s a complex formula from the field of string theory, specifically the action for the bosonic string:
+
+            """)
+        default:
+            XCTFail("Expected .text element")
+        }
+        
+        switch result[1] {
+        case .formula(let formula):
+            XCTAssertEqual(formula, "S = -\\frac{1}{4\\pi\\alpha'} \\int d\\tau \\, d\\sigma \\, \\sqrt{-h} \\left( h^{ab} \\partial_a X^\\mu \\partial_b X_\\mu + \\alpha' R^{(2)} \\Phi(X) \\right)")
+        default:
+            XCTFail("Expected .formula element")
+        }
+        
+        switch result[2] {
+        case .text(let text):
+            XCTAssertEqual(text, """
+            Where:
+            - \\( S \\) is the action.
+            - \\( \\alpha' \\) is the string tension parameter.
+            - \\( \\tau \\) and \\( \\sigma \\) are the worldsheet coordinates.
+            - \\( h \\) is the determinant of the worldsheet metric \\( h_{ab} \\).
+            - \\( h^{ab} \\) is the inverse of the worldsheet metric.
+            - \\( \\partial_a \\) denotes partial differentiation with respect to the worldsheet coordinates.
+            - \\( X^\\mu \\) are the target space coordinates of the string.
+            - \\( R^{(2)} \\) is the Ricci scalar of the worldsheet.
+            - \\( \\Phi(X) \\) is the dilaton field.
+            """)
+        default:
+            XCTFail("Expected .text element")
+        }
+        
     }
 }
 

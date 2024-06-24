@@ -14,6 +14,30 @@ import CommonCrypto
 struct MessageParser {
     @State var colorScheme: ColorScheme
     
+    enum BlockType {
+        case text
+        case table
+        case codeBlock
+        case formulaBlock
+        case formulaLine
+    }
+    
+    func detectBlockType(line: String) -> BlockType {
+        let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+        
+        if trimmedLine.hasPrefix("```") {
+            return .codeBlock
+        } else if trimmedLine.first == "|" {
+            return .table
+        } else if trimmedLine.hasPrefix("\\[") {
+            return trimmedLine.replacingOccurrences(of: " ", with: "") == "\\[" ? .formulaBlock : .formulaLine
+        } else if trimmedLine.hasPrefix("\\]") {
+            return .formulaLine
+        } else {
+            return .text
+        }
+    }
+    
     func parseMessageFromString(input: String, shouldSkipCodeHighlighting: Bool) -> [MessageElements] {
         let lines = input.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
         var elements: [MessageElements] = []
@@ -30,45 +54,6 @@ struct MessageParser {
         var leadingSpaces = 0
 
         highlightr?.setTheme(to: colorScheme == .dark ? "monokai-sublime" : "color-brewer")
-
-        for line in lines {
-            if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
-                // memorize how many leading spaces the line has
-                leadingSpaces = line.count - line.trimmingCharacters(in: .whitespaces).count
-                combineTextLinesIfNeeded()
-                appendTableIfNeeded()
-                toggleCodeBlock(line: line)
-            } else if isCodeBlockOpened {
-                if (leadingSpaces > 0) {
-                    codeLines.append(String(line.dropFirst(leadingSpaces)))
-                } else {
-                    codeLines.append(line)
-                }
-            } else if line.trimmingCharacters(in: .whitespaces).first == "|" {
-                handleTableLine(line: line)
-            } else if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\[") {
-                combineTextLinesIfNeeded()
-                appendTableIfNeeded()
-                if line.replacingOccurrences(of: " ", with: "") == "\\[" { // multi-line equation
-                    openFormulaBlock()
-                } else {
-                    handleFormulaLine(line: line)
-                    appendFormulaLines()
-                }
-            } else if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\]") {
-                closeFormulaBlock()
-                appendFormulaLines()
-            } else if isFormulaBlockOpened {
-                handleFormulaLine(line: line)
-            } else {
-                if !currentTableData.isEmpty {
-                    appendTable()
-                }
-                textLines.append(line)
-            }
-        }
-
-        finalizeParsing()
         
         func toggleCodeBlock(line: String) {
             if isCodeBlockOpened {
@@ -192,6 +177,57 @@ struct MessageParser {
             appendCodeBlockIfNeeded()
             appendTableIfNeeded()
         }
+        
+        for line in lines {
+            let blockType = detectBlockType(line: line)
+            
+            switch blockType {
+            case .codeBlock:
+                leadingSpaces = line.count - line.trimmingCharacters(in: .whitespaces).count
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                toggleCodeBlock(line: line)
+                
+            case .table:
+                handleTableLine(line: line)
+                
+            case .formulaBlock:
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                openFormulaBlock()
+                
+            case .formulaLine:
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\]") {
+                    closeFormulaBlock()
+                    appendFormulaLines()
+                } else {
+                    handleFormulaLine(line: line)
+                    if !isFormulaBlockOpened {
+                        appendFormulaLines()
+                    }
+                }
+                
+            case .text:
+                if isCodeBlockOpened {
+                    if leadingSpaces > 0 {
+                        codeLines.append(String(line.dropFirst(leadingSpaces)))
+                    } else {
+                        codeLines.append(line)
+                    }
+                } else if isFormulaBlockOpened {
+                    handleFormulaLine(line: line)
+                } else {
+                    if !currentTableData.isEmpty {
+                        appendTable()
+                    }
+                    textLines.append(line)
+                }
+            }
+        }
+
+        finalizeParsing()
 
         return elements
     }
