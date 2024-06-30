@@ -24,29 +24,33 @@ struct MessageInputView: View {
         // Hidden text view for dynamic height calculation
         Text(text)
             .font(.body)
-            .lineLimit(nil)
+            .lineLimit(6)
             .background(GeometryReader { geometry in
                 Color.clear
                     .onAppear {
-                        dynamicHeight = min(max(geometry.size.height, 32), 96) + 4
+                        dynamicHeight = min(max(geometry.size.height, 16), 96) + 16
                     }
                     .onChange(of: text) { _ in
-                        dynamicHeight = min(max(geometry.size.height, 32), 96) + 4
+                        dynamicHeight = min(max(geometry.size.height, 16), 96) + 16
                     }
             })
+            .padding(8)
             .hidden()
             
-            VStack {
-                OmenTextField(
-                    "Type your message here",
-                    text: $text,
-                    isFocused: $isFocused.equalTo(.focused),
-                    returnKeyType: frontReturnKeyType,
-                    onCommit: {
-                        onEnter()
-                    }
-                )
-                .padding(10)
+            ScrollView {
+                VStack {
+                    OmenTextField(
+                        "Type your message here",
+                        text: $text,
+                        isFocused: $isFocused.equalTo(.focused),
+                        returnKeyType: frontReturnKeyType,
+                        onCommit: {
+                            onEnter()
+                        }
+                    )
+                    
+                }
+                .padding(8)
             }
             .frame(height: dynamicHeight)
             .background(
