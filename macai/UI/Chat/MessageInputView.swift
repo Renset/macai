@@ -13,15 +13,29 @@ struct MessageInputView: View {
     var onEnter: () -> Void
     @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
     @State var isFocused: Focus?
-    @State var tempText = ""
+    @State var dynamicHeight: CGFloat = 32.0
 
     enum Focus {
         case focused, notFocused
     }
 
     var body: some View {
-
-        ScrollView(.vertical) {
+        ZStack {
+        // Hidden text view for dynamic height calculation
+        Text(text)
+            .font(.body)
+            .lineLimit(nil)
+            .background(GeometryReader { geometry in
+                Color.clear
+                    .onAppear {
+                        dynamicHeight = min(max(geometry.size.height, 32), 96) + 4
+                    }
+                    .onChange(of: text) { _ in
+                        dynamicHeight = min(max(geometry.size.height, 32), 96) + 4
+                    }
+            })
+            .hidden()
+            
             VStack {
                 OmenTextField(
                     "Type your message here",
@@ -32,46 +46,23 @@ struct MessageInputView: View {
                         onEnter()
                     }
                 )
-
+                .padding(10)
             }
-            .padding(8)
-
+            .frame(height: dynamicHeight)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(
+                        isFocused == .focused ? Color.blue.opacity(0.8) : Color.gray.opacity(0.5),
+                        lineWidth: isFocused == .focused ? 3 : 2
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            )
+            .onTapGesture {
+                isFocused = .focused
+            }
         }
-        .frame(height: getFrameHeight(inputText: text))
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(
-                    isFocused == .focused ? Color.blue : Color.gray.opacity(0.5),
-                    lineWidth: isFocused == .focused ? 4 : 2
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        )
-        .onTapGesture {
-            isFocused = .focused
-        }
+        
     }
-}
-
-private func getFrameHeight(inputText: String) -> CGFloat? {
-    if inputText.count > 250 {
-        return 96
-    }
-    
-    if inputText.count > 120 {
-        return 64
-    }
-    
-    if inputText.count > 80 {
-        return 48
-    }
-    
-    let lineBreakCount = inputText.split(separator: "\n", maxSplits: 6, omittingEmptySubsequences: false).count - 1
-    
-    if lineBreakCount > 0 {
-        return 32 + CGFloat(lineBreakCount * 16)
-    }
-    
-    return 32
 }
 
 extension Binding {

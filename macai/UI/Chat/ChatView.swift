@@ -189,9 +189,9 @@ struct ChatView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .multilineTextAlignment(.leading)
                 .lineLimit(nil)
-                .padding(.horizontal)
-                .padding(.bottom)
+                .padding()
             }
+            .border(width: 1, edges: [.top], color: Color(NSColor.windowBackgroundColor).opacity(0.8))
 
         }
         .background(backgroundColor)
