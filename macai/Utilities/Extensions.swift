@@ -84,3 +84,18 @@ struct EdgeBorder: Shape {
         }.reduce(into: Path()) { $0.addPath($1) }
     }
 }
+
+extension Binding {
+    func equalTo<A: Equatable>(_ value: A) -> Binding<Bool> where Value == A? {
+        Binding<Bool> {
+            wrappedValue == value
+        } set: {
+            if $0 {
+                wrappedValue = value
+            }
+            else if wrappedValue == value {
+                wrappedValue = nil
+            }
+        }
+    }
+}

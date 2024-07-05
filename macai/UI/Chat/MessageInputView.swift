@@ -13,7 +13,16 @@ struct MessageInputView: View {
     var onEnter: () -> Void
     @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
     @State var isFocused: Focus?
-    @State var dynamicHeight: CGFloat = 32.0
+    @State var dynamicHeight: CGFloat = 16
+    private let maxInputHeight = 160.0
+    private let initialInputSize = 16.0
+    private let inputPadding = 8.0
+    private let lineWidthOnBlur = 2.0
+    private let lineWidthOnFocus = 3.0
+    private let lineColorOnBlur = Color.gray.opacity(0.5)
+    private let lineColorOnFocus = Color.blue.opacity(0.8)
+    private let cornerRadius = 8.0
+    private let inputPlaceholderText = "Type your prompt here"
 
     enum Focus {
         case focused, notFocused
@@ -21,26 +30,26 @@ struct MessageInputView: View {
 
     var body: some View {
         ZStack {
-        // Hidden text view for dynamic height calculation
-        Text(text)
-            .font(.body)
-            .lineLimit(6)
-            .background(GeometryReader { geometry in
-                Color.clear
-                    .onAppear {
-                        dynamicHeight = min(max(geometry.size.height, 16), 96) + 16
-                    }
-                    .onChange(of: text) { _ in
-                        dynamicHeight = min(max(geometry.size.height, 16), 96) + 16
-                    }
-            })
-            .padding(8)
-            .hidden()
+            // Hidden text view for dynamic height calculation
+            Text(text)
+                .font(.body)
+                .lineLimit(10)
+                .background(GeometryReader { geometryText in
+                    Color.clear
+                        .onAppear {
+                            dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
+                        }
+                        .onChange(of: geometryText.size) { _ in
+                            dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
+                        }
+                })
+                .padding(inputPadding)
+                .hidden()
             
             ScrollView {
                 VStack {
                     OmenTextField(
-                        "Type your message here",
+                        inputPlaceholderText,
                         text: $text,
                         isFocused: $isFocused.equalTo(.focused),
                         returnKeyType: frontReturnKeyType,
@@ -50,37 +59,28 @@ struct MessageInputView: View {
                     )
                     
                 }
-                .padding(8)
+                .padding(inputPadding/2)
             }
+            .padding(inputPadding/2)
             .frame(height: dynamicHeight)
+            .background(Color.clear)
             .background(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(
-                        isFocused == .focused ? Color.blue.opacity(0.8) : Color.gray.opacity(0.5),
-                        lineWidth: isFocused == .focused ? 3 : 2
+                        isFocused == .focused ? lineColorOnFocus : lineColorOnBlur,
+                        lineWidth: isFocused == .focused ? lineWidthOnFocus : lineWidthOnBlur
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             )
             .onTapGesture {
                 isFocused = .focused
             }
         }
-        
     }
-}
-
-extension Binding {
-    func equalTo<A: Equatable>(_ value: A) -> Binding<Bool> where Value == A? {
-        Binding<Bool> {
-            wrappedValue == value
-        } set: {
-            if $0 {
-                wrappedValue = value
-            }
-            else if wrappedValue == value {
-                wrappedValue = nil
-            }
-        }
+    
+    private func calculateDynamicHeight(using height: CGFloat? = nil) -> CGFloat {
+        let newHeight = height ?? dynamicHeight
+        return min(max(newHeight, initialInputSize), maxInputHeight) + inputPadding*2
     }
 }
 
