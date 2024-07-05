@@ -28,19 +28,19 @@ struct ChatBubbleView: View {
     @State private var wobbleAmount = 0.0
     @Environment(\.colorScheme) var colorScheme
 
-    #if os(macOS)
-        var outgoingBubbleColor = NSColor.systemBlue
-        var incomingBubbleColor = NSColor.windowBackgroundColor
-        var incomingLabelColor = NSColor.labelColor
-    #else
-        var outgoingBubbleColor = UIColor.systemBlue
-        var incomingBubbleColor = UIColor.secondarySystemBackground
-        var incomingLabelColor = UIColor.label
-    #endif
+    
+    var outgoingBubbleColorLight = Color(red: 0.92, green: 0.92, blue: 0.92)
+    var outgoingBubbleColorDark = Color(red: 0.3, green: 0.3, blue: 0.3)
+    var incomingBubbleColorLight = Color.clear
+    var incomingBubbleColorDark = Color.clear
+    var incomingLabelColor = NSColor.labelColor
+
 
     var body: some View {
         HStack {
             if own {
+                Color.clear
+                    .frame(width: 80)
                 Spacer()
             }
 
@@ -90,7 +90,7 @@ struct ChatBubbleView: View {
                                 let systemFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
                                 mutableAttributedString.addAttribute(.font, value: systemFont, range: fullRange)
                                 
-                                mutableAttributedString.addAttribute(.foregroundColor, value: own ? NSColor(Color(.white)) : NSColor.textColor, range: fullRange)
+                                mutableAttributedString.addAttribute(.foregroundColor, value: own ? NSColor.textColor : NSColor.textColor, range: fullRange)
                                 
                                 return mutableAttributedString
                             }()
@@ -122,14 +122,16 @@ struct ChatBubbleView: View {
                     }
                 }
             }
-            .foregroundColor(error ? Color(.white) : Color(own ? .white : incomingLabelColor))
+            .foregroundColor(error ? Color(.white) : Color(own ? incomingLabelColor : incomingLabelColor))
             .multilineTextAlignment(.leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
                 error
                     ? Color(.red)
-                    : initialMessage ? Color(.systemOrange) : Color(own ? outgoingBubbleColor : incomingBubbleColor)
+                : initialMessage 
+                    ? Color(.systemOrange)
+                : colorScheme == .dark ? (own ? outgoingBubbleColorDark : incomingBubbleColorDark) : (own ? outgoingBubbleColorLight : incomingBubbleColorLight)
             )
             .cornerRadius(16)
             if !own {
@@ -143,7 +145,9 @@ struct ChatBubbleView: View {
                 Label("Copy raw message", systemImage: "doc.on.doc")
             }
         }
+        .padding(.vertical, 8)
     }
+        
 
     private func copyMessageToClipboard() {
         let pasteboard = NSPasteboard.general

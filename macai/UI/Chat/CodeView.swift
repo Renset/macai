@@ -16,6 +16,9 @@ struct CodeView: View {
     @State private var isCopied = false
     var isHovered = true
     @Environment(\.colorScheme) var colorScheme
+    
+    private let borderColorDark = Color(red: 0.25, green: 0.25, blue: 0.25)
+    private let borderColorLight = Color(red: 0.86, green: 0.86, blue: 0.86)
 
     var body: some View {
         VStack {
@@ -51,8 +54,8 @@ struct CodeView: View {
                 }
                 .background(
                     colorScheme == .dark
-                        ? Color(NSColor(red: 30 / 255, green: 30 / 255, blue: 30 / 255, alpha: 1))
-                    : Color(NSColor(red: 220 / 255, green: 220 / 255, blue: 220 / 255, alpha: 1))
+                        ? borderColorDark
+                    : borderColorLight
                 )
 
                 AttributedText(code ?? NSAttributedString(string: ""))
@@ -63,10 +66,18 @@ struct CodeView: View {
                     .padding(.bottom, 12)
 
             }
+//            .background(
+//                colorScheme == .dark
+//                    ? Color(NSColor(red: 20 / 255, green: 20 / 255, blue: 20 / 255, alpha: 1))
+//                    : .white
+//            )
             .background(
-                colorScheme == .dark
-                    ? Color(NSColor(red: 20 / 255, green: 20 / 255, blue: 20 / 255, alpha: 1))
-                    : .white
+                RoundedRectangle(cornerRadius: 8.0)
+                    .stroke(
+                        colorScheme == .dark ? borderColorDark : borderColorLight,
+                        lineWidth: 2
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8.0))
             )
             .cornerRadius(8)
         }

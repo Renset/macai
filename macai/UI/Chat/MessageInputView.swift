@@ -21,7 +21,7 @@ struct MessageInputView: View {
     private let lineWidthOnFocus = 3.0
     private let lineColorOnBlur = Color.gray.opacity(0.5)
     private let lineColorOnFocus = Color.blue.opacity(0.8)
-    private let cornerRadius = 8.0
+    private let cornerRadius = 16.0
     private let inputPlaceholderText = "Type your prompt here"
 
     enum Focus {
