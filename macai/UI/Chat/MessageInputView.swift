@@ -59,9 +59,8 @@ struct MessageInputView: View {
                     )
                     
                 }
-                .padding(inputPadding/2)
             }
-            .padding(inputPadding/2)
+            .padding(inputPadding)
             .frame(height: dynamicHeight)
             .background(Color.clear)
             .background(
