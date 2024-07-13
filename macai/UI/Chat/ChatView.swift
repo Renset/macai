@@ -64,7 +64,7 @@ struct ChatView: View {
                         Accordion(title: chat.gptModel, isExpanded: chat.messages.count == 0) {
                             HStack {
                                 VStack(alignment: .leading, content: {
-                                    Text("System message: \(chat.systemMessage)")
+                                    Text("System message: \(chat.systemMessage)").textSelection(.enabled)
                                     if (chat.messages.count == 0 && !editSystemMessage && isHovered) {
                                         Button(action: {
                                             newMessage = chat.systemMessage
@@ -151,10 +151,8 @@ struct ChatView: View {
                         }
                     }
                     .onAppear() {
-                        withAnimation {
-                            print("scrolling to message...")
-                            scrollView.scrollTo("chatContainer", anchor: .bottom)
-                        }
+                        print("scrolling to message...")
+                        scrollView.scrollTo("chatContainer", anchor: .bottom)
                     }
                 }
             }
