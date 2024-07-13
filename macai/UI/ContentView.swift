@@ -17,7 +17,7 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         entity: ChatEntity.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.createdDate, ascending: false)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
         animation: .default
     )
     private var chats: FetchedResults<ChatEntity>
@@ -34,21 +34,6 @@ struct ContentView: View {
     let coldColors: [Color] = [.blue, .indigo, .cyan]
     let warmShadowColor: Color = Color(red: 0.9, green: 0.5, blue: 0.0)
     let particleCount = 50
-    
-    #warning("Temporary func updateOldChatsOnceIssue7() for migrating old chats - remove after a while, when users have been updated. Issue link: https://github.com/Renset/macai/issues/7")
-    private func updateOldChatsOnceIssue7() {
-        for chat in chats {
-            chat.extractSystemMessageAndModel()
-        }
-        
-        // Save the changes to CoreData
-        do {
-            try viewContext.save()
-        } catch {
-            let nsError = error as NSError
-            print("Unresolved error \(nsError), \(nsError.userInfo)")
-        }
-    }
 
     var body: some View {
         NavigationView {
@@ -101,7 +86,6 @@ struct ContentView: View {
             )
         }
         .onAppear(perform: {
-            updateOldChatsOnceIssue7()
             
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
