@@ -45,12 +45,14 @@ struct ChatSettingsView: View {
                         Text("gpt-4-turbo").tag("gpt-4-turbo")
                         Text("gpt-4").tag("gpt-4")
                         Text("gpt-4o").tag("gpt-4o")
+                        Text("gpt-4o-mini").tag("gpt-4o-mini")
                         Text("gpt-4-0314").tag("gpt-4-0314")
                         Text("gpt-4-32k").tag("gpt-4-32k")
                         Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
                         Text("gpt-4-1106-preview").tag("gpt-4-1106-preview")
                         Text("gpt-4-vision-preview").tag("gpt-4-vision-preview")
                         Text("llama3").tag("llama3")
+                        Text("llama3.1").tag("llama3.1")
                         Text("Enter custom model").tag("custom")
                     }.onChange(of: selectedGptModel) { newValue in
                         if (newValue == "custom") {
