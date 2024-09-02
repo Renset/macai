@@ -13,7 +13,6 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         entity: ChatEntity.entity(),
@@ -30,25 +29,22 @@ struct ContentView: View {
 
     @State private var windowRef: NSWindow?
 
-    let warmColors: [Color] = [.orange, .yellow, .white]
-    let coldColors: [Color] = [.blue, .indigo, .cyan]
-    let warmShadowColor: Color = Color(red: 0.9, green: 0.5, blue: 0.0)
-    let particleCount = 50
-
     var body: some View {
         NavigationView {
             List {
                 ForEach(chats, id: \.id) { chat in
-                    let isActive = Binding(
-                        get: { selectedChat == chat },
-                        set: { newValue in
-                            if newValue {
-                                selectedChat = chat
+                    let isActive = Binding<Bool>(
+                            get: { selectedChat?.id == chat.id },
+                            set: { newValue in
+                                if newValue {
+                                    selectedChat = chat
+                                } else if selectedChat?.id == chat.id {
+                                    selectedChat = nil
+                                }
                             }
-                        }
-                    )
+                        )
 
-                    let messagePreview = chat.messages.max(by: { $0.id < $1.id })
+                    let messagePreview = chat.lastMessage
                     let messageTimestamp = messagePreview?.timestamp ?? Date()
                     let messageBody = messagePreview?.body ?? ""
 
@@ -56,7 +52,8 @@ struct ContentView: View {
                         chat: chats[getIndex(for: chat)],
                         timestamp: messageTimestamp,
                         message: messageBody,
-                        isActive: isActive
+                        isActive: isActive,
+                        viewContext: viewContext
                     )
                     .contextMenu {                        
                         Button(action: {
@@ -96,7 +93,6 @@ struct ContentView: View {
         })
         .navigationTitle("Chats")
         .toolbar {
-            // Button to hide and display Navigation List
             ToolbarItem(placement: .navigation) {
                 Button(action: {
                     NSApp.keyWindow?.firstResponder?.tryToPerform(
@@ -108,7 +104,6 @@ struct ContentView: View {
                 }
             }
 
-            // Button to add new chat
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     newChat()
@@ -116,8 +111,7 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
             }
-
-            // Button to change settings of the app
+            
             ToolbarItem(placement: .primaryAction) {
                 if #available(macOS 14.0, *) {
                     SettingsLink {
@@ -126,7 +120,6 @@ struct ContentView: View {
                 }
                 else {
                     Button(action: {
-                        // Open Preferences View
                         openPreferencesView()
                     }) {
                         Image(systemName: "gear")
@@ -159,7 +152,6 @@ struct ContentView: View {
 
         do {
             try viewContext.save()
-            // Fix bug when new chat is not selected after creation by using DispatchQueue
             DispatchQueue.main.async {
                 selectedChat = newChat
             }
@@ -168,13 +160,11 @@ struct ContentView: View {
             print("Error saving new chat: \(error.localizedDescription)")
             viewContext.rollback()
         }
-
     }
     
-
     func openPreferencesView() {
         if #available(macOS 13.0, *) {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }
         else {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
@@ -191,7 +181,6 @@ struct ContentView: View {
         }
     }
 
-    // Delete chat from the list and confirm deletion
     func deleteChat(_ chat: ChatEntity) {
         let alert = NSAlert()
         alert.messageText = "Delete chat?"
@@ -215,7 +204,6 @@ struct ContentView: View {
         }
     }
 
-    // Rename chat in popover
     func renameChat(_ chat: ChatEntity) {
         let alert = NSAlert()
         alert.messageText = "Rename chat"

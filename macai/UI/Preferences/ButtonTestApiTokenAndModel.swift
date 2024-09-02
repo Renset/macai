@@ -45,10 +45,10 @@ struct ButtonTestApiTokenAndModel: View {
 }
 
 struct APIErrorResponse: Decodable {
-    let error: APIError
+    let error: APIErrorTest
 }
 
-struct APIError: Decodable {
+struct APIErrorTest: Decodable {
     let message: String
     let type: String?
     let param: String?

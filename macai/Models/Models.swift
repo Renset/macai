@@ -11,7 +11,7 @@ import SwiftUI
 
 class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var id: UUID
-    @NSManaged public var messages: Set<MessageEntity>
+    @NSManaged public var messages: NSOrderedSet
     @NSManaged public var requestMessages: [[String: String]]
     @NSManaged public var newChat: Bool
     @NSManaged public var temperature: Double
@@ -23,42 +23,29 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var systemMessage: String
     @NSManaged public var gptModel: String
     @NSManaged public var name: String
+    @NSManaged public var waitingForResponse: Bool
     
-    func addToMessages(_ value: MessageEntity) {
-        let items = self.mutableSetValue(forKey: "messages")
-        items.add(value)
-        value.chat = self
-
-        self.objectWillChange.send()
-    }
-
-    func removeFromMessages(_ value: MessageEntity) {
-        let items = self.mutableSetValue(forKey: "messages")
-        items.remove(value)
-        value.chat = nil
+    public var messagesArray: [MessageEntity] {
+        let array = messages.array as? [MessageEntity] ?? []
+        return array
     }
     
-    #warning("Temporary code for migrating old chats - remove after a while, when users have been updated. Issue link: https://github.com/Renset/macai/issues/7")
-    @AppStorage("gptModel") var gptModelFromSettings = AppConstants.chatGptDefaultModel
-    @AppStorage("systemMessage") var systemMessageFromSettings = AppConstants.chatGptSystemMessage
-    @NSManaged public var systemMessageProcessed: Bool
-    func extractSystemMessageAndModel() {
-        guard !systemMessageProcessed && systemMessage == nil else {
-            return
-        }
-        
-        if let systemMessageIndex = requestMessages.firstIndex(where: { $0["role"] == "system" }) {
-            systemMessage = requestMessages[systemMessageIndex]["content"]?.replacingOccurrences(of: "\n", with: " ") ?? systemMessageFromSettings
-        } else {
-            systemMessage = systemMessageFromSettings // Set your defåault value here
-        }
-        
-        if (gptModel == nil) {
-            gptModel = gptModelFromSettings
-        }
-        
-        systemMessageProcessed = true
+    public var lastMessage: MessageEntity? {
+        return messages.lastObject as? MessageEntity
     }
+    
+    public func addToMessages(_ message: MessageEntity) {
+        let newMessages = NSMutableOrderedSet(orderedSet: messages)
+        newMessages.add(message)
+        messages = newMessages
+    }
+
+    public func removeFromMessages(_ message: MessageEntity) {
+        let newMessages = NSMutableOrderedSet(orderedSet: messages)
+        newMessages.remove(message)
+        messages = newMessages
+    }
+
 }
 
 class MessageEntity: NSManagedObject, Identifiable {
@@ -97,14 +84,12 @@ struct Chat: Codable {
         self.gptModel = chatEntity.gptModel
         self.systemMessage = chatEntity.systemMessage
         self.name = chatEntity.name
-
-        if let messageEntities = chatEntity.messages as? Set<MessageEntity> {
-            self.messages = messageEntities.map { Message(messageEntity: $0) }
+        
+        if chatEntity.lastMessage != nil {
+            self.messagePreview = Message(messageEntity: chatEntity.lastMessage!)
         }
-
-        if let lastMessageEntity = chatEntity.messages.max(by: { $0.id < $1.id }) {
-            self.messagePreview = Message(messageEntity: lastMessageEntity)
-        }
+        
+        
     }
 }
 
@@ -124,5 +109,12 @@ struct Message: Codable, Equatable {
         self.timestamp = messageEntity.timestamp
         self.own = messageEntity.own
         self.waitingForResponse = messageEntity.waitingForResponse
+    }
+}
+
+extension ChatEntity {
+    func addUserMessage(_ message: String) {
+        let newMessage = ["role": "user", "content": message]
+        self.requestMessages.append(newMessage)
     }
 }

@@ -7,23 +7,9 @@
 
 import CoreData
 import SwiftUI
-import Combine
-
-class ChatViewModel: ObservableObject {
-    @Published var messages: Set<MessageEntity> = []
-    
-    init(messages: Set<MessageEntity>) {
-        self.messages = messages
-    }
-
-    var sortedMessages: [MessageEntity] {
-        return self.messages.sorted(by: { $0.id < $1.id })
-    }
-}
-
 
 struct ChatView: View {
-    @Environment(\.managedObjectContext) private var viewContext
+    let viewContext: NSManagedObjectContext
     @State var chat: ChatEntity
     @State private var waitingForResponse = false
     @AppStorage("gptToken") var gptToken = ""
@@ -44,7 +30,6 @@ struct ChatView: View {
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @ObservedObject var chatViewModel: ChatViewModel
     @State private var renderTime: Double = 0
-    @State private var cancellable: AnyCancellable?
     
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
@@ -54,7 +39,7 @@ struct ChatView: View {
 
 
     var body: some View {
-        let chatViewModel = ChatViewModel(messages: chat.messages)
+        let chatViewModel = ChatViewModel(chat: chat, viewContext: viewContext)
         
         VStack(spacing: 0) {
             ScrollView {
@@ -100,7 +85,7 @@ struct ChatView: View {
                             }
                         }
 
-                        if waitingForResponse {
+                        if chat.waitingForResponse {
                             ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true, isStreaming: $isStreaming).id(-1)
                         } else if lastMessageError {
                             HStack {
@@ -138,10 +123,10 @@ struct ChatView: View {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
-                        } else if newCount > self.messageCount  {
-                            self.messageCount = newCount
+                        } else if newCount as! Int > self.messageCount  {
+                            self.messageCount = newCount as! Int
 
-                            let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
+                            let sortedMessages = chatViewModel.sortedMessages
                             if let lastMessage = sortedMessages.last {
                                 withAnimation {
                                     print("scrolling to message...")
@@ -208,184 +193,47 @@ struct ChatView: View {
 }
 
 extension ChatView {
-    private func processDeltaResponse(with data: Data?) {
-        guard let data = data else {
-            print("No data received.")
-            return
-        }
-        
-        let defaultRole = "assistant"
-        let dataString = String(data: data, encoding: .utf8)
-        if (dataString == "[DONE]") {
-            handleChatCompletion(role: defaultRole)
-            return
-        }
-        
-        do {
-            let jsonResponse = try JSONSerialization.jsonObject(with: data, options: [])
-            
-            if let dict = jsonResponse as? [String: Any] {
-                // ChatGPT-compatible API
-                if let choices = dict["choices"] as? [[String: Any]],
-                   let firstChoice = choices.first,
-                   let delta = firstChoice["delta"] as? [String: String],
-                   let contentPart = delta["content"] {
-                    self.isStreaming = true
-                    self.currentStreamingMessage += contentPart
-                    DispatchQueue.main.async {
-                        self.updateUIWithResponse(content: self.currentStreamingMessage, role: defaultRole)
-                    }
-                    if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
-                        handleChatCompletion(role: defaultRole)
-                    }
-                }
-                
-                // Ollama-compatible API
-                if let message = dict["message"] as? [String: Any],
-                   let messageRole = message["role"] as? String,
-                   let done = dict["done"] as? Bool,
-                   let messageContent = message["content"] as? String {
-                    self.isStreaming = true
-                    self.currentStreamingMessage += messageContent
-                    DispatchQueue.main.async {
-                        self.updateUIWithResponse(content: self.currentStreamingMessage, role: messageRole)
-                    }
-                    
-                    if done {
-                        handleChatCompletion(role: messageRole)
-                    }
-                }
-            }
-               
-        } catch {
-            print(String(data: data, encoding: .utf8))
-            print("Error parsing JSON: \(error)")
-        }
-    }
-    
-    private func handleChatCompletion(role: String) {
-        print("Chat interaction completed.")
-        self.isStreaming = false
-        DispatchQueue.main.async {
-            self.resetCurrentMessage()
-            // TODO: force the child view for update to reflect the new state
-            self.chat.objectWillChange.send()
-            self.isStreaming = false
-            self.addNewMessageToRequestMessages(content: self.currentStreamingMessage, role: role)
-            resetCurrentStreamingMessage()
-            generateChatNameIfNeeded()
-        }
-    }
-    
-    private func resetCurrentStreamingMessage() {
-        self.currentStreamingMessage = ""
-    }
-    
-    func resetCurrentMessage() {
-        self.viewContext.rollback()
-    }
-
     func sendMessage(ignoreMessageInput: Bool = false) {
+        resetError()
+        
         let messageBody = newMessage
         
         if (!ignoreMessageInput) {
             saveNewMessageInStore(with: messageBody)
         }
-        
-        resetCurrentStreamingMessage()
-        self.waitingForResponse = true
 
         if useStream {
-            Task {
-                do {
-                    Task {
-                        let request = prepareRequest(with: messageBody)
-                        try? await sendAsync(using: request) { data in
-                            self.processDeltaResponse(with: data)
-                        }
+            self.isStreaming = true
+            chatViewModel.sendMessageStream(messageBody, contextSize: Int(chatContext)) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success:
+                        chatViewModel.generateChatNameIfNeeded()
+                        handleResponseFinished()
+                        break
+                    case .failure(let error):
+                        print("Error sending message: \(error)")
+                        lastMessageError = true
+                        handleResponseFinished()
                     }
-                } catch {
-                    print("An error occurred: \(error)")
                 }
             }
         } else {
-            let request = prepareRequest(with: messageBody)
-            send(using: request) { data, response, error in
-                processResponse(with: data, response: response, error: error)
-                generateChatNameIfNeeded()
-            }
-        }
-    }
-
-    private func sendAsync(using request: URLRequest, processLine: @escaping (Data) -> Void) async throws {
-        let (stream, response) = try await URLSession.shared.bytes(for: request)
-            if let httpResponse = response as? HTTPURLResponse {
-                switch httpResponse.statusCode {
-                case 200...299:
-                    #if DEBUG
-                    print("Got successful response code from server")
-                    #endif
-                case 400...599:
-                    self.waitingForResponse = false
-                    self.lastMessageError = true
-                    return
-                default:
-                    print("Unhandled status code: \(httpResponse.statusCode)")
-                    return
+            self.waitingForResponse = true
+            chatViewModel.sendMessage(messageBody, contextSize: Int(chatContext)) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success:
+                            chatViewModel.generateChatNameIfNeeded()
+                            handleResponseFinished()
+                            break
+                        case .failure(let error):
+                            print("Error sending message: \(error)")
+                            lastMessageError = true
+                            handleResponseFinished()
+                        }
+                    }
                 }
-            } else {
-                throw URLError(.badServerResponse)
-            }
-        for try await line in stream.lines {
-            if let lineData = line.data(using: .utf8) {
-                let prefix = "data: "
-                var index = line.startIndex
-                if line.starts(with: prefix) {
-                    index = line.index(line.startIndex, offsetBy: prefix.count)
-                }
-                let jsonData = String(line[index...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                if let jsonData = jsonData.data(using: .utf8) {
-                    processLine(jsonData)  // Process the JSON data
-                    self.waitingForResponse = false
-                }
-            }
-
-        }
-    }
-
-
-    private func generateChatNameIfNeeded() {
-        guard self.chat.name == "", useChatGptForNames, self.chat.messages.count > 0 else {
-            #if DEBUG
-            print("Chat name not needed, skipping generation")
-            #endif
-            return }
-
-        let requestContent = AppConstants.chatGptGenerateChatInstruction
-        let request = prepareRequest(with: requestContent, forceStreamFalse: true)
-
-        send(using: request) { data, response, error in
-            DispatchQueue.main.async {
-                guard let data = data else { return }
-
-                guard let (messageContent, _) = parseJSONResponse(data: data) else {
-                    print("Error parsing JSON")
-                    return
-                }
-
-                let chatName = messageContent.trimmingCharacters(in: .whitespacesAndNewlines)
-                self.chat.name = chatName
-                self.viewContext.saveWithRetry(attempts: 3)
-                
-                // remove 'generate chat name' instruction from requestMessages
-                #if DEBUG
-                print("Length of requestMessages before deletion: \(self.chat.requestMessages.count)")
-                #endif
-                self.chat.requestMessages = self.chat.requestMessages.filter { $0["content"] != AppConstants.chatGptGenerateChatInstruction }
-                #if DEBUG
-                print("Length of requestMessages after deletion: \(self.chat.requestMessages.count)")
-                #endif
-            }
         }
     }
     
@@ -404,161 +252,14 @@ extension ChatView {
         newMessage = ""
     }
     
-    private func prepareRequest(with messageBody: String, forceStreamFalse: Bool = false) -> URLRequest {
-        var request = URLRequest(url: URL(string: apiUrl)!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(gptToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        if chat.newChat {
-            chat.requestMessages = [
-                [
-                    "role": "system",
-                    "content": chat.systemMessage,
-                ]
-            ]
-            chat.newChat = false
-        }
-
-        chat.requestMessages.append(["role": "user", "content": messageBody ])
-
-        let jsonDict: [String: Any] = [
-            "model": (chat.gptModel != "") ? chat.gptModel : gptModel,
-            "stream": forceStreamFalse ? false : useStream,
-            "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(Int(chatContext) > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : Int(chatContext)))
-        ]
-
-        request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
-        
-        return request
+    private func handleResponseFinished() {
+        self.isStreaming = false
+        chat.waitingForResponse = false
     }
     
-    private func send(using request: URLRequest, completion: @escaping (Data?, URLResponse?, Error?) -> Void) {
-        let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = AppConstants.requestTimeout
-
-        let session = URLSession(configuration: configuration)
-
-        let task = session.dataTask(with: request) { data, response, error in
-            completion(data, response, error)
-        }
-        task.resume()
+    private func resetError() {
+        lastMessageError = false
     }
-    
-    private func processResponse(with data: Data?, response: URLResponse?, error: Error?) {
-        DispatchQueue.main.async {
-            handleErrors(data: data, response: response, error: error)
-
-            guard let data = data else { return }
-
-            guard let (messageContent, messageRole) = parseJSONResponse(data: data) else {
-                print("Error parsing JSON")
-                self.lastMessageError = true
-                return
-            }
-
-            updateUIWithResponse(content: messageContent, role: messageRole)
-        }
-    }
-
-    private func handleErrors(data: Data?, response: URLResponse?, error: Error?) {
-        self.waitingForResponse = false
-
-        if let error = error {
-            print("Error: \(error)")
-            self.lastMessageError = true
-            return
-        }
-
-        guard data != nil else {
-            print("No data returned from API")
-            self.lastMessageError = true
-            return
-        }
-    }
-
-    private func parseJSONResponse(data: Data) -> (String, String)? {
-        if let responseString = String(data: data, encoding: .utf8) {
-            #if DEBUG
-            print("Response: \(responseString)")
-            #endif
-            do {
-                let json = try JSONSerialization.jsonObject(with: data, options: [])
-                if let dict = json as? [String: Any] {
-                    // ChatGPT-compatible API
-                    if let choices = dict["choices"] as? [[String: Any]],
-                       let lastIndex = choices.indices.last,
-                       let content = choices[lastIndex]["message"] as? [String: Any],
-                       let messageRole = content["role"] as? String,
-                       let messageContent = content["content"] as? String {
-                        return (messageContent, messageRole)
-                    }
-                    
-                    // ChatGPT-compatible API
-                    if let message = dict["message"] as? [String: Any],
-                       let messageRole = message["role"] as? String,
-                       let messageContent = message["content"] as? String {
-                        return (messageContent, messageRole)
-                    }
-                }
-            }
-            catch {
-                print("Error parsing JSON: \(error.localizedDescription)")
-                return nil
-            }
-        }
-        return nil
-    }
-
-    private func updateUIWithResponse(content: String, role: String) {
-        if useStream {
-            let sortedMessages = chat.messages.sorted(by: { $0.timestamp < $1.timestamp })
-                if let lastMessage = sortedMessages.last {
-                    if lastMessage.own {
-                        addNewMessageToChat(content: content, role: role)
-                    } else {
-                        lastMessage.body = content
-                        lastMessage.own = false
-                        lastMessage.timestamp = Date()
-                        lastMessage.waitingForResponse = false
-                        // Force the view to update
-                        self.chat.objectWillChange.send()
-                        self.viewContext.saveWithRetry(attempts: 3)
-                    }
-                }
-        } else {
-            addNewMessageToChat(content: content, role: role)
-            addNewMessageToRequestMessages(content: content, role: role)
-        }
-
-    }
-
-    private func addNewMessageToChat(content: String, role: String) {
-        let receivedMessage = MessageEntity(context: self.viewContext)
-        receivedMessage.id = Int64(self.chat.messages.count + 1)
-        receivedMessage.name = "ChatGPT"
-        receivedMessage.body = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        receivedMessage.timestamp = Date()
-        receivedMessage.own = false
-        receivedMessage.chat = self.chat
-
-        self.lastMessageError = false
-
-        self.chat.updatedDate = Date()
-        self.chat.addToMessages(receivedMessage)
-        self.viewContext.saveWithRetry(attempts: 3)
-        
-        self.chat.objectWillChange.send()
-        #if DEBUG
-        print("Value of choices[\(self.chat.requestMessages.count - 1)].message.content: \(content)")
-        #endif
-    }
-    
-    private func addNewMessageToRequestMessages(content: String, role: String) {
-        self.chat.requestMessages.append(["role": role, "content": content])
-        self.viewContext.saveWithRetry(attempts: 3)
-    }
-
 }
 
 struct MeasureModifier: ViewModifier {

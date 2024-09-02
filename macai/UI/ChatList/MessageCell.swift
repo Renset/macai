@@ -12,9 +12,10 @@ struct MessageCell: View {
     @State var timestamp: Date
     var message: String
     @Binding var isActive: Bool
+    let viewContext: NSManagedObjectContext
 
     var body: some View {
-        NavigationLink(destination: ChatView(chat: chat, chatViewModel: ChatViewModel(messages: chat.messages)), isActive: $isActive) {
+        NavigationLink(destination: ChatView(viewContext: viewContext, chat: chat, chatViewModel: ChatViewModel(chat: chat, viewContext: viewContext)), isActive: $isActive) {
             VStack(alignment: .leading) {
 
                 Text(timestamp, style: .date)
@@ -35,17 +36,17 @@ struct MessageCell: View {
     }
 }
 
-struct MessageCell_Previews: PreviewProvider {
-
-    static var previews: some View {
-        let chat = ChatEntity(context: PersistenceController.shared.container.viewContext)
-
-        MessageCell(
-            chat: chat,
-            timestamp: Date(),
-            message: "Hello, how are you?",
-            isActive: .constant(false)
-        )
-        .previewLayout(.sizeThatFits)
-    }
-}
+//struct MessageCell_Previews: PreviewProvider {
+//    @Environment(\.managedObjectContext) private var viewContext
+//    static var previews: some View {
+//        let chat = ChatEntity(context: PersistenceController.shared.container.viewContext)
+//
+//        MessageCell(
+//            chat: chat,
+//            timestamp: Date(),
+//            message: "Hello, how are you?",
+//            isActive: .constant(false)
+//        )
+//        .previewLayout(.sizeThatFits)
+//    }
+//}
