@@ -17,6 +17,9 @@ struct AppConstants {
     static let longStringCount = 1000
     static let defaultRole: String = "assistant"
     static let streamedResponseUpdateUIInterval: TimeInterval = 0.2
+    static let defaultPersonaName = "Default ChatGPT Assistant"
+    static let defaultPersonaColor = "#007AFF"
+    static let defaultPersonaFlag = "defaultPersonaAdded"
 }
 
 func getCurrentFormattedDate() -> String {
