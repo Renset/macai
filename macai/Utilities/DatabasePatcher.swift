@@ -7,26 +7,30 @@
 
 import Foundation
 import CoreData
+import SwiftUI
 
 class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext) {
-        addDefaultPersonaIfNeeded(context: context)
+        addDefaultPersonasIfNeeded(context: context)
     }
     
-    private static func addDefaultPersonaIfNeeded(context: NSManagedObjectContext) {
+    static func addDefaultPersonasIfNeeded(context: NSManagedObjectContext, force: Bool = false) {
         let defaults = UserDefaults.standard
-        if !defaults.bool(forKey: AppConstants.defaultPersonaFlag) {
-            let defaultPersona = PersonaEntity(context: context)
-            defaultPersona.name = AppConstants.defaultPersonaName
-            defaultPersona.color = AppConstants.defaultPersonaColor
-            defaultPersona.systemMessage = AppConstants.chatGptSystemMessage
+        if force || !defaults.bool(forKey: AppConstants.defaultPersonasFlag) {
+            for persona in AppConstants.PersonaPresets.allPersonas {
+                let newPersona = PersonaEntity(context: context)
+                newPersona.name = persona.name
+                newPersona.color = persona.color
+                newPersona.systemMessage = persona.message
+                newPersona.addedDate = Date()
+            }
             
             do {
                 try context.save()
-                defaults.set(true, forKey: AppConstants.defaultPersonaFlag)
-                print("Default persona added successfully")
+                defaults.set(true, forKey: AppConstants.defaultPersonasFlag)
+                print("Default personas added successfully")
             } catch {
-                print("Failed to add default persona: \(error)")
+                print("Failed to add default personas: \(error)")
             }
         }
     }

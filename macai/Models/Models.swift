@@ -24,6 +24,7 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var gptModel: String
     @NSManaged public var name: String
     @NSManaged public var waitingForResponse: Bool
+    @NSManaged public var persona: PersonaEntity?
     
     public var messagesArray: [MessageEntity] {
         let array = messages.array as? [MessageEntity] ?? []

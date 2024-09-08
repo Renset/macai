@@ -30,6 +30,12 @@ struct ChatView: View {
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @ObservedObject var chatViewModel: ChatViewModel
     @State private var renderTime: Double = 0
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.name, ascending: true)],
+        animation: .default)
+    private var personas: FetchedResults<PersonaEntity>
+    
+    @State private var selectedPersona: PersonaEntity?
     
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
@@ -43,12 +49,14 @@ struct ChatView: View {
         
         VStack(spacing: 0) {
             ScrollView {
-                // Add the new scroll view reader as a child to the scrollview
                 ScrollViewReader { scrollView in
                     VStack(spacing: 12) {
                         Accordion(title: chat.gptModel, isExpanded: chat.messages.count == 0) {
                             HStack {
                                 VStack(alignment: .leading, content: {
+                                    if chat.messages.count == 0 {
+                                        personaSelectionView
+                                    }
                                     Text("System message: \(chat.systemMessage)").textSelection(.enabled)
                                     if (chat.messages.count == 0 && !editSystemMessage && isHovered) {
                                         Button(action: {
@@ -189,6 +197,39 @@ struct ChatView: View {
                 renderTime = CFAbsoluteTimeGetCurrent() - startTime
             }
         })
+    }
+    
+    private var personaSelectionView: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Circle()
+                    .fill(Color(hex: chat.persona?.color ?? "#CCCCCC") ?? .white)
+                    .frame(width: 12, height: 12)
+                
+                Picker("AI Persona", selection: $chat.persona) {
+                    ForEach(personas, id: \.objectID) { persona in
+                        HStack {
+                            Text(persona.name ?? "Unnamed Persona")
+                        }
+                        .tag(persona as PersonaEntity?)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .onChange(of: chat.persona) { newPersona in
+                    if let newPersona = newPersona {
+                        chat.systemMessage = newPersona.systemMessage ?? ""
+                        viewContext.saveWithRetry(attempts: 1)
+                        
+                    }
+                }
+                .frame(maxWidth: 300)
+                
+                Spacer()
+            }
+        }
+        .background(Color(NSColor.textBackgroundColor))
+        .padding(.bottom, 8)
+        .cornerRadius(8)
     }
 }
 

@@ -11,37 +11,50 @@ import CoreData
 struct TabAIPersonasView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.name, ascending: true)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
         animation: .default)
     private var personas: FetchedResults<PersonaEntity>
     
-    @State private var isShowingAddPersona = false
+    @State private var isShowingAddOrEditPersona = false
     @State private var selectedPersona: PersonaEntity?
+    @State private var selectedPersonaID: NSManagedObjectID?
+    @State private var refreshID = UUID()
     
     var body: some View {
         VStack {
-            List {
+            List(selection: $selectedPersonaID) {
                 ForEach(personas, id: \.objectID) { persona in
                     PersonaRowView(persona: persona)
                         .tag(persona.objectID)
-                        .onTapGesture {
-                            selectedPersona = persona
-                        }
-                        .background(selectedPersona?.objectID == persona.objectID ? Color.accentColor : .clear)
-                        .foregroundColor(selectedPersona?.objectID == persona.objectID ? .white : .primary)
-                        .cornerRadius(8)
                 }
             }
             .listStyle(SidebarListStyle())
-            .frame(minWidth: 200, maxHeight: 120)
+            .frame(minWidth: 200, maxHeight: 180)
             .cornerRadius(8)
-            
+            .onChange(of: selectedPersonaID) { id in
+                if let persona = personas.first(where: { $0.objectID == id }) {
+                    selectedPersona = persona
+                }
+            }
+            .id(refreshID)
             
             VStack(alignment: .leading) {
                 if selectedPersona != nil {
                     Text(selectedPersona?.systemMessage ?? "")
+                        .padding(8)
                 } else {
-                    Text("Select a persona or create a new one")
+                     Group {
+                        if personas.count == 0 {
+                            Text("There are no personas yet. Create one by clicking the 'Add New Persona' button below or add personas from presets.")
+                        } else if personas.count == 1 {
+                            Text("Select the only persona above to edit it, or create a new one")
+                        } else {
+                            Text("Select any of \(personas.count) personas to edit or create a new one")
+                        }
+                    }
+                     .padding(8)
+                     .foregroundStyle(.secondary)
+                    
                 }
                 
                 Spacer()
@@ -50,29 +63,40 @@ struct TabAIPersonasView: View {
                     Spacer()
                     if (selectedPersona != nil) {
                         Button(action: {
-                            isShowingAddPersona = true
+                            isShowingAddOrEditPersona = true
                         }) {
                             Label("Edit Selected Persona", systemImage: "pencil")
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
+                    if (personas.count == 0) {
+                        Button(action: {
+                            DatabasePatcher.addDefaultPersonasIfNeeded(context: viewContext, force: true)
+                        }) {
+                            Label("Add Personas from Presets", systemImage: "plus.circle")
                         }
                     }
                     Button(action: {
                         selectedPersona = nil
-                        isShowingAddPersona = true
+                        isShowingAddOrEditPersona = true
                     }) {
-                        Label("Add Persona", systemImage: "plus")
+                        Label("Add New Persona", systemImage: "plus")
                     }
                 }
-                
             }
             .frame(maxHeight: 150)
-            
-            
-                
-            
         }
-        .sheet(isPresented: $isShowingAddPersona) {
-            PersonaDetailView(persona: selectedPersona ?? nil)
+        .sheet(isPresented: $isShowingAddOrEditPersona) {
+            PersonaDetailView(persona: selectedPersona ?? nil, onSave: {
+                refreshList()
+            }, onDelete: {
+                selectedPersona = nil
+            })
         }
+    }
+    
+    private func refreshList() {
+        refreshID = UUID()
     }
 }
 
@@ -96,6 +120,8 @@ struct PersonaDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     
     let persona: PersonaEntity?
+    let onSave: () -> Void
+    let onDelete: () -> Void
     
     @State private var name: String = ""
     @State private var color: Color = .white
@@ -103,25 +129,49 @@ struct PersonaDetailView: View {
     @State private var showingDeleteConfirmation = false
     
     var body: some View {
-        Form {
-            TextField("Name", text: $name)
-            ColorPicker("Color", selection: $color)
-            MessageInputView(
-                text: $systemMessage,
-                onEnter: {}
-            )
+        VStack(alignment: .leading) {
+            Text("Name:")
+            TextField("Enter AI persona name here", text: $name)
+            
+            ColorPicker("Color:", selection: $color)
+                .padding(.top, 8)
+
+            
+            VStack(alignment: .leading) {
+                Text("System message:")
+                MessageInputView(
+                    text: $systemMessage,
+                    onEnter: {},
+                    inputPlaceholderText: "Enter system message here",
+                    cornerRadius: 4
+                )
+            }
+            .padding(.top, 8)
+            
             
             HStack {
-                Button(persona == nil ? "Create Persona" : "Update Persona") {
-                    savePersona()
-                }
-                Spacer()
                 if persona != nil {
-                    Button("Delete Persona") {
+                    Button(action: {
                         showingDeleteConfirmation = true
+                    }) {
+                        Label("Delete", systemImage: "trash")
+                            .foregroundColor(.red)
                     }
                 }
+                
+                Spacer()
+                
+                Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+                
+                Button(persona == nil ? "Create Persona" : "Update Persona") {
+                    savePersona()
+                    onSave()
+                }
+                .disabled(name.isEmpty || systemMessage.isEmpty)
             }
+            .padding(.top, 16)
             
         }
         .padding()
@@ -139,6 +189,7 @@ struct PersonaDetailView: View {
                 message: Text("Are you sure you want to delete this persona? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
                     deletePersona()
+                    onDelete()
                 },
                 secondaryButton: .cancel()
             )
@@ -150,12 +201,16 @@ struct PersonaDetailView: View {
         personaToSave.name = name
         personaToSave.color = color.toHex()
         personaToSave.systemMessage = systemMessage
+        if (persona == nil) {
+            personaToSave.addedDate = Date()
+        } else {
+            personaToSave.editedDate = Date()
+        }
         
         do {
+            personaToSave.objectWillChange.send()
             try viewContext.save()
-            if persona == nil {
-                presentationMode.wrappedValue.dismiss()
-            }
+            presentationMode.wrappedValue.dismiss()
         } catch {
             let nsError = error as NSError
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
