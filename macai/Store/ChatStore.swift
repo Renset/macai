@@ -117,6 +117,22 @@ class ChatStore: ObservableObject {
             print("Error deleting all chats: \(error)")
         }
     }
+    
+    func deleteAllPersonas() {
+        let fetchRequest = PersonaEntity.fetchRequest() 
+        
+        do {
+            let personaEntities = try self.viewContext.fetch(fetchRequest)
+            
+            for persona in personaEntities {
+                self.viewContext.delete(persona)
+            }
+            
+            try self.viewContext.save()
+        } catch {
+            print("Error deleting all personas: \(error)")
+        }
+    }
 
     private static func fileURL() throws -> URL {
         try FileManager.default.url(

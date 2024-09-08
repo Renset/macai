@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23222.3" systemVersion="24A5331b" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="APIServiceEntity" representedClassName="APIServiceEntity" syncable="YES" codeGenerationType="class"/>
+    <entity name="APIServiceEntity" representedClassName="APIServiceEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="contextSize" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="defaultAgent" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="generateChatNames" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="model" optional="YES" attributeType="String"/>
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <attribute name="url" optional="YES" attributeType="URI"/>
+        <attribute name="useStreamResponse" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+    </entity>
     <entity name="ChatEntity" representedClassName=".ChatEntity" syncable="YES">
         <attribute name="behavior" optional="YES" attributeType="String"/>
         <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -17,6 +26,7 @@
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="waitingForResponse" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <relationship name="messages" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="MessageEntity" inverseName="chat" inverseEntity="MessageEntity" spotlightIndexingEnabled="YES"/>
+        <relationship name="persona" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonaEntity"/>
     </entity>
     <entity name="MessageEntity" representedClassName=".MessageEntity" syncable="YES">
         <attribute name="body" optional="YES" attributeType="String" spotlightIndexingEnabled="YES"/>
@@ -26,5 +36,13 @@
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="waitingForResponse" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="chat" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ChatEntity" inverseName="messages" inverseEntity="ChatEntity" spotlightIndexingEnabled="YES"/>
+    </entity>
+    <entity name="PersonaEntity" representedClassName="PersonaEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="addedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="color" optional="YES" attributeType="String"/>
+        <attribute name="editedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="systemMessage" optional="YES" attributeType="String"/>
     </entity>
 </model>

@@ -34,6 +34,11 @@ struct PreferencesView: View {
                 .tabItem {
                     Label("New Chat", systemImage: "message")
                 }
+            
+            TabAIPersonasView()
+                .tabItem {
+                    Label("AI Personas", systemImage: "person.2")
+                }
 
             BackupRestoreView(store: store)
                 .tabItem {
@@ -45,7 +50,7 @@ struct PreferencesView: View {
                     Label("Danger Zone", systemImage: "flame.fill")
                 }
         }
-        .frame(width: 600, height: 420)
+        .frame(width: 600)
         .padding()
         .onAppear(perform: {
             store.saveInCoreData()
