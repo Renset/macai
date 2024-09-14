@@ -9,9 +9,12 @@ import SwiftUI
 
 struct ButtonTestApiTokenAndModel: View {
     @Binding var lampColor: Color
-    @AppStorage("gptToken") var gptToken: String = ""
-    @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
-    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
+    var gptToken: String = ""
+    var gptModel: String = AppConstants.chatGptDefaultModel
+    var apiUrl: String = AppConstants.apiUrlChatCompletions
+//    @AppStorage("gptToken") var gptToken: String = ""
+//    @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
+//    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     
     var body: some View {
         Button(action: {

@@ -73,6 +73,7 @@ struct macaiApp: App {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         
         DatabasePatcher.applyPatches(context: persistenceController.container.viewContext)
+        DatabasePatcher.migrateExistingConfiguration(context: persistenceController.container.viewContext)
     }
     
     var body: some Scene {

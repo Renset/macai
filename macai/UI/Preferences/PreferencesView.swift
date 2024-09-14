@@ -29,6 +29,11 @@ struct PreferencesView: View {
                 .tabItem {
                     Label("LLM Settings", systemImage: "gearshape")
                 }
+            
+            TabAPIServicesView()
+                .tabItem {
+                    Label("API Services", systemImage: "network")
+                }
 
             ChatSettingsView(lampColor: $lampColor)
                 .tabItem {

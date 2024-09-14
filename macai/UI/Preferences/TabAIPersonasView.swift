@@ -22,77 +22,101 @@ struct TabAIPersonasView: View {
     
     var body: some View {
         VStack {
-            List(selection: $selectedPersonaID) {
-                ForEach(personas, id: \.objectID) { persona in
-                    PersonaRowView(persona: persona)
-                        .tag(persona.objectID)
-                }
-            }
-            .listStyle(SidebarListStyle())
-            .frame(minWidth: 200, maxHeight: 180)
-            .cornerRadius(8)
-            .onChange(of: selectedPersonaID) { id in
-                if let persona = personas.first(where: { $0.objectID == id }) {
-                    selectedPersona = persona
-                }
-            }
-            .id(refreshID)
+            entityListView
+                .id(refreshID)
             
-            VStack(alignment: .leading) {
-                if selectedPersona != nil {
-                    Text(selectedPersona?.systemMessage ?? "")
-                        .padding(8)
-                } else {
-                     Group {
-                        if personas.count == 0 {
-                            Text("There are no personas yet. Create one by clicking the 'Add New Persona' button below or add personas from presets.")
-                        } else if personas.count == 1 {
-                            Text("Select the only persona above to edit it, or create a new one")
-                        } else {
-                            Text("Select any of \(personas.count) personas to edit or create a new one")
-                        }
-                    }
-                     .padding(8)
-                     .foregroundStyle(.secondary)
-                    
-                }
-                
+            HStack {
                 Spacer()
-                
-                HStack {
-                    Spacer()
-                    if (selectedPersona != nil) {
-                        Button(action: {
-                            isShowingAddOrEditPersona = true
-                        }) {
-                            Label("Edit Selected Persona", systemImage: "pencil")
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
+                if personas.count == 0 {
+                    addPresetsButton
+                }
+                if selectedPersonaID != nil {
+                    Button(action: onEdit) {
+                        Label("Edit Selected", systemImage: "pencil")
                     }
-                    if (personas.count == 0) {
-                        Button(action: {
-                            DatabasePatcher.addDefaultPersonasIfNeeded(context: viewContext, force: true)
-                        }) {
-                            Label("Add Personas from Presets", systemImage: "plus.circle")
-                        }
-                    }
-                    Button(action: {
-                        selectedPersona = nil
-                        isShowingAddOrEditPersona = true
-                    }) {
-                        Label("Add New Persona", systemImage: "plus")
-                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                }
+                Button(action: onAdd) {
+                    Label("Add New", systemImage: "plus")
                 }
             }
-            .frame(maxHeight: 150)
+        }
+        .onChange(of: selectedPersonaID) { id in
+            selectedPersona = personas.first(where: { $0.objectID == id })
+            print("Selected Persona ID: \(id)")
+            print("Selected Persona: \(selectedPersona?.name ?? "nil")")
         }
         .sheet(isPresented: $isShowingAddOrEditPersona) {
-            PersonaDetailView(persona: selectedPersona ?? nil, onSave: {
+            PersonaDetailView(persona: $selectedPersona, onSave: {
                 refreshList()
             }, onDelete: {
                 selectedPersona = nil
             })
+            .onAppear {
+                print(">> View is here")
+                print(">> Selected persona: \(selectedPersona?.name ?? "nil")")
+            }
         }
+    }
+    
+    private var entityListView: some View {
+        EntityListView(
+            selectedEntityID: $selectedPersonaID,
+            entities: personas,
+            detailContent: detailContent,
+            onRefresh: refreshList,
+            getEntityColor: getPersonaColor,
+            getEntityName: getPersonaName
+        )
+    }
+    
+    private var addPresetsButton: some View {
+        Button(action: {
+            DatabasePatcher.addDefaultPersonasIfNeeded(context: viewContext, force: true)
+        }) {
+            Label("Add Personas from Presets", systemImage: "plus.circle")
+        }
+    }
+    
+    private func detailContent(persona: PersonaEntity?) -> some View {
+        Group {
+            if let persona = persona {
+                Text(persona.systemMessage ?? "")
+            } else {
+                instructionText
+            }
+        }
+    }
+    
+    private var instructionText: some View {
+        Group {
+            if personas.count == 0 {
+                Text("There are no personas yet. Create one by clicking the 'Add New Persona' button below or add personas from presets.")
+            } else if personas.count == 1 {
+                Text("Select the only persona above to edit it, or create a new one")
+            } else {
+                Text("Select any of \(personas.count) personas to edit or create a new one")
+            }
+        }
+    }
+    
+    private func onAdd() {
+        selectedPersona = nil
+        isShowingAddOrEditPersona = true
+    }
+    
+    private func onEdit() {
+        selectedPersona = personas.first(where: { $0.objectID == selectedPersonaID })
+        isShowingAddOrEditPersona = true
+        print("Opening Persona Detail View: \(selectedPersona?.name ?? "nil")")
+    }
+    
+    private func getPersonaColor(persona: PersonaEntity) -> Color? {
+        Color(hex: persona.color ?? "#FFFFFF") ?? .white
+    }
+    
+    private func getPersonaName(persona: PersonaEntity) -> String {
+        persona.name ?? "Unnamed Persona"
     }
     
     private func refreshList() {
@@ -100,26 +124,11 @@ struct TabAIPersonasView: View {
     }
 }
 
-struct PersonaRowView: View {
-    let persona: PersonaEntity
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(Color(hex: persona.color ?? "#FFFFFF") ?? .white)
-                .frame(width: 12, height: 12)
-            Text(persona.name ?? "Unnamed Persona")
-            Spacer()
-        }
-        .padding(4)
-    }
-}
-
 struct PersonaDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) var presentationMode
     
-    let persona: PersonaEntity?
+    @Binding var persona: PersonaEntity?
     let onSave: () -> Void
     let onDelete: () -> Void
     
@@ -130,6 +139,7 @@ struct PersonaDetailView: View {
     
     var body: some View {
         VStack(alignment: .leading) {
+            
             Text("Name:")
             TextField("Enter AI persona name here", text: $name)
             
@@ -177,6 +187,7 @@ struct PersonaDetailView: View {
         .padding()
         .frame(minWidth: 300, minHeight: 200)
         .onAppear {
+            print(">> Persona: \(persona?.name ?? "")")
             if let persona = persona {
                 name = persona.name ?? ""
                 color = Color(hex: persona.color ?? "#FFFFFF") ?? .white
@@ -203,6 +214,7 @@ struct PersonaDetailView: View {
         personaToSave.systemMessage = systemMessage
         if (persona == nil) {
             personaToSave.addedDate = Date()
+            personaToSave.id = UUID()
         } else {
             personaToSave.editedDate = Date()
         }

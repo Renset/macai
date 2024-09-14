@@ -34,7 +34,7 @@ struct ContentView: View {
             List {
                 ForEach(chats, id: \.id) { chat in
                     let isActive = Binding<Bool>(
-                            get: { selectedChat?.id == chat.id },
+                            get: { self.chats.contains(where: { $0.id == chat.id }) && self.selectedChat?.id == chat.id },
                             set: { newValue in
                                 if newValue {
                                     selectedChat = chat

@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct GeneralSettingsView: View {
-    @AppStorage("gptToken") var gptToken: String = ""
+    @State private var gptToken: String = ""
+    @AppStorage("gptToken") var gptTokenFromAppStorage: String = ""
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @AppStorage("chatContext") var chatContext: Double = AppConstants.chatGptContextSize
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
@@ -57,6 +58,13 @@ struct GeneralSettingsView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .focused($isFocused)
                         .blur(radius: !gptToken.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
+                        .onChange(of: gptToken) { newValue in
+                            do {
+                                try TokenManager.setToken(newValue, for: "chatgpt")
+                            } catch {
+                                print("Error setting token: \(error)")
+                            }
+                        }
                 }
             }
 
@@ -130,5 +138,22 @@ struct GeneralSettingsView: View {
 
         }
         .padding(32)
+        .onAppear {
+            do {
+                gptToken = try TokenManager.getToken(for: "chatgpt")!
+            } catch {
+                if gptTokenFromAppStorage != "" {
+                    gptToken = gptTokenFromAppStorage
+                    do {
+                        print("Found token in app storage. Saving to keychain")
+                        try TokenManager.setToken(gptToken, for: "chatgpt")
+                        gptTokenFromAppStorage = ""
+                    } catch {
+                        print("Failed to set token: \(error.localizedDescription)")
+                    }
+                }
+                print("Failed to get token: \(error.localizedDescription)")
+            }
+        }
     }
 }

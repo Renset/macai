@@ -23,6 +23,7 @@ class DatabasePatcher {
                 newPersona.color = persona.color
                 newPersona.systemMessage = persona.message
                 newPersona.addedDate = Date()
+                newPersona.id = UUID()
             }
             
             do {
@@ -33,5 +34,49 @@ class DatabasePatcher {
                 print("Failed to add default personas: \(error)")
             }
         }
+    }
+    
+    static func migrateExistingConfiguration(context: NSManagedObjectContext) {
+        let apiServiceManager = APIServiceManager(viewContext: context)
+        let defaults = UserDefaults.standard
+        defaults.set(false, forKey: "APIServiceMigrationCompleted")
+        if defaults.bool(forKey: "APIServiceMigrationCompleted") {
+            return
+        }
+        
+        let apiUrl = defaults.string(forKey: "apiUrl") ?? AppConstants.apiUrlChatCompletions
+        let gptModel = defaults.string(forKey: "gptModel") ?? AppConstants.chatGptDefaultModel
+        let chatContext = defaults.double(forKey: "chatContext")
+        let useStream = defaults.bool(forKey: "useStream")
+        let useChatGptForNames = defaults.bool(forKey: "useChatGptForNames")
+        
+        var type = "chatgpt"
+        var name = "Chat GPT"
+        
+        if apiUrl.contains(":11434/api/chat") {
+            type = "ollama"
+            name = "Ollama"
+        }
+        
+        let apiService = apiServiceManager.createAPIService(
+            name: name,
+            type: type,
+            url: URL(string: apiUrl)!,
+            model: gptModel,
+            contextSize: Int16(chatContext),
+            useStreamResponse: useStream,
+            generateChatNames: useChatGptForNames
+        )
+        
+        if let token = defaults.string(forKey: "gptToken") {
+            if let apiServiceId = apiService.id {
+                try? TokenManager.setToken(token, for: apiServiceId.uuidString)
+                defaults.set("", forKey: "gptToken")
+            }
+            
+        }
+        
+        // Migration completed
+        defaults.set(true, forKey: "APIServiceMigrationCompleted")
     }
 }
