@@ -11,16 +11,17 @@ class ChatGPTHandler: APIService {
     let name: String
     let baseURL: URL
     private let apiKey: String
+    let model: String
     
     init(config: APIServiceConfiguration) {
         self.name = config.name
         self.baseURL = config.apiUrl
         self.apiKey = config.apiKey
+        self.model = config.model
     }
     
     func sendMessage(_ message: String, chat: ChatEntity, contextSize: Int, completion: @escaping (Result<String, APIError>) -> Void) {
         let systemMessage = chat.systemMessage
-        let model = chat.gptModel
         let request = prepareRequest(for: chat, message: message, systemMessage: systemMessage, model: model, stream: false, contextSize: contextSize)
         
         URLSession.shared.dataTask(with: request) { data, response, error in
@@ -49,7 +50,6 @@ class ChatGPTHandler: APIService {
     func sendMessageStream(_ message: String, chat: ChatEntity, contextSize: Int) async throws -> AsyncThrowingStream<String, Error> {
         return AsyncThrowingStream { continuation in
             let systemMessage = chat.systemMessage
-            let model = chat.gptModel
             let request = self.prepareRequest(for: chat, message: message, systemMessage: systemMessage, model: model, stream: true, contextSize: contextSize)
             
             Task {
@@ -121,7 +121,7 @@ class ChatGPTHandler: APIService {
         chat.requestMessages.append(["role": "user", "content": message ])
         
         let jsonDict: [String: Any] = [
-            "model": chat.gptModel,
+            "model": self.model,
             "stream": stream,
             "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(contextSize > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : contextSize))
         ]

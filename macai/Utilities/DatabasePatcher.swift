@@ -39,23 +39,26 @@ class DatabasePatcher {
     static func migrateExistingConfiguration(context: NSManagedObjectContext) {
         let apiServiceManager = APIServiceManager(viewContext: context)
         let defaults = UserDefaults.standard
-        defaults.set(false, forKey: "APIServiceMigrationCompleted")
         if defaults.bool(forKey: "APIServiceMigrationCompleted") {
             return
         }
         
         let apiUrl = defaults.string(forKey: "apiUrl") ?? AppConstants.apiUrlChatCompletions
         let gptModel = defaults.string(forKey: "gptModel") ?? AppConstants.chatGptDefaultModel
-        let chatContext = defaults.double(forKey: "chatContext")
         let useStream = defaults.bool(forKey: "useStream")
         let useChatGptForNames = defaults.bool(forKey: "useChatGptForNames")
         
         var type = "chatgpt"
         var name = "Chat GPT"
+        var chatContext = defaults.double(forKey: "chatContext")
         
         if apiUrl.contains(":11434/api/chat") {
             type = "ollama"
             name = "Ollama"
+        }
+        
+        if chatContext < 5 {
+            chatContext = AppConstants.chatGptContextSize
         }
         
         let apiService = apiServiceManager.createAPIService(
@@ -63,13 +66,14 @@ class DatabasePatcher {
             type: type,
             url: URL(string: apiUrl)!,
             model: gptModel,
-            contextSize: Int16(chatContext),
+            contextSize: chatContext.toInt16() ?? 15,
             useStreamResponse: useStream,
             generateChatNames: useChatGptForNames
         )
         
         if let token = defaults.string(forKey: "gptToken") {
-            if let apiServiceId = apiService.id {
+            print("Token found: \(token)")
+            if token != "", let apiServiceId = apiService.id {
                 try? TokenManager.setToken(token, for: apiServiceId.uuidString)
                 defaults.set("", forKey: "gptToken")
             }

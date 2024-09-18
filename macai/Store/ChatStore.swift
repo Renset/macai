@@ -133,6 +133,24 @@ class ChatStore: ObservableObject {
             print("Error deleting all personas: \(error)")
         }
     }
+    
+    func deleteAllAPIServices() {
+        let fetchRequest = APIServiceEntity.fetchRequest()
+        
+        do {
+            let apiServiceEntities = try self.viewContext.fetch(fetchRequest)
+            
+            for apiService in apiServiceEntities {
+                let tokenIdentifier = apiService.tokenIdentifier
+                try TokenManager.deleteToken(for: tokenIdentifier ?? "")
+                self.viewContext.delete(apiService)
+            }
+            
+            try self.viewContext.save()
+        } catch {
+            print("Error deleting all api services: \(error)")
+        }
+    }
 
     private static func fileURL() throws -> URL {
         try FileManager.default.url(

@@ -25,6 +25,7 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var name: String
     @NSManaged public var waitingForResponse: Bool
     @NSManaged public var persona: PersonaEntity?
+    @NSManaged public var apiService: APIServiceEntity?
     
     public var messagesArray: [MessageEntity] {
         let array = messages.array as? [MessageEntity] ?? []

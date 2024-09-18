@@ -65,12 +65,21 @@ class ChatViewModel: ObservableObject {
     }
     
     private func loadCurrentAPIConfig() -> APIServiceConfiguration? {
-            return APIServiceConfig(
-                name: getApiServiceName(),
-                apiUrl: URL(string: apiUrl)!,
-                apiKey: apiKey,
-                model: chat.gptModel
-            )
+        var apiKey = ""
+        do {
+            apiKey = try TokenManager.getToken(for: chat.apiService?.id?.uuidString ?? "") ?? ""
+        } catch {
+            print("Error extracting token: \(error) for \(chat.apiService?.id?.uuidString ?? "")")
+        }
+        
+        print(">> Extracted token: \(apiKey)")
+        
+        return APIServiceConfig(
+            name: getApiServiceName(),
+            apiUrl: URL(string: apiUrl)!,
+            apiKey: apiKey,
+            model: chat.apiService?.model ?? ""
+        )
     }
     
     // Temp function until GPT Service configurator is implemented

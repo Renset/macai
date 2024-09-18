@@ -12,7 +12,7 @@ struct DangerZoneView: View {
     @State private var currentAlert: AlertType?
         
     enum AlertType: Identifiable {
-        case deleteChats, deletePersonas
+        case deleteChats, deletePersonas, deleteAPIServices
         var id: Self { self }
     }
 
@@ -31,16 +31,23 @@ struct DangerZoneView: View {
             }
             .padding(.bottom, 16)
             
-            VStack() {
-                Button(action: {
-                    currentAlert = .deleteChats
-                }, label: {
-                    Label("Delete all chats", systemImage: "trash").foregroundColor(.red)
-                })
-                Button(action: {
-                    currentAlert = .deletePersonas
-                }) {
-                    Label("Delete all AI Personas", systemImage: "trash").foregroundColor(.red)
+            VStack(alignment: .leading) {
+                HStack {
+                    Button(action: {
+                        currentAlert = .deleteChats
+                    }, label: {
+                        Label("Delete all chats", systemImage: "trash").foregroundColor(.red)
+                    })
+                    Button(action: {
+                        currentAlert = .deletePersonas
+                    }) {
+                        Label("Delete all AI Personas", systemImage: "trash")
+                    }
+                    Button(action: {
+                        currentAlert = .deleteAPIServices
+                    }) {
+                        Label("Delete all API Services", systemImage: "trash")
+                    }
                 }
             }
             
@@ -63,6 +70,15 @@ struct DangerZoneView: View {
                     message: Text("Are you sure you want to delete all AI personas?"),
                     primaryButton: .destructive(Text("Delete all personas")) {
                         store.deleteAllPersonas()
+                    },
+                    secondaryButton: .cancel()
+                )
+            case .deleteAPIServices:
+                return Alert(
+                    title: Text("Delete All API Services"),
+                    message: Text("Are you sure you want to delete all API Services?"),
+                    primaryButton: .destructive(Text("Delete all API Services")) {
+                        store.deleteAllAPIServices()
                     },
                     secondaryButton: .cancel()
                 )

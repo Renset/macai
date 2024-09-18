@@ -92,6 +92,28 @@ struct AppConstants {
         let color: String
         let message: String
     }
+    
+    static let predefinedModels = [
+        "chatgpt": [
+            "o1-preview",
+            "o1-mini",
+            "gpt-4o",
+            "chatgpt-4o-latest",
+            "gpt-4o-mini",
+            "gpt-4-turbo",
+            "gpt-4",
+            "gpt-3.5-turbo"
+        ],
+        "ollama": [
+            "llama3.1",
+            "llama3.1:70b",
+            "llama3.1:400b",
+            "phi3",
+            "gemma"
+        ]
+    ]
+    
+    static let apiTypes = ["chatgpt", "ollama"]
 }
 
 func getCurrentFormattedDate() -> String {

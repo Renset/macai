@@ -41,20 +41,12 @@ struct TabAPIServicesView: View {
         .sheet(isPresented: $isShowingAddOrEditService) {
             let selectedApiService = apiServices.first(where: { $0.objectID == selectedServiceID })!
             if (selectedApiService == nil) {
-                APIServiceDetailView(apiService: nil)
+                APIServiceDetailView(viewContext: viewContext, apiService: nil)
             } else {
-                APIServiceDetailView(
-                    apiService: selectedApiService,
-                    name: selectedApiService.name ?? "",
-                    type: selectedApiService.type ?? "",
-                    url: selectedApiService.url?.absoluteString ?? "",
-                    model: selectedApiService.model ?? "",
-                    contextSize: Float(selectedApiService.contextSize),
-                    useStreamResponse: selectedApiService.useStreamResponse,
-                    generateChatNames: selectedApiService.generateChatNames,
-
-                    defaultAiPersona: selectedApiService.defaultPersona
-                )
+                APIServiceDetailView(viewContext: viewContext, apiService: selectedApiService)
+                .onAppear {
+                    print(selectedApiService)
+                }
             }
             
         }

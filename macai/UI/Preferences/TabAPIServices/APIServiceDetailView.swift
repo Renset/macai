@@ -4,33 +4,26 @@
 //
 //  Created by Renat Notfullin on 13.09.2024.
 //
-
 import SwiftUI
 
 struct APIServiceDetailView: View {
-    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var viewModel: APIServiceDetailViewModel
     @Environment(\.presentationMode) var presentationMode
-    
-    let apiService: APIServiceEntity?
-    
-    @State var name: String = ""
-    @State var type: String = "ChatGPT"
-    @State var url: String = ""
-    @State var model: String = ""
-    @State var contextSize: Float = 10
-    @State var useStreamResponse: Bool = true
-    @State var generateChatNames: Bool = false
-    @State var defaultAiPersona: PersonaEntity? = nil
-    @State private var apiKey: String = ""
-    @State private var isCustomModel: Bool = false
-    @State private var selectedModel: String = ""
-    @State private var previousModel: String = ""
     @State private var lampColor: Color = .gray
     @State private var showingDeleteConfirmation: Bool = false
     @FocusState private var isFocused: Bool
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
+        animation: .default)
+    private var personas: FetchedResults<PersonaEntity>
     
-    
-    private let types = ["ChatGPT", "Ollama"]
+    init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?) {
+        let viewModel = APIServiceDetailViewModel(viewContext: viewContext, apiService: apiService)
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    private let types = AppConstants.apiTypes
+    @State private var previousModel = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -43,41 +36,48 @@ struct APIServiceDetailView: View {
                 }
                 VStack {
                     HStack {
-                        Picker("API Type", selection: $type) {
+                        Picker("API Type", selection: $viewModel.type) {
                             ForEach(types, id: \.self) {
                                 Text($0)
                             }
                         }
-
                     }
                 }
                 .padding(.bottom, 8)
                 
-                VStack {
-                    HStack {
-                        Text("API URL:")
-                            .frame(width: 100, alignment: .leading)
+                HStack {
+                    Text("API Name:")
+                        .frame(width: 100, alignment: .leading)
 
-                        TextField("Paste your URL here", text: $url)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    TextField("API Name", text: $viewModel.name)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                
+                
+                HStack {
+                    Text("API URL:")
+                        .frame(width: 100, alignment: .leading)
 
-                        Button(action: {
-                            url = AppConstants.apiUrlChatCompletions
-                        }) {
-                            Text("Default")
-                        }
+                    TextField("Paste your URL here", text: $viewModel.url)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    Button(action: {
+                        viewModel.url = AppConstants.apiUrlChatCompletions
+                    }) {
+                        Text("Default")
                     }
                 }
+                
 
                 HStack {
                     Text("API Token:")
                         .frame(width: 100, alignment: .leading)
 
-                    TextField("Paste your token here", text: $apiKey)
+                    TextField("Paste your token here", text: $viewModel.apiKey)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .focused($isFocused)
-                        .blur(radius: !apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
-                        .onChange(of: apiKey) { newValue in
+                        .blur(radius: !viewModel.apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
+                        .onChange(of: viewModel.apiKey) { newValue in
                             do {
                                 try TokenManager.setToken(newValue, for: "chatgpt")
                             } catch {
@@ -101,7 +101,7 @@ struct APIServiceDetailView: View {
 
             HStack {
                 Slider(
-                    value: $contextSize,
+                    value: $viewModel.contextSize,
                     in: 5...100,
                     step: 5
                 ) {
@@ -112,13 +112,13 @@ struct APIServiceDetailView: View {
                     Text("100")
                 }
 
-                Text(String(format: ("%.0f messages"), contextSize))
+                Text(String(format: ("%.0f messages"), viewModel.contextSize))
                     .frame(width: 90)
             }
             .padding(.top, 16)
 
             VStack {
-                    Toggle(isOn: $generateChatNames) {
+                Toggle(isOn: $viewModel.generateChatNames) {
                         HStack {
                             Text("Automatically generate chat names (using selected model)")
                             Button(action: {
@@ -132,7 +132,7 @@ struct APIServiceDetailView: View {
                             Spacer()
                         }
                     }
-                    Toggle(isOn: $useStreamResponse) {
+                Toggle(isOn: $viewModel.useStreamResponse) {
                         HStack {
                             Text("Use stream responses")
                             Button(action: {
@@ -155,42 +155,32 @@ struct APIServiceDetailView: View {
                 Text("LLM Model:")
                     .frame(width: 160, alignment: .leading)
 
-                Picker("", selection: $selectedModel) {
-                    Text("gpt-3.5-turbo").tag("gpt-3.5-turbo")
-                    Text("gpt-3.5-turbo-0301").tag("gpt-3.5-turbo-0301")
-                    Text("gpt-4-turbo").tag("gpt-4-turbo")
-                    Text("gpt-4").tag("gpt-4")
-                    Text("gpt-4o").tag("gpt-4o")
-                    Text("gpt-4o-mini").tag("gpt-4o-mini")
-                    Text("gpt-4-0314").tag("gpt-4-0314")
-                    Text("gpt-4-32k").tag("gpt-4-32k")
-                    Text("gpt-4-32k-0314").tag("gpt-4-32k-0314")
-                    Text("gpt-4-1106-preview").tag("gpt-4-1106-preview")
-                    Text("gpt-4-vision-preview").tag("gpt-4-vision-preview")
-                    Text("llama3").tag("llama3")
-                    Text("llama3.1").tag("llama3.1")
+                Picker("", selection: $viewModel.selectedModel) {
+                    ForEach(AppConstants.predefinedModels[viewModel.type ?? "chatgpt"] ?? [], id: \.self) { modelName in
+                        Text(modelName).tag(modelName)
+                    }
                     Text("Enter custom model").tag("custom")
-                }.onChange(of: selectedModel) { newValue in
+                }.onChange(of: viewModel.selectedModel) { newValue in
                     if (newValue == "custom") {
-                        isCustomModel = true
+                        viewModel.isCustomModel = true
                     } else {
-                        isCustomModel = false
-                        model = newValue
+                        viewModel.isCustomModel = false
+                        viewModel.model = newValue
                     }
 
-                    if self.model != self.previousModel {
+                    if viewModel.model != self.previousModel {
                         self.lampColor = .gray
-                        self.previousModel = self.model
+                        self.previousModel = viewModel.model
                     }
                 }
             }
 
-        if (self.isCustomModel) {
-                VStack {
-                    TextField("Enter custom model name", text: $model)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
+        if (viewModel.isCustomModel) {
+            VStack {
+                TextField("Enter custom model name", text: $viewModel.model)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
             }
+        }
 
             HStack {
                 Spacer()
@@ -204,7 +194,18 @@ struct APIServiceDetailView: View {
             .padding(.bottom)
             
             HStack {
-                if apiService != nil {
+                Text("Default AI Persona:")
+                    .frame(width: 160, alignment: .leading)
+                
+                Picker("", selection: $viewModel.defaultAiPersona) {
+                    ForEach(personas) { persona in
+                        Text(persona.name ?? "Untitled").tag(persona)
+                    }
+                }
+            }
+            
+            HStack {
+                if viewModel.apiService != nil {
                     Button(action: {
                         showingDeleteConfirmation = true
                     }) {
@@ -213,82 +214,33 @@ struct APIServiceDetailView: View {
                     }
                 }
                 Spacer()
-                ButtonTestApiTokenAndModel(lampColor: $lampColor, gptToken: apiKey, gptModel: model, apiUrl: url)
+                ButtonTestApiTokenAndModel(lampColor: $lampColor, gptToken: viewModel.apiKey, gptModel: viewModel.model, apiUrl: viewModel.url)
+                
                 Button(action: {
-                    saveAPIService()
+                    presentationMode.wrappedValue.dismiss()
                 }) {
-                    Label("Save", systemImage: "checkmark")
+                    Text("Cancel")
+                }
+                
+                Button(action: {
+                    viewModel.saveAPIService()
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Text("Save")
                 }
             }
             .padding(.top, 16)
         }
         .padding(16)
-        .onAppear {
-            selectedModel = model
-            if apiService != nil, let serviceIDString = apiService?.id?.uuidString {
-                do {
-                    apiKey = try TokenManager.getToken(for: serviceIDString)!
-                } catch {
-                    print("Failed to get token: \(error.localizedDescription)")
-                }
-            }
-        }
         .alert(isPresented: $showingDeleteConfirmation) {
             Alert(
                 title: Text("Delete Persona"),
                 message: Text("Are you sure you want to delete this API Service? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
-                    deleteAPIService()
+                    viewModel.deleteAPIService()
                 },
                 secondaryButton: .cancel()
             )
-        }
-    }
-    
-    private func saveAPIService() {
-        let APIServiceToSave = apiService ?? APIServiceEntity(context: viewContext)
-        APIServiceToSave.name = name
-        APIServiceToSave.type = type
-        APIServiceToSave.url = URL(string: url)!
-        APIServiceToSave.model = model
-        APIServiceToSave.contextSize = Int16(contextSize)
-        APIServiceToSave.useStreamResponse = useStreamResponse
-        APIServiceToSave.generateChatNames = generateChatNames
-        APIServiceToSave.defaultPersona = defaultAiPersona
-        
-        if (apiService == nil) {
-            APIServiceToSave.addedDate = Date()
-            let APIServiceID = UUID()
-            APIServiceToSave.id = APIServiceID
-            
-            do {
-                try TokenManager.setToken(apiKey, for: APIServiceID.uuidString)
-            } catch {
-                print("Error setting token: \(error)")
-            }
-            
-        } else {
-            APIServiceToSave.editedDate = Date()
-        }
-        
-        do {
-            APIServiceToSave.objectWillChange.send()
-            try viewContext.save()
-            presentationMode.wrappedValue.dismiss()
-        } catch {
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-        }
-    }
-    
-    private func deleteAPIService() {
-        viewContext.delete(apiService!)
-        do {
-            try viewContext.save()
-            presentationMode.wrappedValue.dismiss()
-        } catch {
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
         }
     }
 }

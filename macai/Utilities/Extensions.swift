@@ -128,3 +128,18 @@ extension Color {
     }
         
 }
+
+extension Double {
+    func toInt16() -> Int16? {
+        guard self >= Double(Int16.min) && self <= Double(Int16.max) else {
+            return nil
+        }
+        return Int16(self)
+    }
+}
+
+extension Int16 {
+    var toDouble: Double {
+        return Double(self)
+    }
+}

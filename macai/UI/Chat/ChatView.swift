@@ -30,12 +30,19 @@ struct ChatView: View {
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @ObservedObject var chatViewModel: ChatViewModel
     @State private var renderTime: Double = 0
+    
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.name, ascending: true)],
         animation: .default)
     private var personas: FetchedResults<PersonaEntity>
     
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)],
+        animation: .default)
+    private var apiServices: FetchedResults<APIServiceEntity>
+    
     @State private var selectedPersona: PersonaEntity?
+    @State private var selectedApiService: APIServiceEntity?
     
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
@@ -51,11 +58,11 @@ struct ChatView: View {
             ScrollView {
                 ScrollViewReader { scrollView in
                     VStack(spacing: 12) {
-                        Accordion(title: chat.gptModel, isExpanded: chat.messages.count == 0) {
+                        Accordion(title: chat.apiService?.model ?? "", isExpanded: chat.messages.count == 0) {
                             HStack {
                                 VStack(alignment: .leading, content: {
                                     if chat.messages.count == 0 {
-                                        personaSelectionView
+                                        APIServiceAndPersonaSelectionView
                                     }
                                     Text("System message: \(chat.systemMessage)").textSelection(.enabled)
                                     if (chat.messages.count == 0 && !editSystemMessage && isHovered) {
@@ -199,9 +206,27 @@ struct ChatView: View {
         })
     }
     
-    private var personaSelectionView: some View {
+    private var APIServiceAndPersonaSelectionView: some View {
         VStack(alignment: .leading) {
             HStack {
+                Picker("API Service", selection: $chat.apiService) {
+                    ForEach(apiServices, id: \.objectID) { apiService in
+                        Text(apiService.name ?? "Unnamed API Service")
+                            .tag(apiService)
+                    }
+                }
+                .onChange(of: chat.apiService) { newAPIService in
+                    if let newAPIService = newAPIService {
+                        if newAPIService.defaultPersona != nil {
+                            chat.persona = newAPIService.defaultPersona
+                            if let newSystemMessage = chat.persona?.systemMessage, newSystemMessage != "" {
+                                chat.systemMessage = newSystemMessage
+                            }
+                            
+                        }
+                    }
+                }
+                
                 Circle()
                     .fill(Color(hex: chat.persona?.color ?? "#CCCCCC") ?? .white)
                     .frame(width: 12, height: 12)
