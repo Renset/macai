@@ -25,8 +25,10 @@ class MessageManager: ObservableObject {
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         chat.waitingForResponse = true
-        apiService.sendMessage(message, chat: chat, contextSize: contextSize) { [weak self] result in
+       
+        apiService.sendMessage(requestMessages) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
@@ -50,9 +52,10 @@ class MessageManager: ObservableObject {
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         Task {
             do {
-                let stream = try await apiService.sendMessageStream(message, chat: chat, contextSize: contextSize)
+                let stream = try await apiService.sendMessageStream(requestMessages)
                 var streamedResponse = ""
                 var accumulatedResponse = ""
                 chat.waitingForResponse = true
@@ -88,9 +91,11 @@ class MessageManager: ObservableObject {
             #endif
             return
         }
+        
+        
 
-        let generateChatNameMessage = AppConstants.chatGptGenerateChatInstruction
-        apiService.sendMessage(generateChatNameMessage, chat: chat, contextSize: 2) { [weak self] result in
+        let requestMessages = prepareRequestMessages(userMessage: AppConstants.chatGptGenerateChatInstruction, chat: chat, contextSize: 3)
+        apiService.sendMessage(requestMessages) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
@@ -113,6 +118,47 @@ class MessageManager: ObservableObject {
                 print("Error generating chat name: \(error)")
             }
         }
+    }
+    
+    func testAPI(completion: @escaping (Result<Void, Error>) -> Void) {
+        let requestMessages = [
+            [
+                "role": "system",
+                "content": "You are a test assistant.",
+            ],
+            [
+                "role": "user",
+                "content": "This is a test message."
+            ]
+        ]
+        
+        apiService.sendMessage(requestMessages) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let messageBody):
+                completion(.success(()))
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    private func prepareRequestMessages(userMessage: String, chat: ChatEntity, contextSize: Int) -> [[String: String]] {
+        if chat.newChat {
+            chat.requestMessages = [
+                [
+                    "role": "system",
+                    "content": chat.systemMessage,
+                ]
+            ]
+            chat.newChat = false
+        }
+
+        chat.requestMessages.append(["role": "user", "content": userMessage ])
+        
+        return Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(contextSize > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : contextSize))
     }
     
     

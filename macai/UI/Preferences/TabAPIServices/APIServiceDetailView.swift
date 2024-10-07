@@ -214,7 +214,7 @@ struct APIServiceDetailView: View {
                     }
                 }
                 Spacer()
-                ButtonTestApiTokenAndModel(lampColor: $lampColor, gptToken: viewModel.apiKey, gptModel: viewModel.model, apiUrl: viewModel.url)
+                ButtonTestApiTokenAndModel(lampColor: $lampColor, gptToken: viewModel.apiKey, gptModel: viewModel.model, apiUrl: viewModel.url, apiType: viewModel.type)
                 
                 Button(action: {
                     presentationMode.wrappedValue.dismiss()

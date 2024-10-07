@@ -21,8 +21,8 @@ protocol APIService {
     var name: String { get }
     var baseURL: URL { get }
 
-    func sendMessage(_ message: String, chat: ChatEntity, contextSize: Int, completion: @escaping (Result<String, APIError>) -> Void)
-    func sendMessageStream(_ message: String, chat: ChatEntity, contextSize: Int) async throws -> AsyncThrowingStream<String, Error>
+    func sendMessage(_ requestMessages: [[String: String]], completion: @escaping (Result<String, APIError>) -> Void)
+    func sendMessageStream(_ requestMessages: [[String: String]]) async throws -> AsyncThrowingStream<String, Error>
 }
 
 protocol APIServiceConfiguration {

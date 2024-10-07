@@ -219,10 +219,10 @@ struct ChatView: View {
                     if let newAPIService = newAPIService {
                         if newAPIService.defaultPersona != nil {
                             chat.persona = newAPIService.defaultPersona
+                            chat.gptModel = newAPIService.model!
                             if let newSystemMessage = chat.persona?.systemMessage, newSystemMessage != "" {
                                 chat.systemMessage = newSystemMessage
                             }
-                            
                         }
                     }
                 }
@@ -268,7 +268,7 @@ extension ChatView {
             saveNewMessageInStore(with: messageBody)
         }
 
-        if useStream {
+        if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
             chatViewModel.sendMessageStream(messageBody, contextSize: Int(chatContext)) { result in
                 DispatchQueue.main.async {

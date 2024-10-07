@@ -14,6 +14,8 @@ class APIServiceFactory {
             return ChatGPTHandler(config: config)
         case "ollama":
             return OllamaHandler(config: config)
+        case "claude":
+            return ClaudeHandler(config: config)
         default:
             fatalError("Unsupported API service: \(config.name)")
         }

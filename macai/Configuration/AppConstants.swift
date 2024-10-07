@@ -113,7 +113,7 @@ struct AppConstants {
         ]
     ]
     
-    static let apiTypes = ["chatgpt", "ollama"]
+    static let apiTypes = ["chatgpt", "ollama", "claude"]
 }
 
 func getCurrentFormattedDate() -> String {
