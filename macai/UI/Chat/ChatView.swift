@@ -30,52 +30,56 @@ struct ChatView: View {
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @ObservedObject var chatViewModel: ChatViewModel
     @State private var renderTime: Double = 0
-    
+
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.name, ascending: true)],
-        animation: .default)
+        animation: .default
+    )
     private var personas: FetchedResults<PersonaEntity>
-    
+
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)],
-        animation: .default)
+        animation: .default
+    )
     private var apiServices: FetchedResults<APIServiceEntity>
-    
+
     @State private var selectedPersona: PersonaEntity?
     @State private var selectedApiService: APIServiceEntity?
-    
+
     #if os(macOS)
         var backgroundColor = Color(NSColor.controlBackgroundColor)
     #else
         var backgroundColor = Color(UIColor.systemBackground)
     #endif
 
-
     var body: some View {
         let chatViewModel = ChatViewModel(chat: chat, viewContext: viewContext)
-        
+
         VStack(spacing: 0) {
             ScrollView {
                 ScrollViewReader { scrollView in
                     VStack(spacing: 12) {
                         Accordion(title: chat.apiService?.model ?? "", isExpanded: chat.messages.count == 0) {
                             HStack {
-                                VStack(alignment: .leading, content: {
-                                    if chat.messages.count == 0 {
-                                        APIServiceAndPersonaSelectionView
-                                    }
-                                    Text("System message: \(chat.systemMessage)").textSelection(.enabled)
-                                    if (chat.messages.count == 0 && !editSystemMessage && isHovered) {
-                                        Button(action: {
-                                            newMessage = chat.systemMessage
-                                            editSystemMessage = true
-                                        }) {
-                                            Label("Edit", systemImage: "pencil")
+                                VStack(
+                                    alignment: .leading,
+                                    content: {
+                                        if chat.messages.count == 0 {
+                                            APIServiceAndPersonaSelectionView
                                         }
-                                        .buttonStyle(BorderlessButtonStyle())
-                                        .foregroundColor(.gray)
+                                        Text("System message: \(chat.systemMessage)").textSelection(.enabled)
+                                        if chat.messages.count == 0 && !editSystemMessage && isHovered {
+                                            Button(action: {
+                                                newMessage = chat.systemMessage
+                                                editSystemMessage = true
+                                            }) {
+                                                Label("Edit", systemImage: "pencil")
+                                            }
+                                            .buttonStyle(BorderlessButtonStyle())
+                                            .foregroundColor(.gray)
+                                        }
                                     }
-                                })
+                                )
                                 .frame(maxWidth: .infinity)
                                 .padding(-4)
                                 Spacer()
@@ -101,25 +105,40 @@ struct ChatView: View {
                         }
 
                         if chat.waitingForResponse {
-                            ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: true, isStreaming: $isStreaming).id(-1)
-                        } else if lastMessageError {
+                            ChatBubbleView(
+                                message: "",
+                                index: 0,
+                                own: false,
+                                waitingForResponse: true,
+                                isStreaming: $isStreaming
+                            ).id(-1)
+                        }
+                        else if lastMessageError {
                             HStack {
                                 VStack {
-                                    ChatBubbleView(message: "", index: 0, own: false, waitingForResponse: false, error: true, isStreaming: $isStreaming)
+                                    ChatBubbleView(
+                                        message: "",
+                                        index: 0,
+                                        own: false,
+                                        waitingForResponse: false,
+                                        error: true,
+                                        isStreaming: $isStreaming
+                                    )
                                     HStack {
-                                        Button(action: {lastMessageError = false}) {
+                                        Button(action: { lastMessageError = false }) {
                                             Text("Ignore")
                                             Image(systemName: "multiply")
                                         }
                                         Button(action: {
-                                            sendMessage(ignoreMessageInput: true)}
+                                            sendMessage(ignoreMessageInput: true)
+                                        }
                                         ) {
                                             Text("Retry")
                                             Image(systemName: "arrow.clockwise")
                                         }
                                         Spacer()
                                     }
-                                    
+
                                 }
                                 .frame(width: 250)
                                 .padding(.bottom, 10)
@@ -138,7 +157,8 @@ struct ChatView: View {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
-                        } else if newCount as! Int > self.messageCount  {
+                        }
+                        else if newCount as! Int > self.messageCount {
                             self.messageCount = newCount as! Int
 
                             let sortedMessages = chatViewModel.sortedMessages
@@ -150,7 +170,7 @@ struct ChatView: View {
                             }
                         }
                     }
-                    .onAppear() {
+                    .onAppear {
                         print("scrolling to message...")
                         scrollView.scrollTo("chatContainer", anchor: .bottom)
                     }
@@ -168,7 +188,8 @@ struct ChatView: View {
                             newMessage = ""
                             editSystemMessage = false
                             store.saveInCoreData()
-                        } else if newMessage != "" && newMessage != " " {
+                        }
+                        else if newMessage != "" && newMessage != " " {
                             self.sendMessage()
                         }
                     },
@@ -193,7 +214,9 @@ struct ChatView: View {
 
         }
         .background(backgroundColor)
-        .navigationTitle(chat.name != "" ? chat.name : apiUrl == AppConstants.apiUrlChatCompletions ? "ChatGPT" : "macai LLM chat")
+        .navigationTitle(
+            chat.name != "" ? chat.name : apiUrl == AppConstants.apiUrlChatCompletions ? "ChatGPT" : "macai LLM chat"
+        )
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
@@ -205,7 +228,7 @@ struct ChatView: View {
             }
         })
     }
-    
+
     private var APIServiceAndPersonaSelectionView: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -219,18 +242,18 @@ struct ChatView: View {
                     if let newAPIService = newAPIService {
                         if newAPIService.defaultPersona != nil {
                             chat.persona = newAPIService.defaultPersona
-                            chat.gptModel = newAPIService.model!
                             if let newSystemMessage = chat.persona?.systemMessage, newSystemMessage != "" {
                                 chat.systemMessage = newSystemMessage
                             }
+                            chat.gptModel = newAPIService.model ?? AppConstants.chatGptDefaultModel
                         }
                     }
                 }
-                
+
                 Circle()
                     .fill(Color(hex: chat.persona?.color ?? "#CCCCCC") ?? .white)
                     .frame(width: 12, height: 12)
-                
+
                 Picker("AI Persona", selection: $chat.persona) {
                     ForEach(personas, id: \.objectID) { persona in
                         HStack {
@@ -244,11 +267,11 @@ struct ChatView: View {
                     if let newPersona = newPersona {
                         chat.systemMessage = newPersona.systemMessage ?? ""
                         viewContext.saveWithRetry(attempts: 1)
-                        
+
                     }
                 }
                 .frame(maxWidth: 300)
-                
+
                 Spacer()
             }
         }
@@ -261,16 +284,33 @@ struct ChatView: View {
 extension ChatView {
     func sendMessage(ignoreMessageInput: Bool = false) {
         resetError()
-        
+
         let messageBody = newMessage
-        
-        if (!ignoreMessageInput) {
+
+        if !ignoreMessageInput {
             saveNewMessageInStore(with: messageBody)
         }
 
         if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
             chatViewModel.sendMessageStream(messageBody, contextSize: Int(chatContext)) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success:
+                        handleResponseFinished()
+                        chatViewModel.generateChatNameIfNeeded()
+                        break
+                    case .failure(let error):
+                        print("Error sending message: \(error)")
+                        lastMessageError = true
+                        handleResponseFinished()
+                    }
+                }
+            }
+        }
+        else {
+            self.waitingForResponse = true
+            chatViewModel.sendMessage(messageBody, contextSize: Int(chatContext)) { result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
@@ -284,26 +324,10 @@ extension ChatView {
                     }
                 }
             }
-        } else {
-            self.waitingForResponse = true
-            chatViewModel.sendMessage(messageBody, contextSize: Int(chatContext)) { result in
-                    DispatchQueue.main.async {
-                        switch result {
-                        case .success:
-                            chatViewModel.generateChatNameIfNeeded()
-                            handleResponseFinished()
-                            break
-                        case .failure(let error):
-                            print("Error sending message: \(error)")
-                            lastMessageError = true
-                            handleResponseFinished()
-                        }
-                    }
-                }
         }
     }
-    
-    private func saveNewMessageInStore(with messageBody: String) -> Void {
+
+    private func saveNewMessageInStore(with messageBody: String) {
         let sendingMessage = MessageEntity(context: viewContext)
         sendingMessage.id = Int64(chat.messages.count + 1)
         sendingMessage.name = ""
@@ -317,12 +341,12 @@ extension ChatView {
         store.saveInCoreData()
         newMessage = ""
     }
-    
+
     private func handleResponseFinished() {
         self.isStreaming = false
         chat.waitingForResponse = false
     }
-    
+
     private func resetError() {
         lastMessageError = false
     }
@@ -330,7 +354,7 @@ extension ChatView {
 
 struct MeasureModifier: ViewModifier {
     @Binding var renderTime: Double
-    
+
     func body(content: Content) -> some View {
         content
             .onAppear {
@@ -338,7 +362,7 @@ struct MeasureModifier: ViewModifier {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     let end = DispatchTime.now()
                     let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
-                    let timeInterval = Double(nanoTime) / 1_000_000 // Convert to milliseconds
+                    let timeInterval = Double(nanoTime) / 1_000_000  // Convert to milliseconds
                     renderTime = timeInterval
                     print("Render time: \(timeInterval) ms")
                 }
