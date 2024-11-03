@@ -36,10 +36,10 @@ struct PreferencesView: View {
                     Label("API Services", systemImage: "network")
                 }
 
-            ChatSettingsView(lampColor: $lampColor)
-                .tabItem {
-                    Label("New Chat", systemImage: "message")
-                }
+            //            ChatSettingsView(lampColor: $lampColor)
+            //                .tabItem {
+            //                    Label("New Chat", systemImage: "message")
+            //                }
 
             TabAIPersonasView()
                 .tabItem {
@@ -64,6 +64,7 @@ struct PreferencesView: View {
             if let window = NSApp.mainWindow {
                 window.standardWindowButton(.zoomButton)?.isEnabled = false
             }
+
         })
     }
 }

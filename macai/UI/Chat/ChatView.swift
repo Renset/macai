@@ -245,8 +245,8 @@ struct ChatView: View {
                             if let newSystemMessage = chat.persona?.systemMessage, newSystemMessage != "" {
                                 chat.systemMessage = newSystemMessage
                             }
-                            chat.gptModel = newAPIService.model ?? AppConstants.chatGptDefaultModel
                         }
+                        chat.gptModel = newAPIService.model ?? AppConstants.chatGptDefaultModel
                     }
                 }
 

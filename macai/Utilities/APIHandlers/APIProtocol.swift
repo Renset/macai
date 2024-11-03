@@ -21,8 +21,13 @@ protocol APIService {
     var name: String { get }
     var baseURL: URL { get }
 
-    func sendMessage(_ requestMessages: [[String: String]], completion: @escaping (Result<String, APIError>) -> Void)
-    func sendMessageStream(_ requestMessages: [[String: String]]) async throws -> AsyncThrowingStream<String, Error>
+    func sendMessage(
+        _ requestMessages: [[String: String]],
+        temperature: Float,
+        completion: @escaping (Result<String, APIError>) -> Void
+    )
+    func sendMessageStream(_ requestMessages: [[String: String]], temperature: Float) async throws
+        -> AsyncThrowingStream<String, Error>
 }
 
 protocol APIServiceConfiguration {

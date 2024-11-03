@@ -27,8 +27,9 @@ class MessageManager: ObservableObject {
     ) {
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         chat.waitingForResponse = true
+        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
 
-        apiService.sendMessage(requestMessages) { [weak self] result in
+        apiService.sendMessage(requestMessages, temperature: temperature) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
@@ -53,9 +54,12 @@ class MessageManager: ObservableObject {
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
+        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
+
         Task {
             do {
-                let stream = try await apiService.sendMessageStream(requestMessages)
+
+                let stream = try await apiService.sendMessageStream(requestMessages, temperature: temperature)
                 var accumulatedResponse = ""
                 chat.waitingForResponse = true
 
@@ -106,7 +110,8 @@ class MessageManager: ObservableObject {
             chat: chat,
             contextSize: 3
         )
-        apiService.sendMessage(requestMessages) { [weak self] result in
+        apiService.sendMessage(requestMessages, temperature: AppConstants.defaultTemperatureForChatNameGeneration) {
+            [weak self] result in
             guard let self = self else { return }
 
             switch result {
@@ -143,7 +148,7 @@ class MessageManager: ObservableObject {
             ],
         ]
 
-        apiService.sendMessage(requestMessages) { result in
+        apiService.sendMessage(requestMessages, temperature: AppConstants.defaultTemperatureForChat) { result in
             switch result {
             case .success(_):
                 completion(.success(()))

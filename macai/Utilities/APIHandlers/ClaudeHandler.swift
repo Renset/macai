@@ -20,8 +20,17 @@ class ClaudeHandler: APIService {
         self.model = config.model
     }
 
-    func sendMessage(_ requestMessages: [[String: String]], completion: @escaping (Result<String, APIError>) -> Void) {
-        let request = prepareRequest(requestMessages: requestMessages, model: model, stream: false)
+    func sendMessage(
+        _ requestMessages: [[String: String]],
+        temperature: Float,
+        completion: @escaping (Result<String, APIError>) -> Void
+    ) {
+        let request = prepareRequest(
+            requestMessages: requestMessages,
+            model: model,
+            temperature: temperature,
+            stream: false
+        )
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
@@ -55,9 +64,16 @@ class ClaudeHandler: APIService {
         }.resume()
     }
 
-    func sendMessageStream(_ requestMessages: [[String: String]]) async throws -> AsyncThrowingStream<String, Error> {
+    func sendMessageStream(_ requestMessages: [[String: String]], temperature: Float) async throws
+        -> AsyncThrowingStream<String, Error>
+    {
         return AsyncThrowingStream { continuation in
-            let request = self.prepareRequest(requestMessages: requestMessages, model: model, stream: true)
+            let request = self.prepareRequest(
+                requestMessages: requestMessages,
+                model: model,
+                temperature: temperature,
+                stream: true
+            )
 
             Task {
                 do {
@@ -88,7 +104,9 @@ class ClaudeHandler: APIService {
         }
     }
 
-    private func prepareRequest(requestMessages: [[String: String]], model: String, stream: Bool) -> URLRequest {
+    private func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool)
+        -> URLRequest
+    {
         var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
@@ -110,7 +128,8 @@ class ClaudeHandler: APIService {
             "messages": updatedRequestMessages,
             "system": systemMessage,
             "stream": stream,
-            "max_tokens": 4096,
+            "temperature": temperature,
+            "max_tokens": AppConstants.defaultApiConfigurations["claude"]!.maxTokens!,
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
