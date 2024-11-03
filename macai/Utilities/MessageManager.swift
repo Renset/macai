@@ -143,11 +143,9 @@ class MessageManager: ObservableObject {
             ],
         ]
 
-        apiService.sendMessage(requestMessages) { [weak self] result in
-            guard let self = self else { return }
-
+        apiService.sendMessage(requestMessages) { result in
             switch result {
-            case .success(let messageBody):
+            case .success(_):
                 completion(.success(()))
 
             case .failure(let error):
