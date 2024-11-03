@@ -19,7 +19,7 @@ struct BackupRestoreView: View {
             }
 
             HStack {
-                Text("Chats are exported into plaintext, non-ecrypted JSON file. You can import them back later.")
+                Text("Chats are exported into plaintext, unencrypted JSON file. You can import them back later.")
                     .foregroundColor(.gray)
                 Spacer()
             }

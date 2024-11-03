@@ -19,6 +19,7 @@ struct TabAPIServicesView: View {
     @State private var isShowingAddOrEditService = false
     @State private var selectedServiceID: NSManagedObjectID?
     @State private var refreshID = UUID()
+    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
     var body: some View {
         VStack {
@@ -62,7 +63,8 @@ struct TabAPIServicesView: View {
             detailContent: detailContent,
             onRefresh: refreshList,
             getEntityColor: { _ in nil },
-            getEntityName: { $0.name ?? "Untitled Service" }
+            getEntityName: { $0.name ?? "Untitled Service" },
+            getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID }
         )
     }
 

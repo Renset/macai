@@ -26,6 +26,7 @@ struct ContentView: View {
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlChatCompletions
+    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
     @State private var windowRef: NSWindow?
 
@@ -34,15 +35,16 @@ struct ContentView: View {
             List {
                 ForEach(chats, id: \.id) { chat in
                     let isActive = Binding<Bool>(
-                            get: { self.chats.contains(where: { $0.id == chat.id }) && self.selectedChat?.id == chat.id },
-                            set: { newValue in
-                                if newValue {
-                                    selectedChat = chat
-                                } else if selectedChat?.id == chat.id {
-                                    selectedChat = nil
-                                }
+                        get: { self.chats.contains(where: { $0.id == chat.id }) && self.selectedChat?.id == chat.id },
+                        set: { newValue in
+                            if newValue {
+                                selectedChat = chat
                             }
-                        )
+                            else if selectedChat?.id == chat.id {
+                                selectedChat = nil
+                            }
+                        }
+                    )
 
                     let messagePreview = chat.lastMessage
                     let messageTimestamp = messagePreview?.timestamp ?? Date()
@@ -55,7 +57,7 @@ struct ContentView: View {
                         isActive: isActive,
                         viewContext: viewContext
                     )
-                    .contextMenu {                        
+                    .contextMenu {
                         Button(action: {
                             renameChat(chat)
                         }) {
@@ -83,7 +85,7 @@ struct ContentView: View {
             )
         }
         .onAppear(perform: {
-            
+
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
                     selectedChat = lastOpenedChat
@@ -111,7 +113,7 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
             }
-            
+
             ToolbarItem(placement: .primaryAction) {
                 if #available(macOS 14.0, *) {
                     SettingsLink {
@@ -139,6 +141,7 @@ struct ContentView: View {
     func newChat() {
         let uuid = UUID()
         let newChat = ChatEntity(context: viewContext)
+
         newChat.id = uuid
         newChat.newChat = true
         newChat.temperature = 0.8
@@ -149,6 +152,24 @@ struct ContentView: View {
         newChat.updatedDate = Date()
         newChat.systemMessage = systemMessage
         newChat.gptModel = gptModel
+
+        if let defaultServiceIDString = defaultApiServiceID,
+            let url = URL(string: defaultServiceIDString),
+            let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
+        {
+
+            do {
+                let defaultService = try viewContext.existingObject(with: objectID) as? APIServiceEntity
+                newChat.apiService = defaultService
+                newChat.persona = defaultService?.defaultPersona
+                // TODO: Refactor the following code along with ChatView.swift
+                newChat.gptModel = defaultService?.model ?? AppConstants.chatGptDefaultModel
+                newChat.systemMessage = newChat.persona?.systemMessage ?? AppConstants.chatGptSystemMessage
+            }
+            catch {
+                print("Default API service not found: \(error)")
+            }
+        }
 
         do {
             try viewContext.save()
@@ -161,7 +182,7 @@ struct ContentView: View {
             viewContext.rollback()
         }
     }
-    
+
     func openPreferencesView() {
         if #available(macOS 13.0, *) {
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
@@ -170,7 +191,6 @@ struct ContentView: View {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
     }
-    
 
     private func getIndex(for chat: ChatEntity) -> Int {
         if let index = chats.firstIndex(where: { $0.id == chat.id }) {

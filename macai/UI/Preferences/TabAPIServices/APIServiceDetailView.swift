@@ -25,6 +25,7 @@ struct APIServiceDetailView: View {
 
     private let types = AppConstants.apiTypes
     @State private var previousModel = ""
+    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -104,6 +105,62 @@ struct APIServiceDetailView: View {
 
             }
 
+            HStack {
+                // Select model
+                Text("LLM Model:")
+                    .frame(width: 100, alignment: .leading)
+
+                Picker("", selection: $viewModel.selectedModel) {
+                    ForEach(viewModel.defaultApiConfiguration!.models, id: \.self) { modelName in
+                        Text(modelName).tag(modelName)
+                    }
+                    Text("Enter custom model").tag("custom")
+                }.onChange(of: viewModel.selectedModel) { newValue in
+                    if newValue == "custom" {
+                        viewModel.isCustomModel = true
+                    }
+                    else {
+                        viewModel.isCustomModel = false
+                        viewModel.model = newValue
+                    }
+
+                    if viewModel.model != self.previousModel {
+                        self.lampColor = .gray
+                        self.previousModel = viewModel.model
+                    }
+                }
+            }
+            .padding(.top, 8)
+
+            if viewModel.isCustomModel {
+                VStack {
+                    TextField("Enter custom model name", text: $viewModel.model)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+            }
+
+            HStack {
+                Spacer()
+                Link(
+                    "Models reference",
+                    destination: URL(string: viewModel.defaultApiConfiguration!.apiModelRef)!
+                )
+                .font(.subheadline)
+                .foregroundColor(.blue)
+            }
+            .padding(.bottom)
+
+            HStack {
+                Spacer()
+                ButtonTestApiTokenAndModel(
+                    lampColor: $lampColor,
+                    gptToken: viewModel.apiKey,
+                    gptModel: viewModel.model,
+                    apiUrl: viewModel.url,
+                    apiType: viewModel.type
+                )
+            }
+
             VStack {
                 HStack {
                     // TODO: implement unlimited context size
@@ -171,50 +228,6 @@ struct APIServiceDetailView: View {
             .padding(.vertical, 8)
 
             HStack {
-                // Select model
-                Text("LLM Model:")
-                    .frame(width: 160, alignment: .leading)
-
-                Picker("", selection: $viewModel.selectedModel) {
-                    ForEach(viewModel.defaultApiConfiguration!.models, id: \.self) { modelName in
-                        Text(modelName).tag(modelName)
-                    }
-                    Text("Enter custom model").tag("custom")
-                }.onChange(of: viewModel.selectedModel) { newValue in
-                    if newValue == "custom" {
-                        viewModel.isCustomModel = true
-                    }
-                    else {
-                        viewModel.isCustomModel = false
-                        viewModel.model = newValue
-                    }
-
-                    if viewModel.model != self.previousModel {
-                        self.lampColor = .gray
-                        self.previousModel = viewModel.model
-                    }
-                }
-            }
-
-            if viewModel.isCustomModel {
-                VStack {
-                    TextField("Enter custom model name", text: $viewModel.model)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-            }
-
-            HStack {
-                Spacer()
-                Link(
-                    "Models reference",
-                    destination: URL(string: viewModel.defaultApiConfiguration!.apiModelRef)!
-                )
-                .font(.subheadline)
-                .foregroundColor(.blue)
-            }
-            .padding(.bottom)
-
-            HStack {
                 Text("Default AI Persona:")
                     .frame(width: 160, alignment: .leading)
 
@@ -235,13 +248,18 @@ struct APIServiceDetailView: View {
                     }
                 }
                 Spacer()
-                ButtonTestApiTokenAndModel(
-                    lampColor: $lampColor,
-                    gptToken: viewModel.apiKey,
-                    gptModel: viewModel.model,
-                    apiUrl: viewModel.url,
-                    apiType: viewModel.type
-                )
+
+                if defaultApiServiceID == viewModel.apiService?.objectID.uriRepresentation().absoluteString {
+                    Label("Default API Service", systemImage: "checkmark")
+                }
+                else {
+                    Button(action: {
+                        defaultApiServiceID = viewModel.apiService?.objectID.uriRepresentation().absoluteString
+                    }) {
+                        Text("Make Default")
+                    }
+
+                }
 
                 Button(action: {
                     presentationMode.wrappedValue.dismiss()
