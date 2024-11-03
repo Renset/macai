@@ -79,8 +79,9 @@ class DatabasePatcher {
                 try? TokenManager.setToken(token, for: apiServiceId.uuidString)
                 defaults.set("", forKey: "gptToken")
             }
-
         }
+        
+        defaults.set(apiService.objectID.uriRepresentation().absoluteString, forKey: "defaultApiService")
 
         // Migration completed
         defaults.set(true, forKey: "APIServiceMigrationCompleted")
