@@ -20,9 +20,8 @@ class OllamaHandler: APIService {
         self.model = config.model
     }
     
-    func sendMessage(_ message: String, chat: ChatEntity, contextSize: Int, completion: @escaping (Result<String, APIError>) -> Void) {
-        let systemMessage = chat.systemMessage
-        let request = prepareRequest(for: chat, message: message, systemMessage: systemMessage, model: model, stream: false, contextSize: contextSize)
+    func sendMessage(_ requestMessages: [[String: String]], completion: @escaping (Result<String, APIError>) -> Void) {
+        let request = prepareRequest(requestMessages: requestMessages, model: model, stream: false)
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
@@ -47,10 +46,9 @@ class OllamaHandler: APIService {
         }.resume()
     }
     
-    func sendMessageStream(_ message: String, chat: ChatEntity, contextSize: Int) async throws -> AsyncThrowingStream<String, Error> {
+    func sendMessageStream(_ requestMessages: [[String: String]]) async throws -> AsyncThrowingStream<String, Error> {
         return AsyncThrowingStream { continuation in
-            let systemMessage = chat.systemMessage
-            let request = self.prepareRequest(for: chat, message: message, systemMessage: systemMessage, model: model, stream: true, contextSize: contextSize)
+            let request = self.prepareRequest(requestMessages: requestMessages, model: model, stream: true)
             
             Task {
                 do {
@@ -102,27 +100,15 @@ class OllamaHandler: APIService {
         }
     }
     
-    private func prepareRequest(for chat: ChatEntity, message: String, systemMessage: String, model: String, stream: Bool, contextSize: Int) -> URLRequest {
+    private func prepareRequest(requestMessages: [[String: String]], model: String, stream: Bool) -> URLRequest {
         var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if chat.newChat {
-            chat.requestMessages = [
-                [
-                    "role": "system",
-                    "content": chat.systemMessage,
-                ]
-            ]
-            chat.newChat = false
-        }
-
-        chat.requestMessages.append(["role": "user", "content": message ])
-        
         let jsonDict: [String: Any] = [
             "model": self.model,
             "stream": stream,
-            "messages": Array(chat.requestMessages.prefix(1) + chat.requestMessages.suffix(contextSize > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : contextSize))
+            "messages": requestMessages
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])

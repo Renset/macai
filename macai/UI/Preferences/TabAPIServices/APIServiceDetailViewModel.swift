@@ -5,60 +5,65 @@
 //  Created by Renat Notfullin on 18.09.2024.
 //
 
-
-import SwiftUI
 import Combine
+import SwiftUI
 
 class APIServiceDetailViewModel: ObservableObject {
     private let viewContext: NSManagedObjectContext
     var apiService: APIServiceEntity?
     private var cancellables = Set<AnyCancellable>()
-    
-    @Published var name: String = ""
-    @Published var type: String = "ChatGPT"
+
+    @Published var name: String = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]?.name ?? ""
+    @Published var type: String = AppConstants.defaultApiType
     @Published var url: String = ""
     @Published var model: String = ""
-    @Published var contextSize: Float = 10
+    @Published var contextSize: Float = 100
+    @Published var contextSizeUnlimited: Bool = false
     @Published var useStreamResponse: Bool = true
     @Published var generateChatNames: Bool = false
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
     @Published var isCustomModel: Bool = false
-    @Published var selectedModel: String = ""
-    
+    @Published var selectedModel: String =
+        (AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]?.defaultModel ?? "")
+    @Published var defaultApiConfiguration = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]
+
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?) {
         self.viewContext = viewContext
         self.apiService = apiService
-        
+
         setupInitialValues()
         setupBindings()
     }
-    
+
     private func setupInitialValues() {
         if let service = apiService {
-            name = service.name ?? ""
-            type = service.type ?? "ChatGPT"
+            name = service.name ?? defaultApiConfiguration!.name
+            type = service.type ?? AppConstants.defaultApiType
             url = service.url?.absoluteString ?? ""
             model = service.model ?? ""
             contextSize = Float(service.contextSize)
             useStreamResponse = service.useStreamResponse
             generateChatNames = service.generateChatNames
             defaultAiPersona = service.defaultPersona
+            defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
             selectedModel = model
-            isCustomModel = ((AppConstants.predefinedModels[type]?.contains(model)) == nil)
-            
+            isCustomModel = ((defaultApiConfiguration!.models.contains(model)) == false)
+
             if let serviceIDString = service.id?.uuidString {
                 do {
                     apiKey = try TokenManager.getToken(for: serviceIDString) ?? ""
-                } catch {
+                }
+                catch {
                     print("Failed to get token: \(error.localizedDescription)")
                 }
             }
-        } else {
+        }
+        else {
             url = AppConstants.apiUrlChatCompletions
         }
     }
-    
+
     private func setupBindings() {
         $selectedModel
             .sink { [weak self] newValue in
@@ -69,7 +74,7 @@ class APIServiceDetailViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     func saveAPIService() {
         let serviceToSave = apiService ?? APIServiceEntity(context: viewContext)
         serviceToSave.name = name
@@ -80,35 +85,48 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.useStreamResponse = useStreamResponse
         serviceToSave.generateChatNames = generateChatNames
         serviceToSave.defaultPersona = defaultAiPersona
-        
+
         if apiService == nil {
             serviceToSave.addedDate = Date()
             let serviceID = UUID()
             serviceToSave.id = serviceID
-            
+
             do {
                 try TokenManager.setToken(apiKey, for: serviceID.uuidString)
-            } catch {
+            }
+            catch {
                 print("Error setting token: \(error)")
             }
-        } else {
+        }
+        else {
             serviceToSave.editedDate = Date()
         }
-        
+
         do {
             try viewContext.save()
-        } catch {
+        }
+        catch {
             print("Error saving context: \(error)")
         }
     }
-    
+
     func deleteAPIService() {
         guard let serviceToDelete = apiService else { return }
         viewContext.delete(serviceToDelete)
         do {
             try viewContext.save()
-        } catch {
+        }
+        catch {
             print("Error deleting API service: \(error)")
         }
+    }
+
+    func onChangeApiType(_ type: String) {
+        self.name = self.name == self.defaultApiConfiguration!.name ? "" : self.name
+        self.defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
+        self.name = self.name == "" ? self.defaultApiConfiguration!.name : self.name
+        self.url = self.defaultApiConfiguration!.url
+        self.model = self.defaultApiConfiguration!.defaultModel
+        self.selectedModel = self.model
     }
 }

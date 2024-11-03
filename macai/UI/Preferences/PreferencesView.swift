@@ -25,11 +25,12 @@ struct PreferencesView: View {
 
     var body: some View {
         TabView {
-            GeneralSettingsView(lampColor: $lampColor)
-                .tabItem {
-                    Label("LLM Settings", systemImage: "gearshape")
-                }
-            
+            // TODO: update General Settings tab for general app settings
+            //            GeneralSettingsView(lampColor: $lampColor)
+            //                .tabItem {
+            //                    Label("LLM Settings", systemImage: "gearshape")
+            //                }
+
             TabAPIServicesView()
                 .tabItem {
                     Label("API Services", systemImage: "network")
@@ -39,7 +40,7 @@ struct PreferencesView: View {
                 .tabItem {
                     Label("New Chat", systemImage: "message")
                 }
-            
+
             TabAIPersonasView()
                 .tabItem {
                     Label("AI Personas", systemImage: "person.2")
@@ -49,7 +50,7 @@ struct PreferencesView: View {
                 .tabItem {
                     Label("Backup & Restore", systemImage: "externaldrive")
                 }
-            
+
             DangerZoneView(store: store)
                 .tabItem {
                     Label("Danger Zone", systemImage: "flame.fill")
@@ -59,7 +60,7 @@ struct PreferencesView: View {
         .padding()
         .onAppear(perform: {
             store.saveInCoreData()
-            
+
             if let window = NSApp.mainWindow {
                 window.standardWindowButton(.zoomButton)?.isEnabled = false
             }

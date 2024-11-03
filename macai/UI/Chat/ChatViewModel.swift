@@ -18,8 +18,6 @@ class ChatViewModel: ObservableObject {
         }
         return MessageManager(apiService: APIServiceFactory.createAPIService(config: config), viewContext: self.viewContext)
     }()
-    @AppStorage("gptToken") var apiKey = ""
-    @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
 
     init(chat: ChatEntity, viewContext: NSManagedObjectContext) {
         self.chat = chat
@@ -76,18 +74,14 @@ class ChatViewModel: ObservableObject {
         
         return APIServiceConfig(
             name: getApiServiceName(),
-            apiUrl: URL(string: apiUrl)!,
+            apiUrl: (chat.apiService?.url)!,
             apiKey: apiKey,
-            model: chat.apiService?.model ?? ""
+            model: chat.gptModel
         )
     }
     
     // Temp function until GPT Service configurator is implemented
     private func getApiServiceName() -> String {
-        if apiUrl.contains(":11434/api/chat") {
-            return "Ollama"
-        }
-        
-        return "ChatGPT"
+        return  chat.apiService?.type ?? "chatgpt"
     }
 }

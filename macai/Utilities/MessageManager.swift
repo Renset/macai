@@ -25,8 +25,10 @@ class MessageManager: ObservableObject {
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         chat.waitingForResponse = true
-        apiService.sendMessage(message, chat: chat, contextSize: contextSize) { [weak self] result in
+
+        apiService.sendMessage(requestMessages) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
@@ -42,7 +44,7 @@ class MessageManager: ObservableObject {
             }
         }
     }
-    
+
     @MainActor
     func sendMessageStream(
         _ message: String,
@@ -50,31 +52,37 @@ class MessageManager: ObservableObject {
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         Task {
             do {
-                let stream = try await apiService.sendMessageStream(message, chat: chat, contextSize: contextSize)
-                var streamedResponse = ""
+                let stream = try await apiService.sendMessageStream(requestMessages)
                 var accumulatedResponse = ""
                 chat.waitingForResponse = true
-                
+
                 for try await chunk in stream {
                     accumulatedResponse += chunk
                     if let lastMessage = chat.lastMessage {
                         if lastMessage.own {
-                            self.addMessageToChat(chat: chat, message: streamedResponse)
-                        } else {
+                            self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                        }
+                        else {
                             let now = Date()
                             if now.timeIntervalSince(lastUpdateTime) >= updateInterval {
-                                updateLastMessage(chat: chat, lastMessage: lastMessage, accumulatedResponse: accumulatedResponse)
+                                updateLastMessage(
+                                    chat: chat,
+                                    lastMessage: lastMessage,
+                                    accumulatedResponse: accumulatedResponse
+                                )
                                 lastUpdateTime = now
                             }
                         }
                     }
                 }
                 updateLastMessage(chat: chat, lastMessage: chat.lastMessage!, accumulatedResponse: accumulatedResponse)
-                addNewMessageToRequestMessages(chat: chat, content: streamedResponse, role: AppConstants.defaultRole)
+                addNewMessageToRequestMessages(chat: chat, content: accumulatedResponse, role: AppConstants.defaultRole)
                 completion(.success(()))
-            } catch {
+            }
+            catch {
                 print("Streaming error: \(error)")
                 completion(.failure(error))
             }
@@ -89,8 +97,16 @@ class MessageManager: ObservableObject {
             return
         }
 
-        let generateChatNameMessage = AppConstants.chatGptGenerateChatInstruction
-        apiService.sendMessage(generateChatNameMessage, chat: chat, contextSize: 2) { [weak self] result in
+        if !(chat.apiService?.generateChatNames ?? false) {
+            return
+        }
+
+        let requestMessages = prepareRequestMessages(
+            userMessage: AppConstants.chatGptGenerateChatInstruction,
+            chat: chat,
+            contextSize: 3
+        )
+        apiService.sendMessage(requestMessages) { [weak self] result in
             guard let self = self else { return }
 
             switch result {
@@ -114,26 +130,69 @@ class MessageManager: ObservableObject {
             }
         }
     }
-    
-    
+
+    func testAPI(completion: @escaping (Result<Void, Error>) -> Void) {
+        let requestMessages = [
+            [
+                "role": "system",
+                "content": "You are a test assistant.",
+            ],
+            [
+                "role": "user",
+                "content": "This is a test message.",
+            ],
+        ]
+
+        apiService.sendMessage(requestMessages) { result in
+            switch result {
+            case .success(_):
+                completion(.success(()))
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    private func prepareRequestMessages(userMessage: String, chat: ChatEntity, contextSize: Int) -> [[String: String]] {
+        if chat.newChat {
+            chat.requestMessages = [
+                [
+                    "role": "system",
+                    "content": chat.systemMessage,
+                ]
+            ]
+            chat.newChat = false
+        }
+
+        chat.requestMessages.append(["role": "user", "content": userMessage])
+
+        return Array(
+            chat.requestMessages.prefix(1)
+                + chat.requestMessages.suffix(
+                    contextSize > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : contextSize
+                )
+        )
+    }
+
     private func addMessageToChat(chat: ChatEntity, message: String) {
         let newMessage = MessageEntity(context: self.viewContext)
-        newMessage.id = Int64(chat.messages.count+1)
+        newMessage.id = Int64(chat.messages.count + 1)
         newMessage.body = message
         newMessage.timestamp = Date()
         newMessage.own = false
         newMessage.chat = chat
-        
+
         chat.updatedDate = Date()
         chat.addToMessages(newMessage)
         chat.objectWillChange.send()
     }
-    
+
     private func addNewMessageToRequestMessages(chat: ChatEntity, content: String, role: String) {
         chat.requestMessages.append(["role": role, "content": content])
         self.viewContext.saveWithRetry(attempts: 1)
     }
-    
+
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
         chat.waitingForResponse = false
         lastMessage.body = accumulatedResponse

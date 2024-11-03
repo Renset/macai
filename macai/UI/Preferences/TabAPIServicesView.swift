@@ -39,7 +39,7 @@ struct TabAPIServicesView: View {
             }
         }
         .sheet(isPresented: $isShowingAddOrEditService) {
-            let selectedApiService = apiServices.first(where: { $0.objectID == selectedServiceID })!
+            let selectedApiService = apiServices.first(where: { $0.objectID == selectedServiceID }) ?? nil
             if (selectedApiService == nil) {
                 APIServiceDetailView(viewContext: viewContext, apiService: nil)
             } else {
