@@ -48,13 +48,7 @@ class ClaudeHandler: APIService {
                     print("Error parsing JSON")
                     completion(
                         .failure(
-                            .decodingFailed(
-                                NSError(
-                                    domain: "ClaudeHandler",
-                                    code: 0,
-                                    userInfo: [NSLocalizedDescriptionKey: "Error parsing JSON"]
-                                )
-                            )
+                            .decodingFailed("Error parsing JSON")
                         )
                     )
                     return

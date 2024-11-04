@@ -10,7 +10,7 @@ import Foundation
 enum APIError: Error {
     case requestFailed(Error)
     case invalidResponse
-    case decodingFailed(Error)
+    case decodingFailed(String)
     case unauthorized
     case rateLimited
     case serverError(String)

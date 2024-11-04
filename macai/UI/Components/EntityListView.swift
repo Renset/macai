@@ -16,6 +16,7 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
     let getEntityColor: ((Entity) -> Color?)?
     let getEntityName: (Entity) -> String
     var getEntityDefault: (Entity) -> Bool = { _ in false }
+    var getEntityIcon: (Entity) -> String? = { _ in nil }
 
     var body: some View {
         VStack {
@@ -24,7 +25,8 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
                     EntityRowView(
                         color: getEntityColor?(entity),
                         name: getEntityName(entity),
-                        defaultEntity: getEntityDefault(entity)
+                        defaultEntity: getEntityDefault(entity),
+                        icon: getEntityIcon(entity)
                     )
                     .tag(entity.objectID)
                 }
@@ -58,9 +60,18 @@ struct EntityRowView: View {
     let color: Color?
     let name: String
     let defaultEntity: Bool
+    let icon: String?
 
     var body: some View {
         HStack {
+            if let icon = icon {
+                Image(icon)
+                    .resizable()
+                    .renderingMode(.template)
+                    .interpolation(.high)
+                    .antialiased(true)
+                    .frame(width: 12, height: 12)
+            }
             if let color = color {
                 Circle()
                     .fill(color)

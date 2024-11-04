@@ -46,7 +46,7 @@ class ChatGPTHandler: APIService {
 
                 guard let (messageContent, _) = self.parseJSONResponse(data: data) else {
                     print("Error parsing JSON")
-                    completion(.failure(.decodingFailed("Error parsing JSON" as! Error)))
+                    completion(.failure(.decodingFailed("Error parsing JSON")))
                     return
                 }
                 let responseString = messageContent

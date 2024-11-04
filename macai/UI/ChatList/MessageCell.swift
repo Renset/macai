@@ -15,22 +15,39 @@ struct MessageCell: View {
     let viewContext: NSManagedObjectContext
 
     var body: some View {
-        NavigationLink(destination: ChatView(viewContext: viewContext, chat: chat, chatViewModel: ChatViewModel(chat: chat, viewContext: viewContext)), isActive: $isActive) {
+        NavigationLink(
+            destination: ChatView(
+                viewContext: viewContext,
+                chat: chat,
+                chatViewModel: ChatViewModel(chat: chat, viewContext: viewContext)
+            ),
+            isActive: $isActive
+        ) {
             VStack(alignment: .leading) {
 
-                Text(timestamp, style: .date)
-                    .font(.caption)
-                
-                if (chat.name != "") {
+                //                Text(timestamp, style: .date)
+                //                    .font(.caption)
+
+                HStack {
+                    if let personaName = chat.persona?.name {
+                        Text(personaName)
+                            .font(.caption)
+                    }
+                }
+
+                if chat.name != "" {
                     Text(chat.name)
                         .font(.headline)
                         .animation(Animation.easeInOut(duration: 0.5))
                 }
 
                 // Show last message as truncated text
-                Text(message)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                if message != "" {
+                    Text(message)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
             }
         }
     }

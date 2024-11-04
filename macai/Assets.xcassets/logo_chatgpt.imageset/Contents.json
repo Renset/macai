@@ -1,0 +1,23 @@
+{
+  "images" : [
+    {
+      "filename" : "OpenAI_Logo_12.svg",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "OpenAI_Logo_24.svg",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "OpenAI_Logo_36.svg",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

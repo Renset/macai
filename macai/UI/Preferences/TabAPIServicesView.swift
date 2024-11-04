@@ -48,9 +48,6 @@ struct TabAPIServicesView: View {
             }
             else {
                 APIServiceDetailView(viewContext: viewContext, apiService: selectedApiService)
-                    .onAppear {
-                        print(selectedApiService)
-                    }
             }
 
         }
@@ -64,7 +61,8 @@ struct TabAPIServicesView: View {
             onRefresh: refreshList,
             getEntityColor: { _ in nil },
             getEntityName: { $0.name ?? "Untitled Service" },
-            getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID }
+            getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID },
+            getEntityIcon: { "logo_" + $0.type! }
         )
     }
 

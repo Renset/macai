@@ -221,7 +221,7 @@ struct ChatView: View {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
             Self._printChanges()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            DispatchQueue.main.asyncAfter(deadline: .now()) {
                 let startTime = CFAbsoluteTimeGetCurrent()
                 _ = self.body
                 renderTime = CFAbsoluteTimeGetCurrent() - startTime
