@@ -29,6 +29,7 @@ struct ContentView: View {
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
     @State private var windowRef: NSWindow?
+    @State private var openedChatId: String? = nil
 
     var body: some View {
         NavigationView {
@@ -76,22 +77,31 @@ struct ContentView: View {
             .listStyle(SidebarListStyle())
             .navigationTitle("Chats")
 
-            WelcomeScreen(
-                chatsCount: chats.count,
-                gptTokenIsPresent: gptToken != "",
-                customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
-                openPreferencesView: openPreferencesView,
-                newChat: newChat
-            )
+            if selectedChat == nil {
+                WelcomeScreen(
+                    chatsCount: chats.count,
+                    gptTokenIsPresent: gptToken != "",
+                    customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
+                    openPreferencesView: openPreferencesView,
+                    newChat: newChat
+                )
+            }
+            else {
+                ChatView(
+                    viewContext: viewContext,
+                    chat: selectedChat!,
+                    chatViewModel: ChatViewModel(chat: selectedChat!, viewContext: viewContext)
+                )
+                .id(openedChatId)
+            }
+
         }
         .onAppear(perform: {
-
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
                     selectedChat = lastOpenedChat
                 }
             }
-
         })
         .navigationTitle("Chats")
         .toolbar {
@@ -136,6 +146,9 @@ struct ContentView: View {
                 print("Saving state...")
             }
         }
+        .onChange(of: selectedChat) { newValue in
+            self.openedChatId = newValue?.id.uuidString
+        }
     }
 
     func newChat() {
@@ -174,7 +187,8 @@ struct ContentView: View {
         do {
             try viewContext.save()
             DispatchQueue.main.async {
-                selectedChat = newChat
+                self.selectedChat?.objectWillChange.send()
+                self.selectedChat = newChat
             }
         }
         catch {
