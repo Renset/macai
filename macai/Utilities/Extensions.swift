@@ -156,3 +156,26 @@ extension Float {
         return (self * 10).rounded() / 10
     }
 }
+
+extension PersistenceController {
+    static var preview: PersistenceController = {
+        let result = PersistenceController(inMemory: true)
+        let viewContext = result.container.viewContext
+
+        let chat = ChatEntity(context: viewContext)
+        chat.id = UUID()
+        chat.name = "Sample Chat"
+        chat.createdDate = Date()
+        chat.updatedDate = Date()
+        chat.systemMessage = AppConstants.chatGptSystemMessage
+        chat.gptModel = AppConstants.chatGptDefaultModel
+
+        let persona = PersonaEntity(context: viewContext)
+        persona.name = "Assistant"
+        persona.color = "#FF0000"
+        chat.persona = persona
+
+        try? viewContext.save()
+        return result
+    }()
+}
