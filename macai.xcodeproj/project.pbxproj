@@ -14,6 +14,8 @@
 		4A272A7429F5DAA800F93D0D /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A272A7329F5DAA800F93D0D /* Models.swift */; };
 		4A2842492C87014800E5C920 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 4A2842482C87014800E5C920 /* KeychainAccess */; };
 		4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A28424A2C87018800E5C920 /* TokenManager.swift */; };
+		4A2A1C3B2CDEBC8D00DAD20E /* PersonaSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2A1C3A2CDEBC8D00DAD20E /* PersonaSelectorView.swift */; };
+		4A2A1C3E2CDEBD9B00DAD20E /* ChatParametersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2A1C3D2CDEBD9B00DAD20E /* ChatParametersView.swift */; };
 		4A315DB22C8CD8410095ABD1 /* TabAIPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */; };
 		4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A37B8542C2A399800F36CC4 /* Credits.rtf */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
@@ -86,6 +88,8 @@
 		4A270AE229D4AFE7005E063C /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		4A272A7329F5DAA800F93D0D /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		4A28424A2C87018800E5C920 /* TokenManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenManager.swift; sourceTree = "<group>"; };
+		4A2A1C3A2CDEBC8D00DAD20E /* PersonaSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSelectorView.swift; sourceTree = "<group>"; };
+		4A2A1C3D2CDEBD9B00DAD20E /* ChatParametersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatParametersView.swift; sourceTree = "<group>"; };
 		4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAIPersonasView.swift; sourceTree = "<group>"; };
 		4A37B8542C2A399800F36CC4 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -185,14 +189,15 @@
 		4A272A6729F5CB5300F93D0D /* Chat */ = {
 			isa = PBXGroup;
 			children = (
+				4A2A1C3C2CDEBD2200DAD20E /* ChatParameters */,
 				4A5F64B929C64F9D000403F7 /* ChatView.swift */,
 				4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */,
 				4A5F64BB29C653BA000403F7 /* MessageInputView.swift */,
 				4A55DCA629C264BC00A3800C /* TableView.swift */,
-				4A867C1A2BFD640500887AD0 /* Accordion.swift */,
 				4ACAD6622C13AE8F0081BDAC /* CodeView.swift */,
 				4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */,
 				4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */,
+				4A2A1C3D2CDEBD9B00DAD20E /* ChatParametersView.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -278,6 +283,15 @@
 				4AA6EF5C2C566009003B6D41 /* MessageManager.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		4A2A1C3C2CDEBD2200DAD20E /* ChatParameters */ = {
+			isa = PBXGroup;
+			children = (
+				4A867C1A2BFD640500887AD0 /* Accordion.swift */,
+				4A2A1C3A2CDEBC8D00DAD20E /* PersonaSelectorView.swift */,
+			);
+			path = ChatParameters;
 			sourceTree = "<group>";
 		};
 		4A399C8C29BC8FEF00E98796 = {
@@ -524,6 +538,7 @@
 				4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */,
 				4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */,
 				4AFEE7232C472FA1006F99FB /* ChatGPTHandler.swift in Sources */,
+				4A2A1C3B2CDEBC8D00DAD20E /* PersonaSelectorView.swift in Sources */,
 				4A867C1B2BFD640500887AD0 /* Accordion.swift in Sources */,
 				4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */,
 				4A5F64BC29C653BA000403F7 /* MessageInputView.swift in Sources */,
@@ -532,6 +547,7 @@
 				4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */,
 				4A55DCA729C264BC00A3800C /* TableView.swift in Sources */,
 				4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */,
+				4A2A1C3E2CDEBD9B00DAD20E /* ChatParametersView.swift in Sources */,
 				4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */,
 				4ADCA45B2C9B74E8005664A6 /* APIServiceDetailViewModel.swift in Sources */,
 				4AADD98C2C924FBA00242D20 /* APIServiceManager.swift in Sources */,

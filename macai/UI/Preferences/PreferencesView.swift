@@ -16,7 +16,6 @@ struct APIRequestData: Codable {
             "content": "You are ChatGPT, a large language model trained by OpenAI. Say hi, if you're there",
         ]
     ]
-
 }
 
 struct PreferencesView: View {
@@ -56,7 +55,7 @@ struct PreferencesView: View {
                     Label("Danger Zone", systemImage: "flame.fill")
                 }
         }
-        .frame(width: 600)
+        .frame(width: 480)
         .padding()
         .onAppear(perform: {
             store.saveInCoreData()
