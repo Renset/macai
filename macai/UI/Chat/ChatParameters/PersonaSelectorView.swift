@@ -5,18 +5,18 @@
 //  Created by Renat Notfullin on 08.11.2024.
 //
 
-import SwiftUI
 import CoreData
+import SwiftUI
 
 struct GlassMorphicBackground: View {
     let color: Color
     let isSelected: Bool
     @Environment(\.colorScheme) var colorScheme
-    
+
     var body: some View {
         Rectangle()
             .fill(color)
-            .opacity(isSelected ? 0.7 : 0.15)
+            .opacity(isSelected ? 0.6 : 0.12)
     }
 }
 
@@ -25,11 +25,11 @@ struct PersonaChipView: View {
     let isSelected: Bool
     @Environment(\.colorScheme) var colorScheme
     @State private var isHovered = false
-    
+
     private var personaColor: Color {
         Color(hex: persona.color ?? "#FFFFFF") ?? .white
     }
-    
+
     var body: some View {
         Text(persona.name ?? "")
             .foregroundStyle(.primary)
@@ -56,7 +56,7 @@ struct PersonaChipView: View {
                 y: 0
             )
             .shadow(
-                color: personaColor.opacity(isHovered ? 0.2 : 0), // Slightly reduced hover glow
+                color: personaColor.opacity(isHovered ? 0.2 : 0),
                 radius: 4,
                 x: 0,
                 y: 0
@@ -73,45 +73,96 @@ struct PersonaChipView: View {
 struct PersonaSelectorView: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
-        animation: .default)
+        animation: .default
+    )
     private var personas: FetchedResults<PersonaEntity>
-    
+
     @ObservedObject var chat: ChatEntity
     @Environment(\.colorScheme) var colorScheme
-    
+    @State private var scrollViewWidth: CGFloat = 0
+
     private func updatePersonaAndSystemMessage(to persona: PersonaEntity?) {
         chat.persona = persona
         chat.systemMessage = persona?.systemMessage ?? AppConstants.chatGptSystemMessage
         chat.objectWillChange.send()
-        
+
         if let context = chat.managedObjectContext {
             do {
                 try context.save()
-            } catch {
+            }
+            catch {
                 print("Error saving context after persona update: \(error)")
             }
         }
     }
-    
+
+    private var gradientEdgeColor: Color {
+        colorScheme == .dark ? Color.black : Color.white
+    }
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 8) {
-                ForEach(personas, id: \.self) { persona in
-                    PersonaChipView(
-                        persona: persona,
-                        isSelected: chat.persona == persona
-                    )
-                    .onTapGesture {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            updatePersonaAndSystemMessage(to: persona)
+        GeometryReader { geometry in
+            ZStack {
+                ScrollViewReader { scrollView in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 8) {
+                            ForEach(personas, id: \.self) { persona in
+                                PersonaChipView(
+                                    persona: persona,
+                                    isSelected: chat.persona == persona
+                                )
+                                .onTapGesture {
+                                    withAnimation(.easeOut(duration: 0.2)) {
+                                        updatePersonaAndSystemMessage(to: persona)
+                                    }
+                                }
+                                .id(persona)  // Use persona as the identifier
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 8)
+                    }
+                    .onAppear {
+                        scrollViewWidth = geometry.size.width
+                        // If there's a selected persona, scroll to it
+                        if let selectedPersona = chat.persona {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    scrollView.scrollTo(selectedPersona, anchor: .center)
+                                }
+                            }
                         }
                     }
                 }
+
+                // Edge gradients
+                HStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            gradientEdgeColor,
+                            gradientEdgeColor.opacity(0),
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 24)
+
+                    Spacer()
+
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            gradientEdgeColor.opacity(0),
+                            gradientEdgeColor,
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 24)
+                }
+                .allowsHitTesting(false)
             }
-            .padding(.horizontal)
-            .padding(.vertical, -8)
         }
-        .frame(height: 72)
+        .frame(height: 64)
     }
 }
 

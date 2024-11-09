@@ -13,7 +13,8 @@ struct ChatParametersView: View {
     @Binding var newMessage: String
     @Binding var editSystemMessage: Bool
     @State var isHovered: Bool
-    
+    @ObservedObject var chatViewModel: ChatViewModel
+
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.name, ascending: true)],
         animation: .default
@@ -25,33 +26,38 @@ struct ChatParametersView: View {
         animation: .default
     )
     private var apiServices: FetchedResults<APIServiceEntity>
-    
+
     var body: some View {
-        Accordion(icon: chat.apiService?.type != nil ? "logo_" + (chat.apiService?.type ?? "") : nil,
-                  title: chat.apiService?.name != nil ? ((chat.apiService!.name ?? "") +  " — " + (chat.persona?.name ?? "No Persona")) : "",
-                  isExpanded: chat.messages.count == 0, isButtonHidden: chat.messages.count == 0) {
+        Accordion(
+            icon: chat.apiService?.type != nil ? "logo_" + (chat.apiService?.type ?? "") : nil,
+            title: chat.apiService?.name != nil
+                ? ((chat.apiService!.name ?? "") + " — " + (chat.persona?.name ?? "No Persona")) : "",
+            isExpanded: chat.messages.count == 0,
+            isButtonHidden: chat.messages.count == 0
+        ) {
             HStack {
                 VStack(
                     alignment: .leading,
                     content: {
-                        if chat.messages.count == 0 {
-                            APIServiceAndPersonaSelectionView
-                        }
-                        Text("System message: \(chat.systemMessage)").textSelection(.enabled)
-                        if chat.messages.count == 0 && !editSystemMessage && isHovered {
-                            Button(action: {
-                                newMessage = chat.systemMessage
-                                editSystemMessage = true
-                            }) {
-                                Label("Edit", systemImage: "pencil")
+                        APIServiceAndPersonaSelectionView
+
+                        VStack(alignment: .leading) {
+                            Text("System message: \(chat.systemMessage)").textSelection(.enabled)
+                            if chat.messages.count == 0 && !editSystemMessage && isHovered {
+                                Button(action: {
+                                    newMessage = chat.systemMessage
+                                    editSystemMessage = true
+                                }) {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                                .foregroundColor(.gray)
                             }
-                            .buttonStyle(BorderlessButtonStyle())
-                            .foregroundColor(.gray)
                         }
+                        .padding(.horizontal)
                     }
                 )
                 .frame(maxWidth: .infinity)
-                .padding(-4)
                 Spacer()
             }
         }
@@ -60,7 +66,7 @@ struct ChatParametersView: View {
             isHovered = hovering
         }
     }
-    
+
     private var APIServiceAndPersonaSelectionView: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -80,11 +86,15 @@ struct ChatParametersView: View {
                             }
                         }
                         chat.gptModel = newAPIService.model ?? AppConstants.chatGptDefaultModel
+                        chat.objectWillChange.send()
+                        try? viewContext.save()
+                        chatViewModel.recreateMessageManager()
                     }
                 }
 
                 Spacer()
             }
+            .padding(.horizontal)
             PersonaSelectorView(chat: chat)
         }
         .background(Color(NSColor.textBackgroundColor))

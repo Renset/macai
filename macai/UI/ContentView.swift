@@ -89,8 +89,8 @@ struct ContentView: View {
             else {
                 ChatView(
                     viewContext: viewContext,
-                    chat: selectedChat!,
-                    chatViewModel: ChatViewModel(chat: selectedChat!, viewContext: viewContext)
+                    chat: selectedChat!
+                        //chatViewModel: ChatViewModel(chat: selectedChat!, viewContext: viewContext)
                 )
                 .id(openedChatId)
             }
@@ -147,7 +147,16 @@ struct ContentView: View {
             }
         }
         .onChange(of: selectedChat) { newValue in
-            self.openedChatId = newValue?.id.uuidString
+            if self.openedChatId != newValue?.id.uuidString {
+                self.openedChatId = newValue?.id.uuidString
+            }
+        }
+        .onChange(of: windowRef) { newValue in
+            print("windowRef changed: \(newValue)")
+        }
+        .onChange(of: openedChatId) { newValue in
+            print("Opened chat id changed: \(newValue)")
+
         }
     }
 

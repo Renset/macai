@@ -9,12 +9,17 @@ import CoreData
 import Foundation
 
 class MessageManager: ObservableObject {
-    private let apiService: APIService
-    private let viewContext: NSManagedObjectContext
+    private var apiService: APIService
+    private var viewContext: NSManagedObjectContext
     private var lastUpdateTime = Date()
     private let updateInterval = AppConstants.streamedResponseUpdateUIInterval
 
     init(apiService: APIService, viewContext: NSManagedObjectContext) {
+        self.apiService = apiService
+        self.viewContext = viewContext
+    }
+
+    func update(apiService: APIService, viewContext: NSManagedObjectContext) {
         self.apiService = apiService
         self.viewContext = viewContext
     }
@@ -160,14 +165,22 @@ class MessageManager: ObservableObject {
     }
 
     private func prepareRequestMessages(userMessage: String, chat: ChatEntity, contextSize: Int) -> [[String: String]] {
+        let systemMessage = [
+            "role": "system",
+            "content": chat.systemMessage,
+        ]
+
         if chat.newChat {
-            chat.requestMessages = [
-                [
-                    "role": "system",
-                    "content": chat.systemMessage,
-                ]
-            ]
+            chat.requestMessages = [systemMessage]
             chat.newChat = false
+        }
+        else {
+            if chat.requestMessages.count > 0 {
+                chat.requestMessages[0] = systemMessage
+            }
+            else {
+                chat.requestMessages = [systemMessage]
+            }
         }
 
         chat.requestMessages.append(["role": "user", "content": userMessage])

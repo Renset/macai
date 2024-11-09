@@ -28,28 +28,38 @@ struct ChatView: View {
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @AppStorage("useStream") var useStream: Bool = true
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
-    @ObservedObject var chatViewModel: ChatViewModel
+    @StateObject private var chatViewModel: ChatViewModel
     @State private var renderTime: Double = 0
 
     @State private var selectedPersona: PersonaEntity?
     @State private var selectedApiService: APIServiceEntity?
 
-    #if os(macOS)
-        var backgroundColor = Color(NSColor.controlBackgroundColor)
-    #else
-        var backgroundColor = Color(UIColor.systemBackground)
-    #endif
+    var backgroundColor = Color(NSColor.controlBackgroundColor)
+
+    init(viewContext: NSManagedObjectContext, chat: ChatEntity) {
+        self.viewContext = viewContext
+        self._chat = State(initialValue: chat)
+
+        self._chatViewModel = StateObject(
+            wrappedValue: ChatViewModel(chat: chat, viewContext: viewContext)
+        )
+    }
 
     var body: some View {
-        let chatViewModel = ChatViewModel(chat: chat, viewContext: viewContext)
-
         VStack(spacing: 0) {
             ScrollView {
                 ScrollViewReader { scrollView in
-                    VStack(spacing: 12) {
-                        
-                        ChatParametersView(viewContext: viewContext, chat: chat, newMessage: $newMessage, editSystemMessage: $editSystemMessage, isHovered: isHovered)
+                    ChatParametersView(
+                        viewContext: viewContext,
+                        chat: chat,
+                        newMessage: $newMessage,
+                        editSystemMessage: $editSystemMessage,
+                        isHovered: isHovered,
+                        chatViewModel: chatViewModel
+                    )
+                    .padding(.vertical)
 
+                    VStack(spacing: 12) {
                         if chat.messages.count > 0 {
                             VStack {
                                 ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
@@ -118,8 +128,8 @@ struct ChatView: View {
                                 scrollView.scrollTo(-1)
                             }
                         }
-                        else if newCount as! Int > self.messageCount {
-                            self.messageCount = newCount as! Int
+                        else if newCount > self.messageCount {
+                            self.messageCount = newCount
 
                             let sortedMessages = chatViewModel.sortedMessages
                             if let lastMessage = sortedMessages.last {

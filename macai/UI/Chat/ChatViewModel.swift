@@ -5,6 +5,7 @@
 //  Created by Renat on 29.07.2024.
 //
 
+import Combine
 import Foundation
 import SwiftUI
 
@@ -12,12 +13,21 @@ class ChatViewModel: ObservableObject {
     @Published var messages: NSOrderedSet
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
-    private lazy var messageManager: MessageManager = {
-        guard let config = self.loadCurrentAPIConfig() else {
-            fatalError("No valid API configuration found")
+
+    private var _messageManager: MessageManager?
+    private var messageManager: MessageManager {
+        get {
+            if _messageManager == nil {
+                _messageManager = createMessageManager()
+            }
+            return _messageManager!
         }
-        return MessageManager(apiService: APIServiceFactory.createAPIService(config: config), viewContext: self.viewContext)
-    }()
+        set {
+            _messageManager = newValue
+        }
+    }
+
+    private var cancellables = Set<AnyCancellable>()
 
     init(chat: ChatEntity, viewContext: NSManagedObjectContext) {
         self.chat = chat
@@ -26,7 +36,7 @@ class ChatViewModel: ObservableObject {
     }
 
     func sendMessage(_ message: String, contextSize: Int, completion: @escaping (Result<Void, Error>) -> Void) {
-        messageManager.sendMessage(message, in: chat, contextSize: contextSize) { [weak self] result in
+        self.messageManager.sendMessage(message, in: chat, contextSize: contextSize) { [weak self] result in
             switch result {
             case .success:
                 completion(.success(()))
@@ -38,7 +48,7 @@ class ChatViewModel: ObservableObject {
 
     @MainActor
     func sendMessageStream(_ message: String, contextSize: Int, completion: @escaping (Result<Void, Error>) -> Void) {
-        messageManager.sendMessageStream(message, in: chat, contextSize: contextSize) { [weak self] result in
+        self.messageManager.sendMessageStream(message, in: chat, contextSize: contextSize) { [weak self] result in
             switch result {
             case .success:
                 self?.chat.objectWillChange.send()
@@ -49,7 +59,7 @@ class ChatViewModel: ObservableObject {
             }
         }
     }
-    
+
     func generateChatNameIfNeeded() {
         messageManager.generateChatNameIfNeeded(chat: chat)
     }
@@ -57,21 +67,35 @@ class ChatViewModel: ObservableObject {
     func reloadMessages() {
         messages = self.messages
     }
-    
+
     var sortedMessages: [MessageEntity] {
         return self.chat.messagesArray
     }
-    
+
+    private func createMessageManager() -> MessageManager {
+        guard let config = self.loadCurrentAPIConfig() else {
+            fatalError("No valid API configuration found")
+        }
+        print(">> Creating new MessageManager with URL: \(config.apiUrl) and model: \(config.model)")
+        return MessageManager(
+            apiService: APIServiceFactory.createAPIService(config: config),
+            viewContext: self.viewContext
+        )
+    }
+
+    func recreateMessageManager() {
+        _messageManager = createMessageManager()
+    }
+
     private func loadCurrentAPIConfig() -> APIServiceConfiguration? {
         var apiKey = ""
         do {
             apiKey = try TokenManager.getToken(for: chat.apiService?.id?.uuidString ?? "") ?? ""
-        } catch {
+        }
+        catch {
             print("Error extracting token: \(error) for \(chat.apiService?.id?.uuidString ?? "")")
         }
-        
-        print(">> Extracted token: \(apiKey)")
-        
+
         return APIServiceConfig(
             name: getApiServiceName(),
             apiUrl: (chat.apiService?.url)!,
@@ -79,9 +103,8 @@ class ChatViewModel: ObservableObject {
             model: chat.gptModel
         )
     }
-    
-    // Temp function until GPT Service configurator is implemented
+
     private func getApiServiceName() -> String {
-        return  chat.apiService?.type ?? "chatgpt"
+        return chat.apiService?.type ?? "chatgpt"
     }
 }
