@@ -14,6 +14,7 @@ struct MessageCell: View {
     @Binding var isActive: Bool
     let viewContext: NSManagedObjectContext
     @State private var isHovered = false
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         Button {
@@ -28,10 +29,12 @@ struct MessageCell: View {
                         if let personaName = chat.persona?.name {
                             Text(personaName)
                                 .font(.caption)
+                                .lineLimit(1)
                         }
                         else {
                             Text("No persona selected")
                                 .font(.caption)
+                                .lineLimit(1)
                         }
                     }
 
@@ -56,7 +59,7 @@ struct MessageCell: View {
             .foregroundColor(self.isActive ? .white : .primary)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(self.isActive ? Color.accentColor : self.isHovered ? Color(hex: "#CCCCCC")! : Color.clear)
+                    .fill(self.isActive ? Color.accentColor : self.isHovered ? (colorScheme == .dark ? Color(hex: "#666666")! : Color(hex: "#CCCCCC")!) : Color.clear)
             )
             .onHover { hovering in
                 isHovered = hovering

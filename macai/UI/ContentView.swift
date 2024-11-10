@@ -14,7 +14,6 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.openWindow) var openWindow
 
     @FetchRequest(
         entity: ChatEntity.entity(),

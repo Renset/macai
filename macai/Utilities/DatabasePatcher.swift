@@ -81,6 +81,41 @@ class DatabasePatcher {
             }
         }
         
+        // Set Default Assistant as the default for default API service
+        let personaFetchRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        personaFetchRequest.predicate = NSPredicate(format: "name == %@", "Default Assistant")
+        
+        do {
+            let defaultPersonas = try context.fetch(personaFetchRequest)
+            if let defaultPersona = defaultPersonas.first {
+                print("Found default persona: \(defaultPersona.name ?? "")")
+                apiService.defaultPersona = defaultPersona
+                try context.save()
+                print("Successfully set default persona for API service")
+            } else {
+                print("Warning: Default Assistant persona not found")
+            }
+        } catch {
+            print("Error setting default persona: \(error)")
+        }
+        
+        // Update Chats
+        let fetchRequest = NSFetchRequest<ChatEntity>(entityName: "ChatEntity")
+        do {
+            let existingChats = try context.fetch(fetchRequest)
+            print("Found \(existingChats.count) existing chats to update")
+            
+            for chat in existingChats {
+                chat.apiService = apiService
+                chat.gptModel = apiService.model ?? AppConstants.chatGptDefaultModel
+            }
+            
+            try context.save()
+            print("Successfully updated all existing chats with new API service")
+        } catch {
+            print("Error updating existing chats: \(error)")
+        }
+        
         defaults.set(apiService.objectID.uriRepresentation().absoluteString, forKey: "defaultApiService")
 
         // Migration completed
