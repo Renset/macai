@@ -16,6 +16,7 @@
 		4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A28424A2C87018800E5C920 /* TokenManager.swift */; };
 		4A2A1C3B2CDEBC8D00DAD20E /* PersonaSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2A1C3A2CDEBC8D00DAD20E /* PersonaSelectorView.swift */; };
 		4A2A1C3E2CDEBD9B00DAD20E /* ChatParametersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2A1C3D2CDEBD9B00DAD20E /* ChatParametersView.swift */; };
+		4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */; };
 		4A315DB22C8CD8410095ABD1 /* TabAIPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */; };
 		4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A37B8542C2A399800F36CC4 /* Credits.rtf */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
@@ -90,6 +91,7 @@
 		4A28424A2C87018800E5C920 /* TokenManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenManager.swift; sourceTree = "<group>"; };
 		4A2A1C3A2CDEBC8D00DAD20E /* PersonaSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSelectorView.swift; sourceTree = "<group>"; };
 		4A2A1C3D2CDEBD9B00DAD20E /* ChatParametersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatParametersView.swift; sourceTree = "<group>"; };
+		4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestMessagesTransformer.swift; sourceTree = "<group>"; };
 		4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAIPersonasView.swift; sourceTree = "<group>"; };
 		4A37B8542C2A399800F36CC4 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -259,6 +261,7 @@
 		4A272A6E29F5CE3900F93D0D /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */,
 				4A272A7329F5DAA800F93D0D /* Models.swift */,
 			);
 			path = Models;
@@ -556,6 +559,7 @@
 				4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */,
 				4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */,
 				4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */,
+				4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
 				4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */,
 				4A751D2529CBA70B006B983B /* macaiDataModel.xcdatamodeld in Sources */,
@@ -757,7 +761,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 2.0.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
@@ -799,7 +803,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 2.0.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;

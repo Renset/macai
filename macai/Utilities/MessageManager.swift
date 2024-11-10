@@ -212,11 +212,18 @@ class MessageManager: ObservableObject {
     }
 
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
+        print("Streaming chunk received: \(accumulatedResponse.suffix(20))")
         chat.waitingForResponse = false
         lastMessage.body = accumulatedResponse
         lastMessage.timestamp = Date()
         lastMessage.waitingForResponse = false
+
         chat.objectWillChange.send()
-        self.viewContext.saveWithRetry(attempts: 1)
+
+        Task {
+            await MainActor.run {
+                self.viewContext.saveWithRetry(attempts: 1)
+            }
+        }
     }
 }

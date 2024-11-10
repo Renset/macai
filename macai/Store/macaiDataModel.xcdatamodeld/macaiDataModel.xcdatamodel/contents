@@ -23,7 +23,7 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
-        <attribute name="requestMessages" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName" customClassName=".Array"/>
+        <attribute name="requestMessages" optional="YES" attributeType="Transformable" valueTransformerName="RequestMessagesTransformer"/>
         <attribute name="systemMessage" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="systemMessageProcessed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="temperature" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>

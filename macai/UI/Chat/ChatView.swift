@@ -59,92 +59,102 @@ struct ChatView: View {
                     )
                     .padding(.vertical)
 
-                    VStack(spacing: 12) {
-                        if chat.messages.count > 0 {
-                            VStack {
-                                ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
-                                    ChatBubbleView(
-                                        message: messageEntity.body,
-                                        index: Int(messageEntity.id),
-                                        own: messageEntity.own,
-                                        waitingForResponse: false,
-                                        isStreaming: $isStreaming
-                                    ).id(Int64(messageEntity.id))
-                                }
+                    if chat.messages.count > 0 {
+                        VStack {
+                            ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
+                                let bubbleContent = ChatBubbleContent(
+                                    message: messageEntity.body,
+                                    own: messageEntity.own,
+                                    waitingForResponse: messageEntity.waitingForResponse,
+                                    error: false,
+                                    initialMessage: false,
+                                    isStreaming: isStreaming
+                                )
+
+                                ChatBubbleView(content: bubbleContent)
+                                    .id(messageEntity.id)
                             }
                         }
-
-                        if chat.waitingForResponse {
-                            ChatBubbleView(
-                                message: "",
-                                index: 0,
-                                own: false,
-                                waitingForResponse: true,
-                                isStreaming: $isStreaming
-                            ).id(-1)
-                        }
-                        else if lastMessageError {
-                            HStack {
-                                VStack {
-                                    ChatBubbleView(
-                                        message: "",
-                                        index: 0,
-                                        own: false,
-                                        waitingForResponse: false,
-                                        error: true,
-                                        isStreaming: $isStreaming
-                                    )
-                                    HStack {
-                                        Button(action: { lastMessageError = false }) {
-                                            Text("Ignore")
-                                            Image(systemName: "multiply")
-                                        }
-                                        Button(action: {
-                                            sendMessage(ignoreMessageInput: true)
-                                        }
-                                        ) {
-                                            Text("Retry")
-                                            Image(systemName: "arrow.clockwise")
-                                        }
-                                        Spacer()
-                                    }
-
-                                }
-                                .frame(width: 250)
-                                .padding(.bottom, 10)
-                                .id(-1)
-                                Spacer()
-                            }
-                        }
-
-                    }
-                    .id("chatContainer")
-                    .padding()
-                    // Add a listener to the messages array to listen for changes
-                    .onReceive([chat.messages.count].publisher) { newCount in
-                        // Add animation block to animate in new message
-                        if waitingForResponse || lastMessageError {
-                            withAnimation {
-                                scrollView.scrollTo(-1)
-                            }
-                        }
-                        else if newCount > self.messageCount {
-                            self.messageCount = newCount
-
-                            let sortedMessages = chatViewModel.sortedMessages
-                            if let lastMessage = sortedMessages.last {
+                        .onReceive([chat.messages.count].publisher) { newCount in
+                            if waitingForResponse || lastMessageError {
                                 withAnimation {
-                                    print("scrolling to message...")
+                                    scrollView.scrollTo(-1)
+                                }
+                            }
+                            else if newCount > self.messageCount {
+                                self.messageCount = newCount
+
+                                let sortedMessages = chatViewModel.sortedMessages
+                                if let lastMessage = sortedMessages.last {
                                     scrollView.scrollTo(lastMessage.id)
+                                    //                                    withAnimation {
+                                    //                                        print("scrolling to message...")
+                                    //
+                                    //                                    }
                                 }
                             }
                         }
+                        .onAppear {
+                            print("scrolling to message...")
+                            scrollView.scrollTo("chatContainer", anchor: .bottom)
+                        }
                     }
-                    .onAppear {
-                        print("scrolling to message...")
-                        scrollView.scrollTo("chatContainer", anchor: .bottom)
+
+                    if chat.waitingForResponse {
+                        let bubbleContent = ChatBubbleContent(
+                            message: "",
+                            own: false,
+                            waitingForResponse: true,
+                            error: false,
+                            initialMessage: false,
+                            isStreaming: isStreaming
+                        )
+
+                        ChatBubbleView(content: bubbleContent)
+                            .id(-1)
                     }
+                    else if lastMessageError {
+                        HStack {
+                            VStack {
+                                let bubbleContent = ChatBubbleContent(
+                                    message: "",
+                                    own: false,
+                                    waitingForResponse: false,
+                                    error: true,
+                                    initialMessage: false,
+                                    isStreaming: isStreaming
+                                )
+
+                                ChatBubbleView(content: bubbleContent)
+                                    .id(-2)
+
+                                HStack {
+                                    Button(action: { lastMessageError = false }) {
+                                        Text("Ignore")
+                                        Image(systemName: "multiply")
+                                    }
+                                    Button(action: {
+                                        sendMessage(ignoreMessageInput: true)
+                                    }
+                                    ) {
+                                        Text("Retry")
+                                        Image(systemName: "arrow.clockwise")
+                                    }
+                                    Spacer()
+                                }
+
+                            }
+                            .frame(width: 250)
+                            .padding(.bottom, 10)
+                            .id(-1)
+                            Spacer()
+                        }
+                    }
+
                 }
+                .id("chatContainer")
+                .padding()
+
             }
             .modifier(MeasureModifier(renderTime: $renderTime))
 
@@ -185,7 +195,7 @@ struct ChatView: View {
         }
         .background(backgroundColor)
         .navigationTitle(
-            chat.name != "" ? chat.name : apiUrl == AppConstants.apiUrlChatCompletions ? "ChatGPT" : "macai LLM chat"
+            chat.name != "" ? chat.name : chat.persona?.name ?? "macai LLM chat"
         )
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
@@ -197,6 +207,25 @@ struct ChatView: View {
                 renderTime = CFAbsoluteTimeGetCurrent() - startTime
             }
         })
+    }
+}
+
+struct MessageRow: View {
+    let messageEntity: MessageEntity
+    let isStreaming: Bool
+
+    var body: some View {
+        let bubbleContent = ChatBubbleContent(
+            message: messageEntity.body,
+            own: messageEntity.own,
+            waitingForResponse: messageEntity.waitingForResponse,
+            error: false,
+            initialMessage: false,
+            isStreaming: isStreaming
+        )
+
+        ChatBubbleView(content: bubbleContent)
+            .id(messageEntity.id)
     }
 }
 

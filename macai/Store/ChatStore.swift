@@ -21,13 +21,18 @@ class ChatStore: ObservableObject {
 
         migrateFromJSONIfNeeded()
     }
-    
+
     func saveInCoreData() {
-        DispatchQueue.main.async {
-            do {
-                try  self.viewContext.saveWithRetry(attempts: 3)
-            } catch {
-                print("[Warning] Couldn't save to store")
+        //        DispatchQueue.main.async {
+        //            do {
+        //                try  self.viewContext.saveWithRetry(attempts: 3)
+        //            } catch {
+        //                print("[Warning] Couldn't save to store")
+        //            }
+        //        }
+        Task {
+            await MainActor.run {
+                self.viewContext.saveWithRetry(attempts: 1)
             }
         }
     }
@@ -55,11 +60,11 @@ class ChatStore: ObservableObject {
             for oldChat in chats {
                 let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
                 fetchRequest.predicate = NSPredicate(format: "id == %@", oldChat.id as CVarArg)
-                
+
                 let existingChats = try self.viewContext.fetch(fetchRequest)
-                
+
                 if existingChats.isEmpty {
-                    
+
                     let chatEntity = ChatEntity(context: self.viewContext)
                     chatEntity.id = oldChat.id
                     chatEntity.newChat = oldChat.newChat
@@ -73,7 +78,7 @@ class ChatStore: ObservableObject {
                     chatEntity.gptModel = oldChat.gptModel ?? AppConstants.chatGptDefaultModel
                     chatEntity.systemMessage = oldChat.systemMessage ?? AppConstants.chatGptSystemMessage
                     chatEntity.name = oldChat.name ?? ""
-                    
+
                     for oldMessage in oldChat.messages {
                         let messageEntity = MessageEntity(context: self.viewContext)
                         messageEntity.id = Int64(oldMessage.id)
@@ -83,7 +88,7 @@ class ChatStore: ObservableObject {
                         messageEntity.own = oldMessage.own
                         messageEntity.waitingForResponse = oldMessage.waitingForResponse ?? false
                         messageEntity.chat = chatEntity
-                        
+
                         chatEntity.addToMessages(messageEntity)
                     }
                 }
@@ -101,7 +106,7 @@ class ChatStore: ObservableObject {
             }
         }
     }
-    
+
     func deleteAllChats() {
         let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
 
@@ -113,41 +118,44 @@ class ChatStore: ObservableObject {
             }
 
             try self.viewContext.save()
-        } catch {
+        }
+        catch {
             print("Error deleting all chats: \(error)")
         }
     }
-    
+
     func deleteAllPersonas() {
-        let fetchRequest = PersonaEntity.fetchRequest() 
-        
+        let fetchRequest = PersonaEntity.fetchRequest()
+
         do {
             let personaEntities = try self.viewContext.fetch(fetchRequest)
-            
+
             for persona in personaEntities {
                 self.viewContext.delete(persona)
             }
-            
+
             try self.viewContext.save()
-        } catch {
+        }
+        catch {
             print("Error deleting all personas: \(error)")
         }
     }
-    
+
     func deleteAllAPIServices() {
         let fetchRequest = APIServiceEntity.fetchRequest()
-        
+
         do {
             let apiServiceEntities = try self.viewContext.fetch(fetchRequest)
-            
+
             for apiService in apiServiceEntities {
                 let tokenIdentifier = apiService.tokenIdentifier
                 try TokenManager.deleteToken(for: tokenIdentifier ?? "")
                 self.viewContext.delete(apiService)
             }
-            
+
             try self.viewContext.save()
-        } catch {
+        }
+        catch {
             print("Error deleting all api services: \(error)")
         }
     }

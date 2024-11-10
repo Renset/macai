@@ -14,12 +14,18 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.openWindow) var openWindow
+
     @FetchRequest(
         entity: ChatEntity.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
         animation: .default
     )
     private var chats: FetchedResults<ChatEntity>
+
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)])
+    private var apiServices: FetchedResults<APIServiceEntity>
+
     @State var selectedChat: ChatEntity?
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
@@ -35,8 +41,9 @@ struct ContentView: View {
         NavigationView {
             List {
                 ForEach(chats, id: \.id) { chat in
+
                     let isActive = Binding<Bool>(
-                        get: { self.chats.contains(where: { $0.id == chat.id }) && self.selectedChat?.id == chat.id },
+                        get: { !chat.isDeleted && self.selectedChat?.id == chat.id },
                         set: { newValue in
                             if newValue {
                                 selectedChat = chat
@@ -73,6 +80,7 @@ struct ContentView: View {
                     }
                     .tag(chat.id)
                 }
+
             }
             .listStyle(SidebarListStyle())
             .navigationTitle("Chats")
@@ -80,7 +88,7 @@ struct ContentView: View {
             if selectedChat == nil {
                 WelcomeScreen(
                     chatsCount: chats.count,
-                    gptTokenIsPresent: gptToken != "",
+                    apiServiceIsPresent: apiServices.count > 0,
                     customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
                     openPreferencesView: openPreferencesView,
                     newChat: newChat
@@ -120,7 +128,7 @@ struct ContentView: View {
                 Button(action: {
                     newChat()
                 }) {
-                    Image(systemName: "plus")
+                    Image(systemName: "square.and.pencil")
                 }
             }
 
@@ -150,13 +158,6 @@ struct ContentView: View {
             if self.openedChatId != newValue?.id.uuidString {
                 self.openedChatId = newValue?.id.uuidString
             }
-        }
-        .onChange(of: windowRef) { newValue in
-            print("windowRef changed: \(newValue)")
-        }
-        .onChange(of: openedChatId) { newValue in
-            print("Opened chat id changed: \(newValue)")
-
         }
     }
 
@@ -233,9 +234,12 @@ struct ContentView: View {
         alert.alertStyle = .warning
         alert.beginSheetModal(for: NSApp.keyWindow!) { response in
             if response == .alertFirstButtonReturn {
-                selectedChat = nil
+                // Clear selectedChat to prevent accessing deleted item
+                if selectedChat?.id == chat.id {
+                    selectedChat = nil
+                }
+                viewContext.delete(chat)
                 DispatchQueue.main.async {
-                    viewContext.delete(chat)
                     do {
                         try viewContext.save()
                     }

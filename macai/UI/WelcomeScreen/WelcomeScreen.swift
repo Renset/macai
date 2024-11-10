@@ -9,32 +9,29 @@ import SwiftUI
 
 struct WelcomeScreen: View {
     var chatsCount: Int
-    var gptTokenIsPresent: Bool
+    var apiServiceIsPresent: Bool
     var customUrl: Bool
     let openPreferencesView: () -> Void
     let newChat: () -> Void
-    
-    
+
     var body: some View {
         GeometryReader { geometry in
 
             ZStack {
                 // if new user, show beautiful welcome particles
-                if chatsCount == 0 && !gptTokenIsPresent {
+                if chatsCount == 0 && !apiServiceIsPresent {
                     SceneKitParticlesView()
                         .edgesIgnoringSafeArea(.all)
                 }
 
-                // if gptToken is not set, show button to open settings
-                if !gptTokenIsPresent {
+                VStack {
+                    WelcomeIcon()
+                        .padding(64)
 
                     VStack {
-                        WelcomeIcon()
-                            .padding(64)
-
-                        VStack {
-                            Text("Welcome to macai!").font(.title)
-                            Text("To get started, please set ChatGPT API token in settings")
+                        Text("Welcome to macai!").font(.title)
+                        if !apiServiceIsPresent {
+                            Text("To get started, please add at least one API Service in the settings")
                             if #available(macOS 14.0, *) {
                                 SettingsLink {
                                     Text("Open Settings")
@@ -46,18 +43,8 @@ struct WelcomeScreen: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 60)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                }
-                else {
-                    //
-                    VStack {
-                        VStack {
+                        else {
                             if chatsCount == 0 {
-                                WelcomeIcon()
-                                    .padding(64)
                                 Text("No chats were created yet. Create new one?")
                                 Button("Create new chat") {
                                     newChat()
@@ -66,14 +53,12 @@ struct WelcomeScreen: View {
                             else {
                                 Text("Select chat to get started, or create new one")
                             }
+
                         }
-                        .padding(.bottom, 60)
-
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
+                    .padding(.bottom, 60)
                 }
-
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
         }
@@ -93,7 +78,7 @@ struct WelcomeIcon: View {
             .resizable()
             .scaledToFit()
             .frame(maxWidth: 256, maxHeight: 256)
-        
+
             .shadow(color: Color(red: 0.86, green: 0.46, blue: 0.00), radius: 60, x: -10, y: 10)
             .shadow(color: Color(red: 0.98, green: 0.86, blue: 0.29), radius: 30, x: 10, y: 15)
             .shadow(color: Color(red: 1.00, green: 0.67, blue: 0.00), radius: 60, x: 18, y: -10)
@@ -117,6 +102,6 @@ struct WelcomeIcon: View {
 
 struct WelcomeScreen_Previews: PreviewProvider {
     static var previews: some View {
-        WelcomeScreen(chatsCount: 0, gptTokenIsPresent: true, customUrl: false, openPreferencesView: {}, newChat: {})
+        WelcomeScreen(chatsCount: 0, apiServiceIsPresent: true, customUrl: false, openPreferencesView: {}, newChat: {})
     }
 }

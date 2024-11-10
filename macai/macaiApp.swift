@@ -5,8 +5,8 @@
 //  Created by Renat Notfullin on 11.03.2023.
 //
 
-import SwiftUI
 import Sparkle
+import SwiftUI
 import UserNotifications
 
 // This view model class publishes when new updates can be checked by the user
@@ -25,14 +25,14 @@ final class CheckForUpdatesViewModel: ObservableObject {
 struct CheckForUpdatesView: View {
     @ObservedObject private var checkForUpdatesViewModel: CheckForUpdatesViewModel
     private let updater: SPUUpdater
-    
+
     init(updater: SPUUpdater) {
         self.updater = updater
-        
+
         // Create our view model for our CheckForUpdatesView
         self.checkForUpdatesViewModel = CheckForUpdatesViewModel(updater: updater)
     }
-    
+
     var body: some View {
         Button("Check for Updates…", action: updater.checkForUpdates)
             .disabled(!checkForUpdatesViewModel.canCheckForUpdates)
@@ -63,19 +63,28 @@ struct macaiApp: App {
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) var systemColorScheme
-    
+
     private let updaterController: SPUStandardUpdaterController
     let persistenceController = PersistenceController.shared
-    
+
     init() {
+        ValueTransformer.setValueTransformer(
+            RequestMessagesTransformer(),
+            forName: RequestMessagesTransformer.name
+        )
+
         // If you want to start the updater manually, pass false to startingUpdater and call .startUpdater() later
         // This is where you can also pass an updater delegate if you need one
-        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-        
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+
         DatabasePatcher.applyPatches(context: persistenceController.container.viewContext)
         DatabasePatcher.migrateExistingConfiguration(context: persistenceController.container.viewContext)
     }
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView().environment(\.managedObjectContext, persistenceController.container.viewContext)
@@ -85,11 +94,10 @@ struct macaiApp: App {
                 CheckForUpdatesView(updater: updaterController.updater)
             }
         }
-        
-        
+
         Settings {
             PreferencesView().environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
-    
+
 }

@@ -16,57 +16,59 @@ enum MessageElements {
     case formula(String)
 }
 
-struct ChatBubbleView: View {
-    var message: String = ""
-    @State var index: Int
-    @State var own: Bool
-    @State var waitingForResponse: Bool?
-    @State var error = false
-    @State var initialMessage = false
-    @Binding var isStreaming: Bool
-    @State private var isPencilIconVisible = false
-    @State private var wobbleAmount = 0.0
+struct ChatBubbleContent: Equatable {
+    let message: String
+    let own: Bool
+    let waitingForResponse: Bool?
+    let error: Bool
+    let initialMessage: Bool
+    let isStreaming: Bool
+
+    static func == (lhs: ChatBubbleContent, rhs: ChatBubbleContent) -> Bool {
+        return lhs.message == rhs.message && lhs.own == rhs.own && lhs.waitingForResponse == rhs.waitingForResponse
+            && lhs.error == rhs.error && lhs.initialMessage == rhs.initialMessage && lhs.isStreaming == rhs.isStreaming
+    }
+}
+
+struct ChatBubbleView: View, Equatable {
+    let content: ChatBubbleContent
     @Environment(\.colorScheme) var colorScheme
 
-    
-    var outgoingBubbleColorLight = Color(red: 0.92, green: 0.92, blue: 0.92)
-    var outgoingBubbleColorDark = Color(red: 0.3, green: 0.3, blue: 0.3)
-    var incomingBubbleColorLight = Color.clear
-    var incomingBubbleColorDark = Color.clear
-    var incomingLabelColor = NSColor.labelColor
+    private let outgoingBubbleColorLight = Color(red: 0.92, green: 0.92, blue: 0.92)
+    private let outgoingBubbleColorDark = Color(red: 0.3, green: 0.3, blue: 0.3)
+    private let incomingBubbleColorLight = Color.clear
+    private let incomingBubbleColorDark = Color.clear
+    private let incomingLabelColor = NSColor.labelColor
 
+    static func == (lhs: ChatBubbleView, rhs: ChatBubbleView) -> Bool {
+        lhs.content == rhs.content
+    }
 
     var body: some View {
         HStack {
-            if own {
+            if content.own {
                 Color.clear
                     .frame(width: 80)
                 Spacer()
             }
 
             VStack(alignment: .leading) {
-                if self.waitingForResponse ?? false {
+                if content.waitingForResponse ?? false {
                     HStack {
-                        //self.isPencilIconVisible = true
                         Image(systemName: "pencil")
                             .foregroundColor(.blue)
-                            .offset(x: wobbleAmount, y: 0)
-                            //.rotationEffect(.degrees(-wobbleAmount * 0.1))
+                            .offset(x: 20, y: 0)
                             .animation(
                                 .easeIn(duration: 0.5).repeatForever(autoreverses: true),
-                                value: wobbleAmount
+                                value: true
                             )
-                            .onAppear {
-                                wobbleAmount = 20
-                            }
                         Spacer()
                     }
                     .frame(width: 30)
                 }
-                else if self.error {
+                else if content.error {
                     VStack {
                         HStack {
-                            //self.isPencilIconVisible = true
                             Image(systemName: "exclamationmark.bubble")
                                 .foregroundColor(.white)
                             Text("Error getting message from server. Try again?")
@@ -75,30 +77,42 @@ struct ChatBubbleView: View {
                 }
                 else {
                     let parser = MessageParser(colorScheme: colorScheme)
-                    let parsedElements = parser.parseMessageFromString(input: message, shouldSkipCodeHighlighting: isStreaming)
+                    let parsedElements = parser.parseMessageFromString(
+                        input: content.message,
+                        shouldSkipCodeHighlighting: false
+                    )
                     ForEach(0..<parsedElements.count, id: \.self) { index in
                         switch parsedElements[index] {
                         case .text(let text):
                             let attributedString: NSAttributedString = {
-                                let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-                                let initialAttributedString = (try? NSAttributedString(markdown: text, options: options)) ?? NSAttributedString(string: text)
-                                
-                                let mutableAttributedString = NSMutableAttributedString(attributedString: initialAttributedString)
-                                
+                                let options = AttributedString.MarkdownParsingOptions(
+                                    interpretedSyntax: .inlineOnlyPreservingWhitespace
+                                )
+                                let initialAttributedString =
+                                    (try? NSAttributedString(markdown: text, options: options))
+                                    ?? NSAttributedString(string: text)
+
+                                let mutableAttributedString = NSMutableAttributedString(
+                                    attributedString: initialAttributedString
+                                )
                                 let fullRange = NSRange(location: 0, length: mutableAttributedString.length)
-                                
                                 let systemFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+
                                 mutableAttributedString.addAttribute(.font, value: systemFont, range: fullRange)
-                                
-                                mutableAttributedString.addAttribute(.foregroundColor, value: own ? NSColor.textColor : NSColor.textColor, range: fullRange)
-                                
+                                mutableAttributedString.addAttribute(
+                                    .foregroundColor,
+                                    value: content.own ? NSColor.textColor : NSColor.textColor,
+                                    range: fullRange
+                                )
+
                                 return mutableAttributedString
                             }()
-                            
-                            if (text.count > AppConstants.longStringCount) {
+
+                            if text.count > AppConstants.longStringCount {
                                 AttributedText(attributedString)
                                     .textSelection(.enabled)
-                            } else {
+                            }
+                            else {
                                 Text(.init(attributedString))
                                     .textSelection(.enabled)
                             }
@@ -109,49 +123,53 @@ struct ChatBubbleView: View {
                         case .code(let code, let lang, let indent):
                             CodeView(code: code, lang: lang)
                                 .padding(.bottom, 8)
-                                .padding(.leading, CGFloat(indent)*4)
+                                .padding(.leading, CGFloat(indent) * 4)
                         case .formula(let formula):
-                            if (isStreaming) {
+                            if content.isStreaming {
                                 Text(formula).textSelection(.enabled)
-                            } else {
+                            }
+                            else {
                                 AdaptiveMathView(equation: formula, fontSize: NSFont.systemFontSize + CGFloat(2))
                                     .padding(.vertical, 16)
                             }
-
                         }
                     }
                 }
             }
-            .foregroundColor(error ? Color(.white) : Color(own ? incomingLabelColor : incomingLabelColor))
+            .foregroundColor(
+                content.error ? Color(.white) : Color(content.own ? incomingLabelColor : incomingLabelColor)
+            )
             .multilineTextAlignment(.leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
-                error
+                content.error
                     ? Color(.red)
-                : initialMessage 
-                    ? Color(.systemOrange)
-                : colorScheme == .dark ? (own ? outgoingBubbleColorDark : incomingBubbleColorDark) : (own ? outgoingBubbleColorLight : incomingBubbleColorLight)
+                    : content.initialMessage
+                        ? Color(.systemOrange)
+                        : colorScheme == .dark
+                            ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
+                            : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
             )
             .cornerRadius(16)
-            if !own {
+
+            if !content.own {
                 Spacer()
             }
         }
         .contextMenu {
             Button(action: {
-                copyMessageToClipboard()
+                copyMessageToClipboard(content.message)
             }) {
                 Label("Copy raw message", systemImage: "doc.on.doc")
             }
         }
         .padding(.vertical, 8)
     }
-        
 
-    private func copyMessageToClipboard() {
+    private func copyMessageToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(message, forType: .string)
+        pasteboard.setString(text, forType: .string)
     }
 }
