@@ -20,7 +20,7 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var contextSize: Float = 100
     @Published var contextSizeUnlimited: Bool = false
     @Published var useStreamResponse: Bool = true
-    @Published var generateChatNames: Bool = false
+    @Published var generateChatNames: Bool = true
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
     @Published var isCustomModel: Bool = false
