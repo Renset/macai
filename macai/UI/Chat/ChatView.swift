@@ -246,7 +246,7 @@ extension ChatView {
 
         if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
-            chatViewModel.sendMessageStream(messageBody, contextSize: Int(chatContext)) { result in
+            chatViewModel.sendMessageStream(messageBody, contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))) { result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
@@ -263,7 +263,7 @@ extension ChatView {
         }
         else {
             self.waitingForResponse = true
-            chatViewModel.sendMessage(messageBody, contextSize: Int(chatContext)) { result in
+            chatViewModel.sendMessage(messageBody, contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))) { result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success:

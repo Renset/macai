@@ -123,17 +123,6 @@ class MessageManager: ObservableObject {
             case .success(let messageBody):
                 let chatName = messageBody
                 chat.name = chatName
-
-                // remove 'generate chat name' instruction from requestMessages
-                #if DEBUG
-                    print("Length of requestMessages before deletion: \(chat.requestMessages.count)")
-                #endif
-                chat.requestMessages = chat.requestMessages.filter {
-                    $0["content"] != AppConstants.chatGptGenerateChatInstruction
-                }
-                #if DEBUG
-                    print("Length of requestMessages after deletion: \(chat.requestMessages.count)")
-                #endif
                 self.viewContext.saveWithRetry(attempts: 3)
             case .failure(let error):
                 print("Error generating chat name: \(error)")
@@ -165,32 +154,7 @@ class MessageManager: ObservableObject {
     }
 
     private func prepareRequestMessages(userMessage: String, chat: ChatEntity, contextSize: Int) -> [[String: String]] {
-        let systemMessage = [
-            "role": "system",
-            "content": chat.systemMessage,
-        ]
-
-        if chat.newChat {
-            chat.requestMessages = [systemMessage]
-            chat.newChat = false
-        }
-        else {
-            if chat.requestMessages.count > 0 {
-                chat.requestMessages[0] = systemMessage
-            }
-            else {
-                chat.requestMessages = [systemMessage]
-            }
-        }
-
-        chat.requestMessages.append(["role": "user", "content": userMessage])
-
-        return Array(
-            chat.requestMessages.prefix(1)
-                + chat.requestMessages.suffix(
-                    contextSize > chat.requestMessages.count - 1 ? chat.requestMessages.count - 1 : contextSize
-                )
-        )
+        return constructRequestMessages(chat: chat, forUserMessage: userMessage, contextSize: contextSize)
     }
 
     private func addMessageToChat(chat: ChatEntity, message: String) {
@@ -225,5 +189,41 @@ class MessageManager: ObservableObject {
                 self.viewContext.saveWithRetry(attempts: 1)
             }
         }
+    }
+    
+    private func constructRequestMessages(chat: ChatEntity, forUserMessage userMessage: String?, contextSize: Int) -> [[String: String]] {
+        var messages: [[String: String]] = []
+        
+        // Always add system message first
+        messages.append([
+            "role": "system",
+            "content": chat.systemMessage
+        ])
+        
+        let sortedMessages = chat.messagesArray
+            .sorted { $0.timestamp < $1.timestamp }
+            .suffix(contextSize)
+        
+        // Add conversation history
+        for message in sortedMessages {
+            messages.append([
+                "role": message.own ? "user" : "assistant",
+                "content": message.body
+            ])
+        }
+        
+        // Add new user message if provided
+        let lastMessage = messages.last?["content"] ?? ""
+        if lastMessage != userMessage {
+            if let userMessage = userMessage {
+                messages.append([
+                    "role": "user",
+                    "content": userMessage
+                ])
+            }
+        }
+
+        
+        return messages
     }
 }
