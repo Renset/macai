@@ -12,7 +12,7 @@ import SwiftUI
 enum MessageElements {
     case text(String)
     case table(header: [String], data: [[String]])
-    case code(code: NSAttributedString?, lang: String, indent: Int)
+    case code(code: String, lang: String, indent: Int)
     case formula(String)
 }
 
@@ -36,8 +36,8 @@ struct ChatBubbleView: View, Equatable {
 
     private let outgoingBubbleColorLight = Color(red: 0.92, green: 0.92, blue: 0.92)
     private let outgoingBubbleColorDark = Color(red: 0.3, green: 0.3, blue: 0.3)
-    private let incomingBubbleColorLight = Color.clear
-    private let incomingBubbleColorDark = Color.clear
+    private let incomingBubbleColorLight = Color(.white).opacity(0)
+    private let incomingBubbleColorDark = Color(.white).opacity(0)
     private let incomingLabelColor = NSColor.labelColor
 
     static func == (lhs: ChatBubbleView, rhs: ChatBubbleView) -> Bool {
@@ -74,12 +74,10 @@ struct ChatBubbleView: View, Equatable {
                             Text("Error getting message from server. Try again?")
                         }
                     }
-                }
-                else {
+                } else {
                     let parser = MessageParser(colorScheme: colorScheme)
                     let parsedElements = parser.parseMessageFromString(
-                        input: content.message,
-                        shouldSkipCodeHighlighting: false
+                        input: content.message
                     )
                     ForEach(0..<parsedElements.count, id: \.self) { index in
                         switch parsedElements[index] {
@@ -96,7 +94,7 @@ struct ChatBubbleView: View, Equatable {
                                     attributedString: initialAttributedString
                                 )
                                 let fullRange = NSRange(location: 0, length: mutableAttributedString.length)
-                                let systemFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+                                let systemFont = NSFont.systemFont(ofSize: 14)
 
                                 mutableAttributedString.addAttribute(.font, value: systemFont, range: fullRange)
                                 mutableAttributedString.addAttribute(
@@ -107,7 +105,7 @@ struct ChatBubbleView: View, Equatable {
 
                                 return mutableAttributedString
                             }()
-
+                            
                             if text.count > AppConstants.longStringCount {
                                 AttributedText(attributedString)
                                     .textSelection(.enabled)
@@ -121,7 +119,7 @@ struct ChatBubbleView: View, Equatable {
                             TableView(header: header, tableData: data)
                                 .padding()
                         case .code(let code, let lang, let indent):
-                            CodeView(code: code, lang: lang)
+                            CodeView(code: code, lang: lang, isStreaming: content.isStreaming)
                                 .padding(.bottom, 8)
                                 .padding(.leading, CGFloat(indent) * 4)
                         case .formula(let formula):

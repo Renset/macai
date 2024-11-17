@@ -116,6 +116,8 @@ class ClaudeHandler: APIService {
             systemMessage = firstMessage?["content"] as? String ?? ""
             updatedRequestMessages.removeFirst()
         }
+        
+        let maxTokens = model == "claude-3-5-sonnet-latest" ? 8192 : AppConstants.defaultApiConfigurations["claude"]!.maxTokens!
 
         let jsonDict: [String: Any] = [
             "model": model,
@@ -123,7 +125,7 @@ class ClaudeHandler: APIService {
             "system": systemMessage,
             "stream": stream,
             "temperature": temperature,
-            "max_tokens": AppConstants.defaultApiConfigurations["claude"]!.maxTokens!,
+            "max_tokens": maxTokens,
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])

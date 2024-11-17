@@ -95,8 +95,13 @@ struct ChatView: View {
                             }
                         }
                         .onAppear {
-                            print("scrolling to message...")
-                            scrollView.scrollTo("chatContainer", anchor: .bottom)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                if let lastMessage = chatViewModel.sortedMessages.last {
+                                    withAnimation(.easeOut(duration: 0.1)) {
+                                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                    }
+                                }
+                            }
                         }
                     }
 

@@ -32,133 +32,83 @@ struct ContentView: View {
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlChatCompletions
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
+    @StateObject private var previewStateManager = PreviewStateManager()
 
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(chats, id: \.id) { chat in
-
-                    let isActive = Binding<Bool>(
-                        get: { !chat.isDeleted && self.selectedChat?.id == chat.id },
-                        set: { newValue in
-                            if newValue {
-                                selectedChat = chat
-                            }
-                            else if selectedChat?.id == chat.id {
-                                selectedChat = nil
-                            }
-                        }
-                    )
-
-                    let messagePreview = chat.lastMessage
-                    let messageTimestamp = messagePreview?.timestamp ?? Date()
-                    let messageBody = messagePreview?.body ?? ""
-
-                    MessageCell(
-                        chat: chats[getIndex(for: chat)],
-                        timestamp: messageTimestamp,
-                        message: messageBody,
-                        isActive: isActive,
-                        viewContext: viewContext
-                    )
-                    .contextMenu {
-                        Button(action: {
-                            renameChat(chat)
-                        }) {
-                            Label("Rename", systemImage: "pencil")
-                        }
-                        Divider()
-                        Button(action: {
-                            deleteChat(chat)
-                        }) {
-                            Label("Delete", systemImage: "trash")
-                        }
+        NavigationSplitView {
+            ChatListView(selectedChat: $selectedChat)
+            } detail: {
+                HSplitView {
+                    if selectedChat != nil {
+                        ChatView(viewContext: viewContext, chat: selectedChat!)
+                            .frame(minWidth: 400)
+                            .id(openedChatId)
+                    } else {
+                        WelcomeScreen(
+                            chatsCount: chats.count,
+                            apiServiceIsPresent: apiServices.count > 0,
+                            customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
+                            openPreferencesView: openPreferencesView,
+                            newChat: newChat
+                        )
                     }
-                    .tag(chat.id)
+                    
+                    if previewStateManager.isPreviewVisible {
+                        PreviewPane(stateManager: previewStateManager)
+                    }
                 }
-
             }
-            .listStyle(SidebarListStyle())
+            .onAppear(perform: {
+                if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
+                    if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
+                        selectedChat = lastOpenedChat
+                    }
+                }
+            })
             .navigationTitle("Chats")
-
-            if selectedChat == nil {
-                WelcomeScreen(
-                    chatsCount: chats.count,
-                    apiServiceIsPresent: apiServices.count > 0,
-                    customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
-                    openPreferencesView: openPreferencesView,
-                    newChat: newChat
-                )
-            }
-            else {
-                ChatView(
-                    viewContext: viewContext,
-                    chat: selectedChat!
-                        //chatViewModel: ChatViewModel(chat: selectedChat!, viewContext: viewContext)
-                )
-                .id(openedChatId)
-            }
-
-        }
-        .onAppear(perform: {
-            if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
-                if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
-                    selectedChat = lastOpenedChat
-                }
-            }
-        })
-        .navigationTitle("Chats")
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button(action: {
-                    NSApp.keyWindow?.firstResponder?.tryToPerform(
-                        #selector(NSSplitViewController.toggleSidebar(_:)),
-                        with: nil
-                    )
-                }) {
-                    Image(systemName: "sidebar.left")
-                }
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    newChat()
-                }) {
-                    Image(systemName: "square.and.pencil")
-                }
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                if #available(macOS 14.0, *) {
-                    SettingsLink {
-                        Image(systemName: "gear")
-                    }
-                }
-                else {
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
                     Button(action: {
-                        openPreferencesView()
+                        newChat()
                     }) {
-                        Image(systemName: "gear")
+                        Image(systemName: "square.and.pencil")
                     }
                 }
-            }
 
-        }
-        .onChange(of: scenePhase) { phase in
-            print("Scene phase changed: \(phase)")
-            if phase == .inactive {
-                print("Saving state...")
+                ToolbarItem(placement: .primaryAction) {
+                    if #available(macOS 14.0, *) {
+                        SettingsLink {
+                            Image(systemName: "gear")
+                        }
+                    }
+                    else {
+                        Button(action: {
+                            openPreferencesView()
+                        }) {
+                            Image(systemName: "gear")
+                        }
+                    }
+                }
+
             }
-        }
-        .onChange(of: selectedChat) { newValue in
-            if self.openedChatId != newValue?.id.uuidString {
-                self.openedChatId = newValue?.id.uuidString
+            .onChange(of: scenePhase) { phase in
+                print("Scene phase changed: \(phase)")
+                if phase == .inactive {
+                    print("Saving state...")
+                }
             }
+            .onChange(of: selectedChat) { newValue in
+                if self.openedChatId != newValue?.id.uuidString {
+                    self.openedChatId = newValue?.id.uuidString
+                    previewStateManager.hidePreview()
+                }
+            }
+            .environmentObject(previewStateManager)
         }
-    }
+    
 
     func newChat() {
         let uuid = UUID()
@@ -224,52 +174,45 @@ struct ContentView: View {
         }
     }
 
-    func deleteChat(_ chat: ChatEntity) {
-        let alert = NSAlert()
-        alert.messageText = "Delete chat?"
-        alert.informativeText = "Are you sure you want to delete this chat?"
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
-            if response == .alertFirstButtonReturn {
-                // Clear selectedChat to prevent accessing deleted item
-                if selectedChat?.id == chat.id {
-                    selectedChat = nil
-                }
-                viewContext.delete(chat)
-                DispatchQueue.main.async {
-                    do {
-                        try viewContext.save()
-                    }
-                    catch {
-                        print("Error deleting chat: \(error.localizedDescription)")
-                    }
-                }
-            }
-        }
-    }
+   
+}
 
-    func renameChat(_ chat: ChatEntity) {
-        let alert = NSAlert()
-        alert.messageText = "Rename chat"
-        alert.informativeText = "Enter new name for this chat"
-        alert.addButton(withTitle: "Rename")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .informational
-        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        textField.stringValue = chat.name
-        alert.accessoryView = textField
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
-            if response == .alertFirstButtonReturn {
-                chat.name = textField.stringValue
-                do {
-                    try viewContext.save()
+struct PreviewPane: View {
+    @ObservedObject var stateManager: PreviewStateManager
+    @State private var isResizing = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("HTML Preview")
+                    .font(.headline)
+                Spacer()
+                Button(action: { stateManager.hidePreview() }) {
+                    Image(systemName: "xmark")
                 }
-                catch {
-                    print("Error renaming chat: \(error.localizedDescription)")
-                }
+                .buttonStyle(PlainButtonStyle())
             }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .frame(minWidth: 300)
+            
+            Divider()
+            
+            HTMLPreviewView(htmlContent: stateManager.previewContent)
         }
+        .background(Color(NSColor.windowBackgroundColor))
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    if !isResizing {
+                        isResizing = true
+                    }
+                    let newWidth = max(300, stateManager.previewPaneWidth - gesture.translation.width)
+                    stateManager.previewPaneWidth = min(800, newWidth)
+                }
+                .onEnded { _ in
+                    isResizing = false
+                }
+        )
     }
 }
