@@ -59,8 +59,8 @@ struct ChatView: View {
                     )
                     .padding(.vertical)
 
-                    if chat.messages.count > 0 {
-                        VStack {
+                    VStack {
+                        if chat.messages.count > 0 {
                             ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
                                 let bubbleContent = ChatBubbleContent(
                                     message: messageEntity.body,
@@ -70,96 +70,90 @@ struct ChatView: View {
                                     initialMessage: false,
                                     isStreaming: isStreaming
                                 )
-
+                                
                                 ChatBubbleView(content: bubbleContent)
                                     .id(messageEntity.id)
                             }
                         }
-                        .onReceive([chat.messages.count].publisher) { newCount in
-                            if waitingForResponse || lastMessageError {
-                                withAnimation {
-                                    scrollView.scrollTo(-1)
+                        
+                        if chat.waitingForResponse {
+                            let bubbleContent = ChatBubbleContent(
+                                message: "",
+                                own: false,
+                                waitingForResponse: true,
+                                error: false,
+                                initialMessage: false,
+                                isStreaming: isStreaming
+                            )
+                            
+                            ChatBubbleView(content: bubbleContent)
+                                .id(-1)
+                        }
+                        else if lastMessageError {
+                            HStack {
+                                VStack {
+                                    let bubbleContent = ChatBubbleContent(
+                                        message: "",
+                                        own: false,
+                                        waitingForResponse: false,
+                                        error: true,
+                                        initialMessage: false,
+                                        isStreaming: isStreaming
+                                    )
+                                    
+                                    ChatBubbleView(content: bubbleContent)
+                                        .id(-2)
+                                    
+                                    HStack {
+                                        Button(action: { lastMessageError = false }) {
+                                            Text("Ignore")
+                                            Image(systemName: "multiply")
+                                        }
+                                        Button(action: {
+                                            sendMessage(ignoreMessageInput: true)
+                                        }
+                                        ) {
+                                            Text("Retry")
+                                            Image(systemName: "arrow.clockwise")
+                                        }
+                                        Spacer()
+                                    }
+                                    
                                 }
+                                .frame(width: 250)
+                                .padding(.bottom, 10)
+                                .id(-1)
+                                Spacer()
                             }
-                            else if newCount > self.messageCount {
-                                self.messageCount = newCount
+                        }
+                    }
+                    .padding(24)
+                    .onReceive([chat.messages.count].publisher) { newCount in
+                        if waitingForResponse || lastMessageError {
+                            withAnimation {
+                                scrollView.scrollTo(-1)
+                            }
+                        }
+                        else if newCount > self.messageCount {
+                            self.messageCount = newCount
 
-                                let sortedMessages = chatViewModel.sortedMessages
-                                if let lastMessage = sortedMessages.last {
-                                    scrollView.scrollTo(lastMessage.id)
-                                    //                                    withAnimation {
-                                    //                                        print("scrolling to message...")
-                                    //
-                                    //                                    }
+                            let sortedMessages = chatViewModel.sortedMessages
+                            if let lastMessage = sortedMessages.last {
+                                scrollView.scrollTo(lastMessage.id)
+                            }
+                        }
+                    }
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            if let lastMessage = chatViewModel.sortedMessages.last {
+                                withAnimation(.easeOut(duration: 0.1)) {
+                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                                 }
                             }
                         }
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                if let lastMessage = chatViewModel.sortedMessages.last {
-                                    withAnimation(.easeOut(duration: 0.1)) {
-                                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                                    }
-                                }
-                            }
-                        }
                     }
-
-                    if chat.waitingForResponse {
-                        let bubbleContent = ChatBubbleContent(
-                            message: "",
-                            own: false,
-                            waitingForResponse: true,
-                            error: false,
-                            initialMessage: false,
-                            isStreaming: isStreaming
-                        )
-
-                        ChatBubbleView(content: bubbleContent)
-                            .id(-1)
-                    }
-                    else if lastMessageError {
-                        HStack {
-                            VStack {
-                                let bubbleContent = ChatBubbleContent(
-                                    message: "",
-                                    own: false,
-                                    waitingForResponse: false,
-                                    error: true,
-                                    initialMessage: false,
-                                    isStreaming: isStreaming
-                                )
-
-                                ChatBubbleView(content: bubbleContent)
-                                    .id(-2)
-
-                                HStack {
-                                    Button(action: { lastMessageError = false }) {
-                                        Text("Ignore")
-                                        Image(systemName: "multiply")
-                                    }
-                                    Button(action: {
-                                        sendMessage(ignoreMessageInput: true)
-                                    }
-                                    ) {
-                                        Text("Retry")
-                                        Image(systemName: "arrow.clockwise")
-                                    }
-                                    Spacer()
-                                }
-
-                            }
-                            .frame(width: 250)
-                            .padding(.bottom, 10)
-                            .id(-1)
-                            Spacer()
-                        }
-                    }
-
                 }
                 .id("chatContainer")
-                .padding()
-
             }
             .modifier(MeasureModifier(renderTime: $renderTime))
 

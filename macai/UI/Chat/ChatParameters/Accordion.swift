@@ -23,27 +23,32 @@ struct Accordion<Content: View>: View {
     }
     
     var body: some View {
-        VStack() {
+        VStack {
             if !isButtonHidden {
-                Button(action: {
-                    withAnimation {
-                        self.isExpanded.toggle()
-                    }
-                }) {
-                    HStack {
-                        if let icon = icon {
-                            Image(icon)
-                                .resizable()
-                                .renderingMode(.template)
-                                .interpolation(.high)
-                                .antialiased(true)
-                                .frame(width: 12, height: 12)
+                HStack {
+                    Button(action: {
+                        withAnimation {
+                            self.isExpanded.toggle()
                         }
-                        Text(title)
-                            .frame(alignment:.leading)
-                        Image(systemName: isExpanded ? "arrow.down.circle" : "arrow.up.circle")
+                    }) {
+                        HStack {
+                            if let icon = icon {
+                                Image(icon)
+                                    .resizable()
+                                    .renderingMode(.template)
+                                    .interpolation(.high)
+                                    .antialiased(true)
+                                    .frame(width: 12, height: 12)
+                            }
+                            Text(title)
+                                .frame(alignment:.leading)
+                            Image(systemName: isExpanded ? "arrow.down.circle" : "arrow.up.circle")
+                        }
                     }
+                    Spacer()
                 }
+                .padding(.horizontal, 32)
+                
             }
             if isExpanded {
                 content

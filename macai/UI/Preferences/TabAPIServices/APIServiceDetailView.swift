@@ -179,9 +179,9 @@ struct APIServiceDetailView: View {
                         ) {
                             Text("Context size")
                         } minimumValueLabel: {
-                            Text("5")
+                            Text("10")
                         } maximumValueLabel: {
-                            Text("100")
+                            Text("200")
                         }
                         .disabled(viewModel.contextSizeUnlimited)
 
@@ -236,6 +236,11 @@ struct APIServiceDetailView: View {
                         Text(persona.name ?? "Untitled").tag(persona)
                     }
                 }
+            }
+            
+            if (AppConstants.o1Models.contains(viewModel.model)) {
+                Text("💁‍♂️ OpenAI API doesn't support system message and temperature other than 1 for o1 models. macai will send system message as a user message internally, while temperature will be always set to 1.0")
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
