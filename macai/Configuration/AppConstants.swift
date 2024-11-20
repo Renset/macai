@@ -28,6 +28,7 @@ struct AppConstants {
     static let defaultPersonaTemperature: Float = 0.7
     static let defaultTemperatureForChatNameGeneration: Float = 0.6
     static let defaultTemperatureForChat: Float = 0.7
+    static let o1Models: [String] = ["o1-preview", "o1-mini"]
 
     struct Persona {
         let name: String
@@ -40,7 +41,8 @@ struct AppConstants {
         static let defaultAssistant = Persona(
             name: "Default Assistant",
             color: "#FF6347",
-            message: "You are Large Language Model. Answer as concisely as possible. Your answers should be informative, helpful and engaging.",
+            message:
+                "You are Large Language Model. Answer as concisely as possible. Your answers should be informative, helpful and engaging.",
             temperature: 0.7
         )
 

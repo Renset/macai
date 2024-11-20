@@ -54,7 +54,7 @@ struct ChatParametersView: View {
                                 .foregroundColor(.gray)
                             }
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 20)
                     }
                 )
                 .frame(maxWidth: .infinity)
@@ -91,10 +91,9 @@ struct ChatParametersView: View {
                         chatViewModel.recreateMessageManager()
                     }
                 }
-
                 Spacer()
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
             PersonaSelectorView(chat: chat)
         }
         .background(Color(NSColor.textBackgroundColor))

@@ -130,19 +130,27 @@ class MessageManager: ObservableObject {
         }
     }
 
-    func testAPI(completion: @escaping (Result<Void, Error>) -> Void) {
-        let requestMessages = [
-            [
+    func testAPI(model: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        var requestMessages: [[String: String]] = []
+        var temperature = AppConstants.defaultPersonaTemperature
+
+        if !AppConstants.o1Models.contains(model) {
+            requestMessages.append([
                 "role": "system",
                 "content": "You are a test assistant.",
-            ],
+            ])
+        }
+        else {
+            temperature = 1
+        }
+
+        requestMessages.append(
             [
                 "role": "user",
                 "content": "This is a test message.",
-            ],
-        ]
+            ])
 
-        apiService.sendMessage(requestMessages, temperature: AppConstants.defaultTemperatureForChat) { result in
+        apiService.sendMessage(requestMessages, temperature: temperature) { result in
             switch result {
             case .success(_):
                 completion(.success(()))
@@ -190,40 +198,49 @@ class MessageManager: ObservableObject {
             }
         }
     }
-    
-    private func constructRequestMessages(chat: ChatEntity, forUserMessage userMessage: String?, contextSize: Int) -> [[String: String]] {
+
+    private func constructRequestMessages(chat: ChatEntity, forUserMessage userMessage: String?, contextSize: Int)
+        -> [[String: String]]
+    {
         var messages: [[String: String]] = []
-        
-        // Always add system message first
-        messages.append([
-            "role": "system",
-            "content": chat.systemMessage
-        ])
-        
+
+        if !AppConstants.o1Models.contains(chat.gptModel) {
+            messages.append([
+                "role": "system",
+                "content": chat.systemMessage,
+            ])
+        }
+        else {
+            // Models like o1-mini and o1-preview don't support "system" role. However, we can pass the system message with "user" role instead.
+            messages.append([
+                "role": "user",
+                "content": "Take this message as the system message: \(chat.systemMessage)",
+            ])
+        }
+
         let sortedMessages = chat.messagesArray
             .sorted { $0.timestamp < $1.timestamp }
             .suffix(contextSize)
-        
+
         // Add conversation history
         for message in sortedMessages {
             messages.append([
                 "role": message.own ? "user" : "assistant",
-                "content": message.body
+                "content": message.body,
             ])
         }
-        
+
         // Add new user message if provided
         let lastMessage = messages.last?["content"] ?? ""
         if lastMessage != userMessage {
             if let userMessage = userMessage {
                 messages.append([
                     "role": "user",
-                    "content": userMessage
+                    "content": userMessage,
                 ])
             }
         }
 
-        
         return messages
     }
 }

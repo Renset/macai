@@ -34,23 +34,25 @@ class ChatGPTHandler: APIService {
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                if let error = error {
-                    completion(.failure(.requestFailed(error)))
-                    return
-                }
+                let result = self.handleAPIResponse(response, data: data, error: error)
 
-                guard let data = data else {
-                    completion(.failure(.invalidResponse))
-                    return
-                }
+                switch result {
+                case .success(let responseData):
+                    if let responseData = responseData {
+                        guard let (messageContent, _) = self.parseJSONResponse(data: responseData) else {
+                            completion(.failure(.decodingFailed("Failed to parse response")))
+                            return
+                        }
 
-                guard let (messageContent, _) = self.parseJSONResponse(data: data) else {
-                    print("Error parsing JSON")
-                    completion(.failure(.decodingFailed("Error parsing JSON")))
-                    return
+                        completion(.success(messageContent))
+                    }
+                    else {
+                        completion(.failure(.invalidResponse))
+                    }
+
+                case .failure(let error):
+                    completion(.failure(error))
                 }
-                let responseString = messageContent
-                completion(.success(responseString))
             }
         }.resume()
     }
@@ -69,24 +71,13 @@ class ChatGPTHandler: APIService {
             Task {
                 do {
                     let (stream, response) = try await URLSession.shared.bytes(for: request)
-                    if let httpResponse = response as? HTTPURLResponse {
-                        switch httpResponse.statusCode {
-                        case 200...299:
-                            #if DEBUG
-                                print("Got successful response code from server")
-                            #endif
-                        case 400...599:
-                            continuation.finish(
-                                throwing: APIError.serverError("HTTP Response code \(httpResponse.statusCode)")
-                            )
-                        default:
-                            continuation.finish(
-                                throwing: APIError.unknown("Unhandled status code: \(httpResponse.statusCode)")
-                            )
-                        }
-                    }
-                    else {
-                        continuation.finish(throwing: APIError.invalidResponse)
+                    let result = self.handleAPIResponse(response, data: nil, error: nil)
+                    switch result {
+                    case .failure(let error):
+                        continuation.finish(throwing: error)
+                        return
+                    case .success:
+                        break
                     }
 
                     for try await line in stream.lines {
@@ -131,16 +122,54 @@ class ChatGPTHandler: APIService {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+        var temperatureOverride = temperature
+
+        if AppConstants.o1Models.contains(self.model) {
+            temperatureOverride = 1
+        }
+
         let jsonDict: [String: Any] = [
             "model": self.model,
             "stream": stream,
             "messages": requestMessages,
-            "temperature": temperature,
+            "temperature": temperatureOverride,
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
 
         return request
+    }
+
+    private func handleAPIResponse(_ response: URLResponse?, data: Data?, error: Error?) -> Result<Data?, APIError> {
+        if let error = error {
+            return .failure(.requestFailed(error))
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return .failure(.invalidResponse)
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let data = data, let errorResponse = String(data: data, encoding: .utf8) {
+                switch httpResponse.statusCode {
+                case 401:
+                    return .failure(.unauthorized)
+                case 429:
+                    return .failure(.rateLimited)
+                case 400...499:
+                    return .failure(.serverError("Client Error: \(errorResponse)"))
+                case 500...599:
+                    return .failure(.serverError("Server Error: \(errorResponse)"))
+                default:
+                    return .failure(.unknown("Unknown error: \(errorResponse)"))
+                }
+            }
+            else {
+                return .failure(.serverError("HTTP \(httpResponse.statusCode)"))
+            }
+        }
+
+        return .success(data)
     }
 
     private func parseJSONResponse(data: Data) -> (String, String)? {

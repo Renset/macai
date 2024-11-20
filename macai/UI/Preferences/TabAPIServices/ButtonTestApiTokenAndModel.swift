@@ -41,28 +41,35 @@ struct ButtonTestApiTokenAndModel: View {
         )
         let apiService = APIServiceFactory.createAPIService(config: config)
         let messageManager = MessageManager(apiService: apiService, viewContext: viewContext)
-        //            lazy var messageManager: MessageManager = {
-        //                return MessageManager(apiService: apiService, viewContext: self.viewContext)
-        //            }()
-
-        // TODO: fix app crash when calling testAPI
-        messageManager.testAPI { result in
+        messageManager.testAPI(model: gptModel) { result in
             DispatchQueue.main.async {
                 switch result {
+
                 case .success(_):
                     lampColor = .green
+
                 case .failure(let error):
                     lampColor = .red
-                    showErrorAlert(error: error as! APIError)
+                    let errorMessage =
+                        switch error as! APIError {
+                        case .requestFailed(let error): error.localizedDescription
+                        case .invalidResponse: "Response is invalid"
+                        case .decodingFailed(let message): message
+                        case .unauthorized: "Unauthorized"
+                        case .rateLimited: "Rate limited"
+                        case .serverError(let message): message
+                        case .unknown(let message): message
+                        }
+                    showErrorAlert(error: errorMessage)
                 }
             }
         }
     }
 
-    private func showErrorAlert(error: APIError) {
+    private func showErrorAlert(error: String) {
         let alert = NSAlert()
         alert.messageText = "API Connection Test Failed"
-        alert.informativeText = error.localizedDescription
+        alert.informativeText = error
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
         alert.runModal()
