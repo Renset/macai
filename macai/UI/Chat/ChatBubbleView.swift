@@ -55,16 +55,16 @@ struct ChatBubbleView: View, Equatable {
             VStack(alignment: .leading) {
                 if content.waitingForResponse ?? false {
                     HStack {
-                        Image(systemName: "pencil")
-                            .foregroundColor(.blue)
-                            .offset(x: 20, y: 0)
-                            .animation(
-                                .easeIn(duration: 0.5).repeatForever(autoreverses: true),
-                                value: true
-                            )
-                        Spacer()
+                        Text("Thinking")
+                            .foregroundColor(.primary)
+                            .font(.system(size: 14))
+                            
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 6, height: 6)
+                            .modifier(PulsatingCircle())
+                            .padding(.top, 4)
                     }
-                    .frame(width: 30)
                 }
                 else if content.error {
                     VStack {
@@ -169,5 +169,24 @@ struct ChatBubbleView: View, Equatable {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+    }
+}
+
+struct PulsatingCircle: ViewModifier {
+    @State private var isAnimating = false
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isAnimating ? 1.5 : 1.0)
+            .opacity(isAnimating ? 0.5 : 1.0)
+            .animation(
+                Animation
+                    .easeInOut(duration: 0.8)
+                    .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
     }
 }
