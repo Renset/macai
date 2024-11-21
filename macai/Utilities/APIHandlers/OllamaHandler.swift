@@ -34,23 +34,24 @@ class OllamaHandler: APIService {
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                if let error = error {
-                    completion(.failure(.requestFailed(error)))
-                    return
-                }
+                let result = self.handleAPIResponse(response, data: data, error: error)
 
-                guard let data = data else {
-                    completion(.failure(.invalidResponse))
-                    return
-                }
+                switch result {
+                case .success(let responseData):
+                    if let responseData = responseData {
+                        guard let (messageContent, _) = self.parseJSONResponse(data: responseData) else {
+                            completion(.failure(.decodingFailed("Failed to parse Claude response")))
+                            return
+                        }
+                        completion(.success(messageContent))
+                    }
+                    else {
+                        completion(.failure(.invalidResponse))
+                    }
 
-                guard let (messageContent, _) = self.parseJSONResponse(data: data) else {
-                    print("Error parsing JSON")
-                    completion(.failure(.decodingFailed("Error parsing JSON")))
-                    return
+                case .failure(let error):
+                    completion(.failure(error))
                 }
-                let responseString = messageContent
-                completion(.success(responseString))
             }
         }.resume()
     }
@@ -69,43 +70,28 @@ class OllamaHandler: APIService {
             Task {
                 do {
                     let (stream, response) = try await URLSession.shared.bytes(for: request)
-                    if let httpResponse = response as? HTTPURLResponse {
-                        switch httpResponse.statusCode {
-                        case 200...299:
-                            #if DEBUG
-                                print("Got successful response code from server")
-                            #endif
-                        case 400...599:
-                            continuation.finish(
-                                throwing: APIError.serverError("HTTP Response code \(httpResponse.statusCode)")
-                            )
-                        default:
-                            continuation.finish(
-                                throwing: APIError.unknown("Unhandled status code: \(httpResponse.statusCode)")
-                            )
-                        }
-                    }
-                    else {
-                        continuation.finish(throwing: APIError.invalidResponse)
+                    let result = self.handleAPIResponse(response, data: nil, error: nil)
+
+                    switch result {
+                    case .failure(let error):
+                        continuation.finish(throwing: error)
+                        return
+                    case .success:
+                        break
                     }
 
                     for try await line in stream.lines {
                         if line.data(using: .utf8) != nil {
-                            let prefix = "data: "
-                            var index = line.startIndex
-                            if line.starts(with: prefix) {
-                                index = line.index(line.startIndex, offsetBy: prefix.count)
-                            }
-                            let jsonData = String(line[index...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                            let jsonData = line.trimmingCharacters(in: .whitespacesAndNewlines)
                             if let jsonData = jsonData.data(using: .utf8) {
-                                let (finished, error, messageData, messageRole) = parseDeltaJSONResponse(data: jsonData)
+                                let (finished, error, messageData, _) = parseDeltaJSONResponse(data: jsonData)
 
-                                if error != nil {
-                                    continuation.finish(throwing: error)
+                                if let error = error {
+                                    continuation.finish(throwing: APIError.decodingFailed(error.localizedDescription))
                                 }
                                 else {
-                                    if messageData != nil {
-                                        continuation.yield(messageData!)
+                                    if let messageData = messageData {
+                                        continuation.yield(messageData)
                                     }
                                     if finished {
                                         continuation.finish()
@@ -117,7 +103,7 @@ class OllamaHandler: APIService {
                     continuation.finish()
                 }
                 catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: APIError.requestFailed(error))
                 }
             }
         }
@@ -140,6 +126,36 @@ class OllamaHandler: APIService {
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
 
         return request
+    }
+
+    private func handleAPIResponse(_ response: URLResponse?, data: Data?, error: Error?) -> Result<Data?, APIError> {
+        if let error = error {
+            return .failure(.requestFailed(error))
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return .failure(.invalidResponse)
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let data = data, let errorResponse = String(data: data, encoding: .utf8) {
+                switch httpResponse.statusCode {
+                case 400:
+                    return .failure(.serverError("Bad Request: \(errorResponse)"))
+                case 404:
+                    return .failure(.serverError("Model not found: \(errorResponse)"))
+                case 500...599:
+                    return .failure(.serverError("Ollama Server Error: \(errorResponse)"))
+                default:
+                    return .failure(.unknown("HTTP \(httpResponse.statusCode): \(errorResponse)"))
+                }
+            }
+            else {
+                return .failure(.serverError("HTTP \(httpResponse.statusCode)"))
+            }
+        }
+
+        return .success(data)
     }
 
     private func parseJSONResponse(data: Data) -> (String, String)? {

@@ -34,26 +34,24 @@ class ClaudeHandler: APIService {
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                if let error = error {
-                    completion(.failure(.requestFailed(error)))
-                    return
-                }
+                let result = self.handleAPIResponse(response, data: data, error: error)
 
-                guard let data = data else {
-                    completion(.failure(.invalidResponse))
-                    return
-                }
+                switch result {
+                case .success(let responseData):
+                    if let responseData = responseData {
+                        guard let (messageContent, _) = self.parseJSONResponse(data: responseData) else {
+                            completion(.failure(.decodingFailed("Failed to parse Claude response")))
+                            return
+                        }
+                        completion(.success(messageContent))
+                    }
+                    else {
+                        completion(.failure(.invalidResponse))
+                    }
 
-                guard let (messageContent, _) = self.parseJSONResponse(data: data) else {
-                    print("Error parsing JSON")
-                    completion(
-                        .failure(
-                            .decodingFailed("Error parsing JSON")
-                        )
-                    )
-                    return
+                case .failure(let error):
+                    completion(.failure(error))
                 }
-                completion(.success(messageContent))
             }
         }.resume()
     }
@@ -71,13 +69,22 @@ class ClaudeHandler: APIService {
 
             Task {
                 do {
-                    let (stream, _) = try await URLSession.shared.bytes(for: request)
+                    let (stream, response) = try await URLSession.shared.bytes(for: request)
+                    let result = self.handleAPIResponse(response, data: nil, error: nil)
+
+                    switch result {
+                    case .failure(let error):
+                        continuation.finish(throwing: error)
+                        return
+                    case .success:
+                        break
+                    }
 
                     for try await line in stream.lines {
                         let (finished, error, content, _) = self.parseSSEEvent(line)
 
                         if let error = error {
-                            continuation.finish(throwing: error)
+                            continuation.finish(throwing: APIError.decodingFailed(error.localizedDescription))
                             break
                         }
 
@@ -92,7 +99,7 @@ class ClaudeHandler: APIService {
                     }
                 }
                 catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: APIError.requestFailed(error))
                 }
             }
         }
@@ -116,8 +123,9 @@ class ClaudeHandler: APIService {
             systemMessage = firstMessage?["content"] as? String ?? ""
             updatedRequestMessages.removeFirst()
         }
-        
-        let maxTokens = model == "claude-3-5-sonnet-latest" ? 8192 : AppConstants.defaultApiConfigurations["claude"]!.maxTokens!
+
+        let maxTokens =
+            model == "claude-3-5-sonnet-latest" ? 8192 : AppConstants.defaultApiConfigurations["claude"]!.maxTokens!
 
         let jsonDict: [String: Any] = [
             "model": model,
@@ -131,6 +139,40 @@ class ClaudeHandler: APIService {
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
 
         return request
+    }
+
+    private func handleAPIResponse(_ response: URLResponse?, data: Data?, error: Error?) -> Result<Data?, APIError> {
+        if let error = error {
+            return .failure(.requestFailed(error))
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return .failure(.invalidResponse)
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let data = data, let errorResponse = String(data: data, encoding: .utf8) {
+                switch httpResponse.statusCode {
+                case 401:
+                    return .failure(.unauthorized)
+                case 429:
+                    return .failure(.rateLimited)
+                case 400:
+                    return .failure(.serverError("Bad Request: \(errorResponse)"))
+                case 404:
+                    return .failure(.serverError("Model not found: \(errorResponse)"))
+                case 500...599:
+                    return .failure(.serverError("Claude API Error: \(errorResponse)"))
+                default:
+                    return .failure(.unknown("HTTP \(httpResponse.statusCode): \(errorResponse)"))
+                }
+            }
+            else {
+                return .failure(.serverError("HTTP \(httpResponse.statusCode)"))
+            }
+        }
+
+        return .success(data)
     }
 
     private func parseJSONResponse(data: Data) -> (String, String)? {
