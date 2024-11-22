@@ -70,12 +70,12 @@ struct ChatView: View {
                                     initialMessage: false,
                                     isStreaming: isStreaming
                                 )
-                                
-                                ChatBubbleView(content: bubbleContent)
+
+                                ChatBubbleView(content: bubbleContent, message: messageEntity)
                                     .id(messageEntity.id)
                             }
                         }
-                        
+
                         if chat.waitingForResponse {
                             let bubbleContent = ChatBubbleContent(
                                 message: "",
@@ -85,7 +85,7 @@ struct ChatView: View {
                                 initialMessage: false,
                                 isStreaming: isStreaming
                             )
-                            
+
                             ChatBubbleView(content: bubbleContent)
                                 .id(-1)
                         }
@@ -100,10 +100,10 @@ struct ChatView: View {
                                         initialMessage: false,
                                         isStreaming: isStreaming
                                     )
-                                    
+
                                     ChatBubbleView(content: bubbleContent)
                                         .id(-2)
-                                    
+
                                     HStack {
                                         Button(action: { lastMessageError = false }) {
                                             Text("Ignore")
@@ -118,7 +118,7 @@ struct ChatView: View {
                                         }
                                         Spacer()
                                     }
-                                    
+
                                 }
                                 .frame(width: 250)
                                 .padding(.bottom, 10)
@@ -209,25 +209,6 @@ struct ChatView: View {
     }
 }
 
-struct MessageRow: View {
-    let messageEntity: MessageEntity
-    let isStreaming: Bool
-
-    var body: some View {
-        let bubbleContent = ChatBubbleContent(
-            message: messageEntity.body,
-            own: messageEntity.own,
-            waitingForResponse: messageEntity.waitingForResponse,
-            error: false,
-            initialMessage: false,
-            isStreaming: isStreaming
-        )
-
-        ChatBubbleView(content: bubbleContent)
-            .id(messageEntity.id)
-    }
-}
-
 extension ChatView {
     func sendMessage(ignoreMessageInput: Bool = false) {
         resetError()
@@ -240,7 +221,10 @@ extension ChatView {
 
         if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
-            chatViewModel.sendMessageStream(messageBody, contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))) { result in
+            chatViewModel.sendMessageStream(
+                messageBody,
+                contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))
+            ) { result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
@@ -257,7 +241,10 @@ extension ChatView {
         }
         else {
             self.waitingForResponse = true
-            chatViewModel.sendMessage(messageBody, contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))) { result in
+            chatViewModel.sendMessage(
+                messageBody,
+                contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))
+            ) { result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
