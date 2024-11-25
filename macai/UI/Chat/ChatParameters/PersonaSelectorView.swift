@@ -26,8 +26,12 @@ struct PersonaChipView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var isHovered = false
 
-    private var personaColor: Color {
-        Color(hex: persona.color ?? "#FFFFFF") ?? .white
+    private let personaColor: Color
+
+    init(persona: PersonaEntity, isSelected: Bool) {
+        self.persona = persona
+        self.isSelected = isSelected
+        self.personaColor = Color(hex: persona.color ?? "#FFFFFF") ?? .white
     }
 
     var body: some View {
@@ -36,30 +40,16 @@ struct PersonaChipView: View {
             .frame(height: 32)
             .padding(.horizontal, 12)
             .background(
-                GlassMorphicBackground(
-                    color: personaColor,
-                    isSelected: isSelected
-                )
-            )
-            .cornerRadius(16)
-            .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        personaColor.opacity(isSelected ? 0.8 : 0.2),
-                        lineWidth: isSelected ? 2 : 1
+                    .fill(personaColor.opacity(isSelected ? 0.6 : 0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(personaColor.opacity(isSelected ? 0.8 : 0.2), lineWidth: isSelected ? 2 : 1)
                     )
-            )
-            .shadow(
-                color: personaColor.opacity(isSelected ? 0.7 : 0),
-                radius: isSelected ? 8 : 0,
-                x: 0,
-                y: 0
-            )
-            .shadow(
-                color: personaColor.opacity(isHovered ? 0.2 : 0),
-                radius: 4,
-                x: 0,
-                y: 0
+                    .shadow(
+                        color: personaColor.opacity(isSelected ? 0.7 : (isHovered ? 0.2 : 0)),
+                        radius: isSelected ? 8 : 4
+                    )
             )
             .animation(.easeOut(duration: 0.2), value: isHovered)
             .animation(.easeOut(duration: 0.2), value: isSelected)
@@ -77,9 +67,11 @@ struct PersonaSelectorView: View {
     )
     private var personas: FetchedResults<PersonaEntity>
 
+    private let edgeDarkColor = Color(red: 30 / 255, green: 30 / 255, blue: 30 / 255)
+    private let edgeLightColor = Color.white
+
     @ObservedObject var chat: ChatEntity
     @Environment(\.colorScheme) var colorScheme
-    @State private var scrollViewWidth: CGFloat = 0
 
     private func updatePersonaAndSystemMessage(to persona: PersonaEntity?) {
         chat.persona = persona
@@ -87,79 +79,49 @@ struct PersonaSelectorView: View {
         chat.objectWillChange.send()
 
         if let context = chat.managedObjectContext {
-            do {
-                try context.save()
-            }
-            catch {
-                print("Error saving context after persona update: \(error)")
-            }
+            try? context.save()
         }
     }
 
-    private var gradientEdgeColor: Color {
-        colorScheme == .dark ? Color.black : Color.white
-    }
-
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                ScrollViewReader { scrollView in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 8) {
-                            ForEach(personas, id: \.self) { persona in
-                                PersonaChipView(
-                                    persona: persona,
-                                    isSelected: chat.persona == persona
-                                )
-                                .onTapGesture {
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        updatePersonaAndSystemMessage(to: persona)
-                                    }
-                                }
-                                .id(persona)  // Use persona as the identifier
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 8)
-                    }
-                    .onAppear {
-                        scrollViewWidth = geometry.size.width
-                        // If there's a selected persona, scroll to it
-                        if let selectedPersona = chat.persona {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    scrollView.scrollTo(selectedPersona, anchor: .center)
+        ScrollViewReader { scrollView in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(personas, id: \.self) { persona in
+                        PersonaChipView(persona: persona, isSelected: chat.persona == persona)
+                            .onTapGesture {
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    updatePersonaAndSystemMessage(to: persona)
                                 }
                             }
-                        }
+                            .id(persona)
                     }
                 }
-
-                // Edge gradients
-                HStack {
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            gradientEdgeColor,
-                            gradientEdgeColor.opacity(0),
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: 24)
-
-                    Spacer()
-
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            gradientEdgeColor.opacity(0),
-                            gradientEdgeColor,
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: 24)
-                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+            }
+            .overlay(alignment: .leading) {
+                LinearGradient(
+                    colors: [colorScheme == .dark ? edgeDarkColor : edgeLightColor, .clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 24)
                 .allowsHitTesting(false)
+            }
+            .overlay(alignment: .trailing) {
+                LinearGradient(
+                    colors: [.clear, colorScheme == .dark ? edgeDarkColor : edgeLightColor],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 24)
+                .allowsHitTesting(false)
+            }
+            .onAppear {
+                if let selectedPersona = chat.persona {
+                    scrollView.scrollTo(selectedPersona, anchor: .center)
+                }
             }
         }
         .frame(height: 64)
