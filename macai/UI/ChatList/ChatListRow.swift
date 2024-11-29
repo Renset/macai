@@ -8,42 +8,53 @@
 import SwiftUI
 
 struct ChatListRow: View {
-    let chat: ChatEntity
+    let chat: ChatEntity?
+    let chatID: UUID  // Store the ID separately
     @Binding var selectedChat: ChatEntity?
     let viewContext: NSManagedObjectContext
-    
+
+    init(chat: ChatEntity?, selectedChat: Binding<ChatEntity?>, viewContext: NSManagedObjectContext) {
+        self.chat = chat
+        self.chatID = chat?.id ?? UUID()
+        self._selectedChat = selectedChat
+        self.viewContext = viewContext
+    }
+
     var isActive: Binding<Bool> {
         Binding<Bool>(
-            get: { !chat.isDeleted && self.selectedChat?.id == chat.id },
+            get: {
+                selectedChat?.id == chatID
+            },
             set: { newValue in
                 if newValue {
                     selectedChat = chat
-                } else if selectedChat?.id == chat.id {
+                }
+                else {
                     selectedChat = nil
                 }
             }
         )
     }
-    
+
     var body: some View {
         MessageCell(
-            chat: chat,
-            timestamp: chat.lastMessage?.timestamp ?? Date(),
-            message: chat.lastMessage?.body ?? "",
+            chat: chat!,
+            timestamp: chat?.lastMessage?.timestamp ?? Date(),
+            message: chat?.lastMessage?.body ?? "",
             isActive: isActive,
             viewContext: viewContext
         )
         .contextMenu {
-            Button(action: { renameChat(chat) }) {
+            Button(action: { renameChat(chat!) }) {
                 Label("Rename", systemImage: "pencil")
             }
             Divider()
-            Button(action: { deleteChat(chat) }) {
+            Button(action: { deleteChat(chat!) }) {
                 Label("Delete", systemImage: "trash")
             }
         }
     }
-    
+
     func deleteChat(_ chat: ChatEntity) {
         let alert = NSAlert()
         alert.messageText = "Delete chat?"
@@ -86,6 +97,7 @@ struct ChatListRow: View {
                 do {
                     try viewContext.save()
                 }
+
                 catch {
                     print("Error renaming chat: \(error.localizedDescription)")
                 }
