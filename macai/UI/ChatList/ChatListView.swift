@@ -5,36 +5,108 @@
 //  Created by Renat on 17.11.2024.
 //
 
+import CoreData
 import SwiftUI
 
 struct ChatListView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var searchText = ""
+    @State private var showSearch = false
+    @State private var scrollOffset: CGFloat = 0
+    @State private var previousOffset: CGFloat = 0
+
     @FetchRequest(
         entity: ChatEntity.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
         animation: .default
     )
     private var chats: FetchedResults<ChatEntity>
+
     @Binding var selectedChat: ChatEntity?
-    
+
+    private var filteredChats: [ChatEntity] {
+        guard !searchText.isEmpty else { return Array(chats) }
+
+        let searchQuery = searchText.lowercased()
+        return chats.filter { chat in
+            let name = chat.name.lowercased()
+            if name.contains(searchQuery) {
+                return true
+            }
+
+            if chat.systemMessage.lowercased().contains(searchQuery) {
+                return true
+            }
+
+            if let personaName = chat.persona?.name?.lowercased(),
+                personaName.contains(searchQuery)
+            {
+                return true
+            }
+
+            if let messages = chat.messages.array as? [MessageEntity],
+                messages.contains(where: { $0.body.lowercased().contains(searchQuery) })
+            {
+                return true
+            }
+
+            return false
+        }
+    }
+
     var body: some View {
-        List {
-            ForEach(chats, id: \.id) { chat in
-                ChatListRow(
-                    chat: chats[getIndex(for: chat)],
-                    selectedChat: $selectedChat,
-                    viewContext: viewContext
-                )
-                .tag(chat.id)
+        VStack(spacing: 0) {
+            if showSearch {
+                searchField
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            List {
+                ForEach(filteredChats, id: \.id) { chat in
+                    ChatListRow(
+                        chat: chat,
+                        selectedChat: $selectedChat,
+                        viewContext: viewContext
+                    )
+                    .tag(chat.id)
+                }
+            }
+            .toolbar {
+                ToolbarItem {
+                    Button(action: {
+                        withAnimation {
+                            showSearch.toggle()
+                        }
+                    }) {
+                        Image(systemName: "magnifyingglass")
+                    }
+                }
             }
         }
     }
-    
-    private func getIndex(for chat: ChatEntity) -> Int {
-        if let index = chats.firstIndex(where: { $0.id == chat.id }) {
-            return index
-        } else {
-            fatalError("Chat not found in array")
+
+    private var searchField: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
+
+            TextField("Search chats...", text: $searchText)
+                .textFieldStyle(PlainTextFieldStyle())
+                .font(.system(.body))
+
+            if !searchText.isEmpty {
+                Button(action: {
+                    searchText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
+        .padding(8)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 }
