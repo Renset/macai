@@ -92,6 +92,8 @@ struct Chat: Codable {
         self.apiServiceName = chatEntity.apiService?.name
         self.apiServiceType = chatEntity.apiService?.type
         self.personaName = chatEntity.persona?.name
+        
+        self.messages = chatEntity.messagesArray.map { Message(messageEntity: $0) }
 
         if chatEntity.lastMessage != nil {
             self.messagePreview = Message(messageEntity: chatEntity.lastMessage!)
