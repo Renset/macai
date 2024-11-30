@@ -5,8 +5,8 @@
 //  Created by Renat Notfullin on 24.04.2023.
 //
 
-import Foundation
 import CoreData
+import Foundation
 import SwiftUI
 
 class ChatEntity: NSManagedObject, Identifiable {
@@ -26,16 +26,16 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var waitingForResponse: Bool
     @NSManaged public var persona: PersonaEntity?
     @NSManaged public var apiService: APIServiceEntity?
-    
+
     public var messagesArray: [MessageEntity] {
         let array = messages.array as? [MessageEntity] ?? []
         return array
     }
-    
+
     public var lastMessage: MessageEntity? {
         return messages.lastObject as? MessageEntity
     }
-    
+
     public func addToMessages(_ message: MessageEntity) {
         let newMessages = NSMutableOrderedSet(orderedSet: messages)
         newMessages.add(message)
@@ -74,6 +74,9 @@ struct Chat: Codable {
     var gptModel: String?
     var systemMessage: String?
     var name: String?
+    var apiServiceName: String?
+    var apiServiceType: String?
+    var personaName: String?
 
     init(chatEntity: ChatEntity) {
         self.id = chatEntity.id
@@ -86,12 +89,13 @@ struct Chat: Codable {
         self.gptModel = chatEntity.gptModel
         self.systemMessage = chatEntity.systemMessage
         self.name = chatEntity.name
-        
+        self.apiServiceName = chatEntity.apiService?.name
+        self.apiServiceType = chatEntity.apiService?.type
+        self.personaName = chatEntity.persona?.name
+
         if chatEntity.lastMessage != nil {
             self.messagePreview = Message(messageEntity: chatEntity.lastMessage!)
         }
-        
-        
     }
 }
 
