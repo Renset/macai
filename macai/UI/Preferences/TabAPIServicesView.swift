@@ -42,8 +42,13 @@ struct TabAPIServicesView: View {
                         .buttonStyle(BorderlessButtonStyle())
                     }
                     else {
-                        Label("Default Service", systemImage: "star.fill")
-                            .foregroundColor(.blue)
+                        Button(action: {
+                            // Still keep button without action to keep geometry persistent
+                        }) {
+                            Label("Default Service", systemImage: "star.fill")
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                        .foregroundColor(.blue)
                     }
                     Spacer()
                     Button(action: onEdit) {
