@@ -17,6 +17,7 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
     let getEntityName: (Entity) -> String
     var getEntityDefault: (Entity) -> Bool = { _ in false }
     var getEntityIcon: (Entity) -> String? = { _ in nil }
+    let onEdit: (() -> Void)?
 
     var body: some View {
         VStack {
@@ -29,6 +30,17 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
                         icon: getEntityIcon(entity)
                     )
                     .tag(entity.objectID)
+                    .gesture(
+                        TapGesture(count: 2).onEnded {
+                            onEdit?()
+                        }
+                    )
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            selectedEntityID = entity.objectID
+                        }
+                    )
+
                 }
             }
             .listStyle(SidebarListStyle())
@@ -79,7 +91,12 @@ struct EntityRowView: View {
             }
             Text(name)
 
-            Spacer()
+            // Regular Spacer() doesn't work properly with double tap gesture, replace with Color.clear
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity)
+                .frame(height: 24)
+
             if defaultEntity {
                 Text("Default")
                     .foregroundColor(.white)
@@ -92,5 +109,6 @@ struct EntityRowView: View {
             }
         }
         .padding(4)
+        .frame(height: 24)
     }
 }

@@ -36,6 +36,7 @@ struct TabAIPersonasView: View {
                         Label("Edit Selected", systemImage: "pencil")
                     }
                     .buttonStyle(BorderlessButtonStyle())
+                    .keyboardShortcut(.defaultAction)
                 }
                 Button(action: onAdd) {
                     Label("Add New", systemImage: "plus")
@@ -71,7 +72,13 @@ struct TabAIPersonasView: View {
             detailContent: detailContent,
             onRefresh: refreshList,
             getEntityColor: getPersonaColor,
-            getEntityName: getPersonaName
+            getEntityName: getPersonaName,
+            onEdit: {
+                if let persona = personas.first(where: { $0.objectID == selectedPersonaID }) {
+                    selectedPersona = persona
+                    isShowingAddOrEditPersona = true
+                }
+            }
         )
     }
 
@@ -156,16 +163,15 @@ struct PersonaDetailView: View {
                     Text("Name:")
                     TextField("Enter AI persona name here", text: $name)
                 }
-                
+
                 VStack {
                     Text("Color:")
                     ColorPicker("", selection: $color)
-                        
+
                 }
-                
+
             }
             .padding(.top, 8)
-            
 
             VStack(alignment: .leading) {
                 Text("System message:")
@@ -217,6 +223,7 @@ struct PersonaDetailView: View {
                     onSave()
                 }
                 .disabled(name.isEmpty || systemMessage.isEmpty)
+                .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 16)
 

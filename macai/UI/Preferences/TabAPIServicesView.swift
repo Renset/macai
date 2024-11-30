@@ -21,19 +21,36 @@ struct TabAPIServicesView: View {
     @State private var refreshID = UUID()
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
+    private var isSelectedServiceDefault: Bool {
+        guard let selectedServiceID = selectedServiceID else { return false }
+        return selectedServiceID.uriRepresentation().absoluteString == defaultApiServiceID
+    }
+
     var body: some View {
         VStack {
             entityListView
                 .id(refreshID)
 
             HStack {
-                Spacer()
-
                 if selectedServiceID != nil {
+                    if !isSelectedServiceDefault {
+                        Button(action: {
+                            defaultApiServiceID = selectedServiceID?.uriRepresentation().absoluteString
+                        }) {
+                            Label("Set as Default", systemImage: "star")
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
+                    else {
+                        Label("Default Service", systemImage: "star.fill")
+                            .foregroundColor(.blue)
+                    }
+                    Spacer()
                     Button(action: onEdit) {
                         Label("Edit Selected", systemImage: "pencil")
                     }
                     .buttonStyle(BorderlessButtonStyle())
+                    .keyboardShortcut(.defaultAction)
                 }
                 Button(action: onAdd) {
                     Label("Add New", systemImage: "plus")
@@ -62,7 +79,12 @@ struct TabAPIServicesView: View {
             getEntityColor: { _ in nil },
             getEntityName: { $0.name ?? "Untitled Service" },
             getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID },
-            getEntityIcon: { "logo_" + $0.type! }
+            getEntityIcon: { "logo_" + $0.type! },
+            onEdit: {
+                if selectedServiceID != nil {
+                    isShowingAddOrEditService = true
+                }
+            }
         )
     }
 

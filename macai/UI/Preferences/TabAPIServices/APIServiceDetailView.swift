@@ -237,10 +237,12 @@ struct APIServiceDetailView: View {
                     }
                 }
             }
-            
-            if (AppConstants.o1Models.contains(viewModel.model)) {
-                Text("💁‍♂️ OpenAI API doesn't support system message and temperature other than 1 for o1 models. macai will send system message as a user message internally, while temperature will be always set to 1.0")
-                    .fixedSize(horizontal: false, vertical: true)
+
+            if AppConstants.o1Models.contains(viewModel.model) {
+                Text(
+                    "💁‍♂️ OpenAI API doesn't support system message and temperature other than 1 for o1 models. macai will send system message as a user message internally, while temperature will be always set to 1.0"
+                )
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
@@ -252,19 +254,8 @@ struct APIServiceDetailView: View {
                             .foregroundColor(.red)
                     }
                 }
+
                 Spacer()
-
-                if defaultApiServiceID == viewModel.apiService?.objectID.uriRepresentation().absoluteString {
-                    Label("Default API Service", systemImage: "checkmark")
-                }
-                else {
-                    Button(action: {
-                        defaultApiServiceID = viewModel.apiService?.objectID.uriRepresentation().absoluteString
-                    }) {
-                        Text("Make Default")
-                    }
-
-                }
 
                 Button(action: {
                     presentationMode.wrappedValue.dismiss()
@@ -278,6 +269,7 @@ struct APIServiceDetailView: View {
                 }) {
                     Text("Save")
                 }
+                .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 16)
         }
