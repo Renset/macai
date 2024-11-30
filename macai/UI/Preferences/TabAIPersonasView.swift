@@ -228,8 +228,8 @@ struct PersonaDetailView: View {
             .padding(.top, 16)
 
         }
+        .frame(minHeight: 300)
         .padding()
-        .frame(minWidth: 300, minHeight: 300)
         .onAppear {
             print(">> Persona: \(persona?.name ?? "")")
             if let persona = persona {
@@ -251,6 +251,7 @@ struct PersonaDetailView: View {
             )
         }
     }
+    
 
     private func getTemperatureLabel() -> String {
         if temperature > 0.8 {

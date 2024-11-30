@@ -25,14 +25,14 @@ struct DangerZoneView: View {
             }
 
             HStack {
-                Text("This action is irreversible. All your chats will be deleted from the database. It's recommended to make an export of your chats before deleting them.")
+                Text("These actions are irreversible. All data will be deleted permanently.")
                     .foregroundColor(.gray)
                 Spacer()
             }
             .padding(.bottom, 16)
             
-            VStack(alignment: .leading) {
-                HStack {
+            VStack(alignment: .center) {
+                
                     Button(action: {
                         currentAlert = .deleteChats
                     }, label: {
@@ -48,7 +48,7 @@ struct DangerZoneView: View {
                     }) {
                         Label("Delete all API Services", systemImage: "trash")
                     }
-                }
+                
             }
             
         }

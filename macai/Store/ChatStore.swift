@@ -152,9 +152,15 @@ class ChatStore: ObservableObject {
                 self.viewContext.delete(chat)
             }
 
-            try self.viewContext.save()
-        }
-        catch {
+            DispatchQueue.main.async {
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("Error saving context after deleting all chats: \(error)")
+                    self.viewContext.rollback()
+                }
+            }
+        } catch {
             print("Error deleting all chats: \(error)")
         }
     }
