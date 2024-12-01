@@ -18,7 +18,6 @@ struct ChatView: View {
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @State var messageCount: Int = 0
     @State private var messageField = ""
-    @State private var lastMessageError = false
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
     @State private var isStreaming: Bool = false
@@ -30,11 +29,10 @@ struct ChatView: View {
     @AppStorage("apiUrl") var apiUrl: String = AppConstants.apiUrlChatCompletions
     @StateObject private var chatViewModel: ChatViewModel
     @State private var renderTime: Double = 0
-
     @State private var selectedPersona: PersonaEntity?
     @State private var selectedApiService: APIServiceEntity?
-
     var backgroundColor = Color(NSColor.controlBackgroundColor)
+    @State private var currentError: ErrorMessage?
 
     init(viewContext: NSManagedObjectContext, chat: ChatEntity) {
         self.viewContext = viewContext
@@ -66,7 +64,7 @@ struct ChatView: View {
                                     message: messageEntity.body,
                                     own: messageEntity.own,
                                     waitingForResponse: messageEntity.waitingForResponse,
-                                    error: false,
+                                    errorMessage: nil,
                                     initialMessage: false,
                                     isStreaming: isStreaming
                                 )
@@ -81,7 +79,7 @@ struct ChatView: View {
                                 message: "",
                                 own: false,
                                 waitingForResponse: true,
-                                error: false,
+                                errorMessage: nil,
                                 initialMessage: false,
                                 isStreaming: isStreaming
                             )
@@ -89,47 +87,23 @@ struct ChatView: View {
                             ChatBubbleView(content: bubbleContent)
                                 .id(-1)
                         }
-                        else if lastMessageError {
-                            HStack {
-                                VStack {
-                                    let bubbleContent = ChatBubbleContent(
-                                        message: "",
-                                        own: false,
-                                        waitingForResponse: false,
-                                        error: true,
-                                        initialMessage: false,
-                                        isStreaming: isStreaming
-                                    )
+                        else if let error = currentError {
+                            let bubbleContent = ChatBubbleContent(
+                                message: "",
+                                own: false,
+                                waitingForResponse: false,
+                                errorMessage: error,
+                                initialMessage: false,
+                                isStreaming: isStreaming
+                            )
 
-                                    ChatBubbleView(content: bubbleContent)
-                                        .id(-2)
-
-                                    HStack {
-                                        Button(action: { lastMessageError = false }) {
-                                            Text("Ignore")
-                                            Image(systemName: "multiply")
-                                        }
-                                        Button(action: {
-                                            sendMessage(ignoreMessageInput: true)
-                                        }
-                                        ) {
-                                            Text("Retry")
-                                            Image(systemName: "arrow.clockwise")
-                                        }
-                                        Spacer()
-                                    }
-
-                                }
-                                .frame(width: 250)
-                                .padding(.bottom, 10)
-                                .id(-1)
-                                Spacer()
-                            }
+                            ChatBubbleView(content: bubbleContent)
+                                .id(-2)
                         }
                     }
                     .padding(24)
                     .onReceive([chat.messages.count].publisher) { newCount in
-                        if waitingForResponse || lastMessageError {
+                        if waitingForResponse || currentError != nil {
                             withAnimation {
                                 scrollView.scrollTo(-1)
                             }
@@ -151,6 +125,14 @@ struct ChatView: View {
                                 }
                             }
                         }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
+                        if currentError != nil {
+                            sendMessage(ignoreMessageInput: true)
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
+                        currentError = nil
                     }
                 }
                 .id("chatContainer")
@@ -233,7 +215,7 @@ extension ChatView {
                         break
                     case .failure(let error):
                         print("Error sending message: \(error)")
-                        lastMessageError = true
+                        currentError = ErrorMessage(type: error as! APIError, timestamp: Date())
                         handleResponseFinished()
                     }
                 }
@@ -253,7 +235,7 @@ extension ChatView {
                         break
                     case .failure(let error):
                         print("Error sending message: \(error)")
-                        lastMessageError = true
+                        currentError = ErrorMessage(type: error as! APIError, timestamp: Date())
                         handleResponseFinished()
                     }
                 }
@@ -282,7 +264,7 @@ extension ChatView {
     }
 
     private func resetError() {
-        lastMessageError = false
+        currentError = nil
     }
 }
 

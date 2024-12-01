@@ -20,13 +20,13 @@ struct ChatBubbleContent: Equatable {
     let message: String
     let own: Bool
     let waitingForResponse: Bool?
-    let error: Bool
+    let errorMessage: ErrorMessage?
     let initialMessage: Bool
     let isStreaming: Bool
 
     static func == (lhs: ChatBubbleContent, rhs: ChatBubbleContent) -> Bool {
         return lhs.message == rhs.message && lhs.own == rhs.own && lhs.waitingForResponse == rhs.waitingForResponse
-            && lhs.error == rhs.error && lhs.initialMessage == rhs.initialMessage && lhs.isStreaming == rhs.isStreaming
+            && lhs.initialMessage == rhs.initialMessage && lhs.isStreaming == rhs.isStreaming
     }
 }
 
@@ -70,14 +70,22 @@ struct ChatBubbleView: View, Equatable {
                                 .padding(.top, 4)
                         }
                     }
-                    else if content.error {
-                        VStack {
-                            HStack {
-                                Image(systemName: "exclamationmark.bubble")
-                                    .foregroundColor(.white)
-                                Text("Error getting message from server. Try again?")
+                    else if let errorMessage = content.errorMessage {
+                        ErrorBubbleView(
+                            error: errorMessage,
+                            onRetry: {
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("RetryMessage"),
+                                    object: nil
+                                )
+                            },
+                            onIgnore: {
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("IgnoreError"),
+                                    object: nil
+                                )
                             }
-                        }
+                        )
                     }
                     else {
                         let parser = MessageParser(colorScheme: colorScheme)
@@ -140,19 +148,17 @@ struct ChatBubbleView: View, Equatable {
                     }
                 }
                 .foregroundColor(
-                    content.error ? Color(.white) : Color(content.own ? incomingLabelColor : incomingLabelColor)
+                    Color(content.own ? incomingLabelColor : incomingLabelColor)
                 )
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
-                    content.error
-                        ? Color(.red)
-                        : content.initialMessage
-                            ? Color(.systemOrange)
-                            : colorScheme == .dark
-                                ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
-                                : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
+                    content.initialMessage
+                        ? Color(.systemOrange)
+                        : colorScheme == .dark
+                            ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
+                            : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
                 )
                 .cornerRadius(16)
                 if !content.own {
@@ -160,7 +166,7 @@ struct ChatBubbleView: View, Equatable {
                 }
             }
 
-            if isHovered && !content.error && !(content.waitingForResponse ?? false) {
+            if isHovered && content.errorMessage == nil && !(content.waitingForResponse ?? false) {
                 HStack {
                     if content.own {
                         Spacer()

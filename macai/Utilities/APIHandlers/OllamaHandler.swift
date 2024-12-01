@@ -74,6 +74,13 @@ class OllamaHandler: APIService {
 
                     switch result {
                     case .failure(let error):
+                        var data = Data()
+                        for try await byte in stream {
+                            data.append(byte)
+                        }
+                        let error = APIError.serverError(
+                            String(data: data, encoding: .utf8) ?? error.localizedDescription
+                        )
                         continuation.finish(throwing: error)
                         return
                     case .success:
