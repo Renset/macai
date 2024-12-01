@@ -12,12 +12,19 @@ struct ChatListRow: View {
     let chatID: UUID  // Store the ID separately
     @Binding var selectedChat: ChatEntity?
     let viewContext: NSManagedObjectContext
+    var searchText: String = ""
 
-    init(chat: ChatEntity?, selectedChat: Binding<ChatEntity?>, viewContext: NSManagedObjectContext) {
+    init(
+        chat: ChatEntity?,
+        selectedChat: Binding<ChatEntity?>,
+        viewContext: NSManagedObjectContext,
+        searchText: String = ""
+    ) {
         self.chat = chat
         self.chatID = chat?.id ?? UUID()
         self._selectedChat = selectedChat
         self.viewContext = viewContext
+        self.searchText = searchText
     }
 
     var isActive: Binding<Bool> {
@@ -42,7 +49,8 @@ struct ChatListRow: View {
             timestamp: chat?.lastMessage?.timestamp ?? Date(),
             message: chat?.lastMessage?.body ?? "",
             isActive: isActive,
-            viewContext: viewContext
+            viewContext: viewContext,
+            searchText: searchText
         )
         .contextMenu {
             Button(action: { renameChat(chat!) }) {

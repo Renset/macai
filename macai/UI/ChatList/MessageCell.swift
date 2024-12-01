@@ -16,41 +16,37 @@ struct MessageCell: View {
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
 
+    var searchText: String = ""
+
     var body: some View {
         Button {
             isActive = true
         } label: {
             HStack {
                 VStack(alignment: .leading) {
-                    //                Text(timestamp, style: .date)
-                    //                    .font(.caption)
-
-                    HStack {
-                        if let personaName = chat.persona?.name {
-                            Text(personaName)
-                                .font(.caption)
-                                .lineLimit(1)
-                        }
-                        else {
-                            Text("No persona selected")
-                                .font(.caption)
-                                .lineLimit(1)
-                        }
+                    if let personaName = chat.persona?.name {
+                        HighlightedText(personaName, highlight: searchText)
+                            .font(.caption)
+                            .lineLimit(1)
+                    }
+                    else {
+                        Text("No persona selected")
+                            .font(.caption)
+                            .lineLimit(1)
                     }
 
                     if chat.name != "" {
-                        Text(chat.name)
+                        HighlightedText(chat.name, highlight: searchText)
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
 
                     if message != "" {
-                        Text(message)
+                        HighlightedText(message, highlight: searchText)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
-
                 }
                 .padding(8)
                 Spacer()
@@ -59,12 +55,16 @@ struct MessageCell: View {
             .foregroundColor(self.isActive ? .white : .primary)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(self.isActive ? Color.accentColor : self.isHovered ? (colorScheme == .dark ? Color(hex: "#666666")! : Color(hex: "#CCCCCC")!) : Color.clear)
+                    .fill(
+                        self.isActive
+                            ? Color.accentColor
+                            : self.isHovered
+                                ? (colorScheme == .dark ? Color(hex: "#666666")! : Color(hex: "#CCCCCC")!) : Color.clear
+                    )
             )
             .onHover { hovering in
                 isHovered = hovering
             }
-
         }
         .buttonStyle(.borderless)
         .background(Color.clear)

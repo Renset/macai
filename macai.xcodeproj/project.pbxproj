@@ -55,6 +55,7 @@
 		4AA6EF5D2C566009003B6D41 /* MessageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF5C2C566009003B6D41 /* MessageManager.swift */; };
 		4AADD98C2C924FBA00242D20 /* APIServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADD98B2C924FB400242D20 /* APIServiceManager.swift */; };
 		4AADF71F2C9CE788001B7A26 /* ClaudeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */; };
+		4ABB86792CFBDBD3004EC7B1 /* HighlightedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */; };
 		4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6529F86B5900661B2D /* MessageParser.swift */; };
 		4ABDBE6B29F86E8D00661B2D /* MessageParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */; };
 		4ACAD6632C13AE8F0081BDAC /* CodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACAD6622C13AE8F0081BDAC /* CodeView.swift */; };
@@ -135,6 +136,7 @@
 		4AA6EF5C2C566009003B6D41 /* MessageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageManager.swift; sourceTree = "<group>"; };
 		4AADD98B2C924FB400242D20 /* APIServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceManager.swift; sourceTree = "<group>"; };
 		4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeHandler.swift; sourceTree = "<group>"; };
+		4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedText.swift; sourceTree = "<group>"; };
 		4ABDBE6529F86B5900661B2D /* MessageParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParser.swift; sourceTree = "<group>"; };
 		4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParserTests.swift; sourceTree = "<group>"; };
 		4ACAD6622C13AE8F0081BDAC /* CodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeView.swift; sourceTree = "<group>"; };
@@ -195,6 +197,7 @@
 		4A164BB92C962E520060ECFE /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */,
 				4A194C052C9633BC003C8782 /* EntityListView.swift */,
 			);
 			path = Components;
@@ -612,6 +615,7 @@
 				4AA6EF5D2C566009003B6D41 /* MessageManager.swift in Sources */,
 				4A254A6D2CEA69EB00F66935 /* HighlighterManager.swift in Sources */,
 				4A272A7429F5DAA800F93D0D /* Models.swift in Sources */,
+				4ABB86792CFBDBD3004EC7B1 /* HighlightedText.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

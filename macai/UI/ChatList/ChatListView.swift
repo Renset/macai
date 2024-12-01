@@ -56,29 +56,17 @@ struct ChatListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if showSearch {
-                searchField
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
+            searchField
+
             List {
                 ForEach(filteredChats, id: \.id) { chat in
                     ChatListRow(
                         chat: chat,
                         selectedChat: $selectedChat,
-                        viewContext: viewContext
+                        viewContext: viewContext,
+                        searchText: searchText
                     )
                     .tag(chat.id)
-                }
-            }
-            .toolbar {
-                ToolbarItem {
-                    Button(action: {
-                        withAnimation {
-                            showSearch.toggle()
-                        }
-                    }) {
-                        Image(systemName: "magnifyingglass")
-                    }
                 }
             }
         }
@@ -92,6 +80,9 @@ struct ChatListView: View {
             TextField("Search chats...", text: $searchText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(.body))
+                .onExitCommand {
+                    searchText = ""
+                }
 
             if !searchText.isEmpty {
                 Button(action: {
@@ -108,5 +99,6 @@ struct ChatListView: View {
         .cornerRadius(8)
         .padding(.horizontal)
         .padding(.vertical, 8)
+
     }
 }
