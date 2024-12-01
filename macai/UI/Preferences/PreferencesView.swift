@@ -16,7 +16,6 @@ struct APIRequestData: Codable {
             "content": "You are ChatGPT, a large language model trained by OpenAI. Say hi, if you're there",
         ]
     ]
-
 }
 
 struct PreferencesView: View {
@@ -25,34 +24,46 @@ struct PreferencesView: View {
 
     var body: some View {
         TabView {
-            GeneralSettingsView(lampColor: $lampColor)
+            // TODO: update General Settings tab for general app settings
+            //            GeneralSettingsView(lampColor: $lampColor)
+            //                .tabItem {
+            //                    Label("LLM Settings", systemImage: "gearshape")
+            //                }
+
+            TabAPIServicesView()
                 .tabItem {
-                    Label("LLM Settings", systemImage: "gearshape")
+                    Label("API Services", systemImage: "network")
                 }
 
-            ChatSettingsView(lampColor: $lampColor)
+            //            ChatSettingsView(lampColor: $lampColor)
+            //                .tabItem {
+            //                    Label("New Chat", systemImage: "message")
+            //                }
+
+            TabAIPersonasView()
                 .tabItem {
-                    Label("New Chat", systemImage: "message")
+                    Label("AI Personas", systemImage: "person.2")
                 }
 
             BackupRestoreView(store: store)
                 .tabItem {
                     Label("Backup & Restore", systemImage: "externaldrive")
                 }
-            
+
             DangerZoneView(store: store)
                 .tabItem {
                     Label("Danger Zone", systemImage: "flame.fill")
                 }
         }
-        .frame(width: 600, height: 420)
+        .frame(width: 480)
         .padding()
         .onAppear(perform: {
             store.saveInCoreData()
-            
+
             if let window = NSApp.mainWindow {
                 window.standardWindowButton(.zoomButton)?.isEnabled = false
             }
+
         })
     }
 }

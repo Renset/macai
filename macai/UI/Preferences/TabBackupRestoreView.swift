@@ -19,7 +19,7 @@ struct BackupRestoreView: View {
             }
 
             HStack {
-                Text("Chats are exported into plaintext, non-ecrypted JSON file. You can import them back later.")
+                Text("Chats are exported into plaintext, unencrypted JSON file. You can import them back later.")
                     .foregroundColor(.gray)
                 Spacer()
             }
@@ -40,7 +40,7 @@ struct BackupRestoreView: View {
                             let data = try! encoder.encode(chats)
                             let savePanel = NSSavePanel()
                             savePanel.allowedContentTypes = [.json]
-                            savePanel.nameFieldStringValue = "chats.json"
+                            savePanel.nameFieldStringValue = "chats_\(getCurrentFormattedDate()).json"
                             savePanel.begin { (result) in
                                 if result == .OK {
                                     do {

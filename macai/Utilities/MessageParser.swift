@@ -38,7 +38,7 @@ struct MessageParser {
         }
     }
     
-    func parseMessageFromString(input: String, shouldSkipCodeHighlighting: Bool) -> [MessageElements] {
+    func parseMessageFromString(input: String) -> [MessageElements] {
         let lines = input.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
         var elements: [MessageElements] = []
         var currentHeader: [String] = []
@@ -50,10 +50,7 @@ struct MessageParser {
         var isCodeBlockOpened = false
         var isFormulaBlockOpened = false
         var codeBlockLanguage = ""
-        let highlightr = Highlightr()
         var leadingSpaces = 0
-
-        highlightr?.setTheme(to: colorScheme == .dark ? "monokai-sublime" : "color-brewer")
         
         func toggleCodeBlock(line: String) {
             if isCodeBlockOpened {
@@ -153,21 +150,7 @@ struct MessageParser {
         func appendCodeBlockIfNeeded() {
             if !codeLines.isEmpty {
                 let combinedCode = codeLines.joined(separator: "\n")
-                let highlightedCode: NSAttributedString?
-
-                if shouldSkipCodeHighlighting == true {
-                    let systemSize = NSFont.systemFontSize
-                    let font = NSFont.monospacedSystemFont(ofSize: systemSize, weight: .regular)
-                    let attributes: [NSAttributedString.Key: Any] = [
-                        .font: font
-                    ]
-                    
-                    highlightedCode = NSAttributedString(string: combinedCode, attributes: attributes)
-                } else {
-                    highlightedCode = highlightr?.highlight(combinedCode, as: codeBlockLanguage.isEmpty ? nil : codeBlockLanguage)
-                }
-
-                elements.append(.code(code: highlightedCode, lang: codeBlockLanguage, indent: leadingSpaces))
+                elements.append(.code(code: combinedCode, lang: codeBlockLanguage, indent: leadingSpaces))
                 codeLines = []
             }
         }

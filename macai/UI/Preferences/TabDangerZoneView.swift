@@ -9,6 +9,12 @@ import SwiftUI
 
 struct DangerZoneView: View {
     @ObservedObject var store: ChatStore
+    @State private var currentAlert: AlertType?
+        
+    enum AlertType: Identifiable {
+        case deleteChats, deletePersonas, deleteAPIServices
+        var id: Self { self }
+    }
 
     var body: some View {
         VStack {
@@ -19,31 +25,64 @@ struct DangerZoneView: View {
             }
 
             HStack {
-                Text("This action is irreversible. All your chats will be deleted from the database. It's recommended to make an export of your chats before deleting them.")
+                Text("These actions are irreversible. All data will be deleted permanently.")
                     .foregroundColor(.gray)
                 Spacer()
             }
             .padding(.bottom, 16)
             
-            HStack {
-                Button(action: {
-                    let alert = NSAlert()
-                    alert.messageText = "Are you sure you want to delete all chats?"
-                    alert.informativeText = "This action cannot be undone. It's recommended to make an export of your chats before deleting them."
-                    alert.alertStyle = .warning
-                    alert.addButton(withTitle: "Delete")
-                    alert.addButton(withTitle: "Cancel")
-                    alert.beginSheetModal(for: NSApp.mainWindow!) { (response) in
-                        if response == .alertFirstButtonReturn {
-                            store.deleteAllChats()
-                        }
+            VStack(alignment: .center) {
+                
+                    Button(action: {
+                        currentAlert = .deleteChats
+                    }, label: {
+                        Label("Delete all chats", systemImage: "trash").foregroundColor(.red)
+                    })
+                    Button(action: {
+                        currentAlert = .deletePersonas
+                    }) {
+                        Label("Delete all AI Personas", systemImage: "trash")
                     }
-                }, label: {
-                    Text("Delete all chats").foregroundColor(.red)
-                })
-                Spacer()
+                    Button(action: {
+                        currentAlert = .deleteAPIServices
+                    }) {
+                        Label("Delete all API Services", systemImage: "trash")
+                    }
+                
             }
+            
         }
         .padding(32)
+        .alert(item: $currentAlert) { alertType in
+            switch alertType {
+            case .deleteChats:
+                return Alert(
+                    title: Text("Delete All Chats"),
+                    message: Text("Are you sure you want to delete all chats? This action cannot be undone."),
+                    primaryButton: .destructive(Text("Delete")) {
+                        store.deleteAllChats()
+                    },
+                    secondaryButton: .cancel()
+                )
+            case .deletePersonas:
+                return Alert(
+                    title: Text("Delete All AI Personas"),
+                    message: Text("Are you sure you want to delete all AI personas?"),
+                    primaryButton: .destructive(Text("Delete all personas")) {
+                        store.deleteAllPersonas()
+                    },
+                    secondaryButton: .cancel()
+                )
+            case .deleteAPIServices:
+                return Alert(
+                    title: Text("Delete All API Services"),
+                    message: Text("Are you sure you want to delete all API Services?"),
+                    primaryButton: .destructive(Text("Delete all API Services")) {
+                        store.deleteAllAPIServices()
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+        }
     }
 }

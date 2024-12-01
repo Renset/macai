@@ -13,111 +13,88 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
+
     @FetchRequest(
         entity: ChatEntity.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
         animation: .default
     )
     private var chats: FetchedResults<ChatEntity>
+
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)])
+    private var apiServices: FetchedResults<APIServiceEntity>
+
     @State var selectedChat: ChatEntity?
     @AppStorage("gptToken") var gptToken = ""
     @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlChatCompletions
+    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
+    @StateObject private var previewStateManager = PreviewStateManager()
 
     @State private var windowRef: NSWindow?
-
-    let warmColors: [Color] = [.orange, .yellow, .white]
-    let coldColors: [Color] = [.blue, .indigo, .cyan]
-    let warmShadowColor: Color = Color(red: 0.9, green: 0.5, blue: 0.0)
-    let particleCount = 50
+    @State private var openedChatId: String? = nil
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
+    
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(chats, id: \.id) { chat in
-                    let isActive = Binding(
-                        get: { selectedChat == chat },
-                        set: { newValue in
-                            if newValue {
-                                selectedChat = chat
-                            }
-                        }
+        NavigationSplitView {
+            ChatListView(selectedChat: $selectedChat)
+                .navigationSplitViewColumnWidth(
+                    min: 180,
+                    ideal: 220,
+                    max: 400
+                )
+        } detail: {
+            HSplitView {
+                if selectedChat != nil {
+                    ChatView(viewContext: viewContext, chat: selectedChat!)
+                        .frame(minWidth: 400)
+                        .id(openedChatId)
+                }
+                else {
+                    WelcomeScreen(
+                        chatsCount: chats.count,
+                        apiServiceIsPresent: apiServices.count > 0,
+                        customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
+                        openPreferencesView: openPreferencesView,
+                        newChat: newChat
                     )
+                }
 
-                    let messagePreview = chat.messages.max(by: { $0.id < $1.id })
-                    let messageTimestamp = messagePreview?.timestamp ?? Date()
-                    let messageBody = messagePreview?.body ?? ""
-
-                    MessageCell(
-                        chat: chats[getIndex(for: chat)],
-                        timestamp: messageTimestamp,
-                        message: messageBody,
-                        isActive: isActive
-                    )
-                    .contextMenu {                        
-                        Button(action: {
-                            renameChat(chat)
-                        }) {
-                            Label("Rename", systemImage: "pencil")
-                        }
-                        Divider()
-                        Button(action: {
-                            deleteChat(chat)
-                        }) {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                    .tag(chat.id)
+                if previewStateManager.isPreviewVisible {
+                    PreviewPane(stateManager: previewStateManager)
                 }
             }
-            .listStyle(SidebarListStyle())
-            .navigationTitle("Chats")
-
-            WelcomeScreen(
-                chatsCount: chats.count,
-                gptTokenIsPresent: gptToken != "",
-                customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
-                openPreferencesView: openPreferencesView,
-                newChat: newChat
-            )
         }
         .onAppear(perform: {
-            
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
                     selectedChat = lastOpenedChat
                 }
             }
-
         })
+        .onAppear {
+            NotificationCenter.default.addObserver(
+                forName: AppConstants.newChatNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                newChat()
+            }
+        }
         .navigationTitle("Chats")
         .toolbar {
-            // Button to hide and display Navigation List
-            ToolbarItem(placement: .navigation) {
-                Button(action: {
-                    NSApp.keyWindow?.firstResponder?.tryToPerform(
-                        #selector(NSSplitViewController.toggleSidebar(_:)),
-                        with: nil
-                    )
-                }) {
-                    Image(systemName: "sidebar.left")
-                }
-            }
-
-            // Button to add new chat
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     newChat()
                 }) {
-                    Image(systemName: "plus")
+                    Image(systemName: "square.and.pencil")
                 }
             }
 
-            // Button to change settings of the app
             ToolbarItem(placement: .primaryAction) {
                 if #available(macOS 14.0, *) {
                     SettingsLink {
@@ -126,7 +103,6 @@ struct ContentView: View {
                 }
                 else {
                     Button(action: {
-                        // Open Preferences View
                         openPreferencesView()
                     }) {
                         Image(systemName: "gear")
@@ -141,11 +117,19 @@ struct ContentView: View {
                 print("Saving state...")
             }
         }
+        .onChange(of: selectedChat) { newValue in
+            if self.openedChatId != newValue?.id.uuidString {
+                self.openedChatId = newValue?.id.uuidString
+                previewStateManager.hidePreview()
+            }
+        }
+        .environmentObject(previewStateManager)
     }
 
     func newChat() {
         let uuid = UUID()
         let newChat = ChatEntity(context: viewContext)
+
         newChat.id = uuid
         newChat.newChat = true
         newChat.temperature = 0.8
@@ -157,30 +141,45 @@ struct ContentView: View {
         newChat.systemMessage = systemMessage
         newChat.gptModel = gptModel
 
+        if let defaultServiceIDString = defaultApiServiceID,
+            let url = URL(string: defaultServiceIDString),
+            let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
+        {
+
+            do {
+                let defaultService = try viewContext.existingObject(with: objectID) as? APIServiceEntity
+                newChat.apiService = defaultService
+                newChat.persona = defaultService?.defaultPersona
+                // TODO: Refactor the following code along with ChatView.swift
+                newChat.gptModel = defaultService?.model ?? AppConstants.chatGptDefaultModel
+                newChat.systemMessage = newChat.persona?.systemMessage ?? AppConstants.chatGptSystemMessage
+            }
+            catch {
+                print("Default API service not found: \(error)")
+            }
+        }
+
         do {
             try viewContext.save()
-            // Fix bug when new chat is not selected after creation by using DispatchQueue
             DispatchQueue.main.async {
-                selectedChat = newChat
+                self.selectedChat?.objectWillChange.send()
+                self.selectedChat = newChat
             }
         }
         catch {
             print("Error saving new chat: \(error.localizedDescription)")
             viewContext.rollback()
         }
-
     }
-    
 
     func openPreferencesView() {
         if #available(macOS 13.0, *) {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }
         else {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
     }
-    
 
     private func getIndex(for chat: ChatEntity) -> Int {
         if let index = chats.firstIndex(where: { $0.id == chat.id }) {
@@ -191,51 +190,44 @@ struct ContentView: View {
         }
     }
 
-    // Delete chat from the list and confirm deletion
-    func deleteChat(_ chat: ChatEntity) {
-        let alert = NSAlert()
-        alert.messageText = "Delete chat?"
-        alert.informativeText = "Are you sure you want to delete this chat?"
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
-            if response == .alertFirstButtonReturn {
-                selectedChat = nil
-                DispatchQueue.main.async {
-                    viewContext.delete(chat)
-                    do {
-                        try viewContext.save()
-                    }
-                    catch {
-                        print("Error deleting chat: \(error.localizedDescription)")
-                    }
-                }
-            }
-        }
-    }
+}
 
-    // Rename chat in popover
-    func renameChat(_ chat: ChatEntity) {
-        let alert = NSAlert()
-        alert.messageText = "Rename chat"
-        alert.informativeText = "Enter new name for this chat"
-        alert.addButton(withTitle: "Rename")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .informational
-        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        textField.stringValue = chat.name
-        alert.accessoryView = textField
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
-            if response == .alertFirstButtonReturn {
-                chat.name = textField.stringValue
-                do {
-                    try viewContext.save()
+struct PreviewPane: View {
+    @ObservedObject var stateManager: PreviewStateManager
+    @State private var isResizing = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("HTML Preview")
+                    .font(.headline)
+                Spacer()
+                Button(action: { stateManager.hidePreview() }) {
+                    Image(systemName: "xmark")
                 }
-                catch {
-                    print("Error renaming chat: \(error.localizedDescription)")
-                }
+                .buttonStyle(PlainButtonStyle())
             }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .frame(minWidth: 300)
+
+            Divider()
+
+            HTMLPreviewView(htmlContent: stateManager.previewContent)
         }
+        .background(Color(NSColor.windowBackgroundColor))
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    if !isResizing {
+                        isResizing = true
+                    }
+                    let newWidth = max(300, stateManager.previewPaneWidth - gesture.translation.width)
+                    stateManager.previewPaneWidth = min(800, newWidth)
+                }
+                .onEnded { _ in
+                    isResizing = false
+                }
+        )
     }
 }

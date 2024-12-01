@@ -21,13 +21,18 @@ class ChatStore: ObservableObject {
 
         migrateFromJSONIfNeeded()
     }
-    
+
     func saveInCoreData() {
-        DispatchQueue.main.async {
-            do {
-                try  self.viewContext.saveWithRetry(attempts: 3)
-            } catch {
-                print("[Warning] Couldn't save to store")
+        //        DispatchQueue.main.async {
+        //            do {
+        //                try  self.viewContext.saveWithRetry(attempts: 3)
+        //            } catch {
+        //                print("[Warning] Couldn't save to store")
+        //            }
+        //        }
+        Task {
+            await MainActor.run {
+                self.viewContext.saveWithRetry(attempts: 1)
             }
         }
     }
@@ -52,15 +57,22 @@ class ChatStore: ObservableObject {
 
     func saveToCoreData(chats: [Chat], completion: @escaping (Result<Int, Error>) -> Void) {
         do {
+            var defaultApiService: APIServiceEntity? = nil
+            if let defaultServiceIDString = UserDefaults.standard.string(forKey: "defaultApiService"),
+                let url = URL(string: defaultServiceIDString),
+                let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
+            {
+                defaultApiService = try viewContext.existingObject(with: objectID) as? APIServiceEntity
+            }
+
             for oldChat in chats {
                 let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
                 fetchRequest.predicate = NSPredicate(format: "id == %@", oldChat.id as CVarArg)
-                
-                let existingChats = try self.viewContext.fetch(fetchRequest)
-                
+
+                let existingChats = try viewContext.fetch(fetchRequest)
+
                 if existingChats.isEmpty {
-                    
-                    let chatEntity = ChatEntity(context: self.viewContext)
+                    let chatEntity = ChatEntity(context: viewContext)
                     chatEntity.id = oldChat.id
                     chatEntity.newChat = oldChat.newChat
                     chatEntity.temperature = oldChat.temperature ?? 0.0
@@ -73,9 +85,37 @@ class ChatStore: ObservableObject {
                     chatEntity.gptModel = oldChat.gptModel ?? AppConstants.chatGptDefaultModel
                     chatEntity.systemMessage = oldChat.systemMessage ?? AppConstants.chatGptSystemMessage
                     chatEntity.name = oldChat.name ?? ""
-                    
+
+                    if let apiServiceName = oldChat.apiServiceName,
+                        let apiServiceType = oldChat.apiServiceType
+                    {
+                        let apiServiceFetch = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+                        apiServiceFetch.predicate = NSPredicate(
+                            format: "name == %@ AND type == %@",
+                            apiServiceName,
+                            apiServiceType
+                        )
+                        if let existingService = try viewContext.fetch(apiServiceFetch).first {
+                            chatEntity.apiService = existingService
+                        }
+                        else {
+                            chatEntity.apiService = defaultApiService
+                        }
+                    }
+                    else {
+                        chatEntity.apiService = defaultApiService
+                    }
+
+                    if let personaName = oldChat.personaName {
+                        let personaFetch = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+                        personaFetch.predicate = NSPredicate(format: "name == %@", personaName)
+                        if let existingPersona = try viewContext.fetch(personaFetch).first {
+                            chatEntity.persona = existingPersona
+                        }
+                    }
+
                     for oldMessage in oldChat.messages {
-                        let messageEntity = MessageEntity(context: self.viewContext)
+                        let messageEntity = MessageEntity(context: viewContext)
                         messageEntity.id = Int64(oldMessage.id)
                         messageEntity.name = oldMessage.name
                         messageEntity.body = oldMessage.body
@@ -83,7 +123,7 @@ class ChatStore: ObservableObject {
                         messageEntity.own = oldMessage.own
                         messageEntity.waitingForResponse = oldMessage.waitingForResponse ?? false
                         messageEntity.chat = chatEntity
-                        
+
                         chatEntity.addToMessages(messageEntity)
                     }
                 }
@@ -93,7 +133,7 @@ class ChatStore: ObservableObject {
                 completion(.success(chats.count))
             }
 
-            try self.viewContext.save()
+            try viewContext.save()
         }
         catch {
             DispatchQueue.main.async {
@@ -101,7 +141,7 @@ class ChatStore: ObservableObject {
             }
         }
     }
-    
+
     func deleteAllChats() {
         let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>
 
@@ -112,9 +152,52 @@ class ChatStore: ObservableObject {
                 self.viewContext.delete(chat)
             }
 
-            try self.viewContext.save()
+            DispatchQueue.main.async {
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("Error saving context after deleting all chats: \(error)")
+                    self.viewContext.rollback()
+                }
+            }
         } catch {
             print("Error deleting all chats: \(error)")
+        }
+    }
+
+    func deleteAllPersonas() {
+        let fetchRequest = PersonaEntity.fetchRequest()
+
+        do {
+            let personaEntities = try self.viewContext.fetch(fetchRequest)
+
+            for persona in personaEntities {
+                self.viewContext.delete(persona)
+            }
+
+            try self.viewContext.save()
+        }
+        catch {
+            print("Error deleting all personas: \(error)")
+        }
+    }
+
+    func deleteAllAPIServices() {
+        let fetchRequest = APIServiceEntity.fetchRequest()
+
+        do {
+            let apiServiceEntities = try self.viewContext.fetch(fetchRequest)
+
+            for apiService in apiServiceEntities {
+                let tokenIdentifier = apiService.tokenIdentifier
+                try TokenManager.deleteToken(for: tokenIdentifier ?? "")
+                self.viewContext.delete(apiService)
+            }
+
+            try self.viewContext.save()
+        }
+        catch {
+            print("Error deleting all api services: \(error)")
         }
     }
 
