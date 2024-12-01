@@ -185,6 +185,7 @@ struct AppConstants {
     ]
 
     static let apiTypes = ["chatgpt", "ollama", "claude"]
+    static let newChatNotification = Notification.Name("newChatNotification")
 }
 
 func getCurrentFormattedDate() -> String {

@@ -93,6 +93,13 @@ struct macaiApp: App {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updater: updaterController.updater)
             }
+
+            CommandGroup(after: .newItem) {
+                Button("New Chat") {
+                    NotificationCenter.default.post(name: AppConstants.newChatNotification, object: nil)
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
         }
 
         Settings {

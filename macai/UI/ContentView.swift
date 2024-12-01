@@ -36,6 +36,8 @@ struct ContentView: View {
 
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
+    
 
     var body: some View {
         NavigationSplitView {
@@ -74,6 +76,15 @@ struct ContentView: View {
                 }
             }
         })
+        .onAppear {
+            NotificationCenter.default.addObserver(
+                forName: AppConstants.newChatNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                newChat()
+            }
+        }
         .navigationTitle("Chats")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
