@@ -40,75 +40,80 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             ChatListView(selectedChat: $selectedChat)
-            } detail: {
-                HSplitView {
-                    if selectedChat != nil {
-                        ChatView(viewContext: viewContext, chat: selectedChat!)
-                            .frame(minWidth: 400)
-                            .id(openedChatId)
-                    } else {
-                        WelcomeScreen(
-                            chatsCount: chats.count,
-                            apiServiceIsPresent: apiServices.count > 0,
-                            customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
-                            openPreferencesView: openPreferencesView,
-                            newChat: newChat
-                        )
-                    }
-                    
-                    if previewStateManager.isPreviewVisible {
-                        PreviewPane(stateManager: previewStateManager)
-                    }
+                .navigationSplitViewColumnWidth(
+                    min: 180,
+                    ideal: 220,
+                    max: 400
+                )
+        } detail: {
+            HSplitView {
+                if selectedChat != nil {
+                    ChatView(viewContext: viewContext, chat: selectedChat!)
+                        .frame(minWidth: 400)
+                        .id(openedChatId)
                 }
-            }
-            .onAppear(perform: {
-                if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
-                    if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
-                        selectedChat = lastOpenedChat
-                    }
-                }
-            })
-            .navigationTitle("Chats")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: {
-                        newChat()
-                    }) {
-                        Image(systemName: "square.and.pencil")
-                    }
+                else {
+                    WelcomeScreen(
+                        chatsCount: chats.count,
+                        apiServiceIsPresent: apiServices.count > 0,
+                        customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
+                        openPreferencesView: openPreferencesView,
+                        newChat: newChat
+                    )
                 }
 
-                ToolbarItem(placement: .primaryAction) {
-                    if #available(macOS 14.0, *) {
-                        SettingsLink {
-                            Image(systemName: "gear")
-                        }
-                    }
-                    else {
-                        Button(action: {
-                            openPreferencesView()
-                        }) {
-                            Image(systemName: "gear")
-                        }
-                    }
-                }
-
-            }
-            .onChange(of: scenePhase) { phase in
-                print("Scene phase changed: \(phase)")
-                if phase == .inactive {
-                    print("Saving state...")
+                if previewStateManager.isPreviewVisible {
+                    PreviewPane(stateManager: previewStateManager)
                 }
             }
-            .onChange(of: selectedChat) { newValue in
-                if self.openedChatId != newValue?.id.uuidString {
-                    self.openedChatId = newValue?.id.uuidString
-                    previewStateManager.hidePreview()
-                }
-            }
-            .environmentObject(previewStateManager)
         }
-    
+        .onAppear(perform: {
+            if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
+                if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
+                    selectedChat = lastOpenedChat
+                }
+            }
+        })
+        .navigationTitle("Chats")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    newChat()
+                }) {
+                    Image(systemName: "square.and.pencil")
+                }
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                if #available(macOS 14.0, *) {
+                    SettingsLink {
+                        Image(systemName: "gear")
+                    }
+                }
+                else {
+                    Button(action: {
+                        openPreferencesView()
+                    }) {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
+
+        }
+        .onChange(of: scenePhase) { phase in
+            print("Scene phase changed: \(phase)")
+            if phase == .inactive {
+                print("Saving state...")
+            }
+        }
+        .onChange(of: selectedChat) { newValue in
+            if self.openedChatId != newValue?.id.uuidString {
+                self.openedChatId = newValue?.id.uuidString
+                previewStateManager.hidePreview()
+            }
+        }
+        .environmentObject(previewStateManager)
+    }
 
     func newChat() {
         let uuid = UUID()
@@ -174,13 +179,12 @@ struct ContentView: View {
         }
     }
 
-   
 }
 
 struct PreviewPane: View {
     @ObservedObject var stateManager: PreviewStateManager
     @State private var isResizing = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -195,9 +199,9 @@ struct PreviewPane: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
             .frame(minWidth: 300)
-            
+
             Divider()
-            
+
             HTMLPreviewView(htmlContent: stateManager.previewContent)
         }
         .background(Color(NSColor.windowBackgroundColor))

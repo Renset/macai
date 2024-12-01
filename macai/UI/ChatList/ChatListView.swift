@@ -14,6 +14,7 @@ struct ChatListView: View {
     @State private var showSearch = false
     @State private var scrollOffset: CGFloat = 0
     @State private var previousOffset: CGFloat = 0
+    @FocusState private var isSearchFocused: Bool
 
     @FetchRequest(
         entity: ChatEntity.entity(),
@@ -70,6 +71,16 @@ struct ChatListView: View {
                 }
             }
         }
+        .background(
+            Button("") {
+                isSearchFocused = true
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+        )
+        .onChange(of: selectedChat) { _ in
+            isSearchFocused = false
+        }
     }
 
     private var searchField: some View {
@@ -80,8 +91,10 @@ struct ChatListView: View {
             TextField("Search chats...", text: $searchText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(.body))
+                .focused($isSearchFocused)
                 .onExitCommand {
                     searchText = ""
+                    isSearchFocused = false
                 }
 
             if !searchText.isEmpty {
