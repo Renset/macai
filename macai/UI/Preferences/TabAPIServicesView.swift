@@ -56,6 +56,8 @@ struct TabAPIServicesView: View {
                     }
                     .buttonStyle(BorderlessButtonStyle())
                     .keyboardShortcut(.defaultAction)
+                } else {
+                    Spacer()
                 }
                 Button(action: onAdd) {
                     Label("Add New", systemImage: "plus")
@@ -97,7 +99,7 @@ struct TabAPIServicesView: View {
         Group {
             if let service = service {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Type of API: \(service.type ?? "Unknown")")
+                    Text("Type of API: \(AppConstants.defaultApiConfigurations[service.type!]?.name ?? "Unknown")")
                     Text("Selected Model: \(service.model ?? "Not specified")")
                     Text("Context size: \(service.contextSize)")
                     Text("Auto chat name generation: \(service.generateChatNames ? "Yes" : "No")")

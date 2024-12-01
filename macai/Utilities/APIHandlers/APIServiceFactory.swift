@@ -9,7 +9,9 @@ import Foundation
 
 class APIServiceFactory {
     static func createAPIService(config: APIServiceConfiguration) -> APIService {
-        switch config.name.lowercased() {
+        var configName = AppConstants.defaultApiConfigurations[config.name.lowercased()]?.inherits ?? config.name.lowercased()
+        
+        switch configName {
         case "chatgpt":
             return ChatGPTHandler(config: config)
         case "ollama":

@@ -29,159 +29,157 @@ struct APIServiceDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack {
-                HStack {
-                    Text("LLM API Settings")
-                        .font(.headline)
-
-                    Spacer()
-                }
+            HStack {
+                Text("Service Name:")
+                    .frame(width: 100, alignment: .leading)
+                
+                TextField("API Name", text: $viewModel.name)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+            
+            GroupBox {
                 VStack {
-                    HStack {
-                        Picker("API Type", selection: $viewModel.type) {
-                            ForEach(types, id: \.self) {
-                                Text($0)
+                    VStack {
+                        HStack {
+                            Text("API Type:")
+                                .frame(width: 100, alignment: .leading)
+                            
+                            Image("logo_\(viewModel.type)")
+                                .resizable()
+                                .renderingMode(.template)
+                                .interpolation(.high)
+                                .antialiased(true)
+                                .frame(width: 14, height: 14)
+                                                       
+                            Picker("", selection: $viewModel.type) {
+                                ForEach(types, id: \.self) {
+                                    Text(AppConstants.defaultApiConfigurations[$0]?.name ?? $0)
+                                }
+                            }.onChange(of: viewModel.type) { newValue in
+                                viewModel.onChangeApiType(newValue)
                             }
-                        }.onChange(of: viewModel.type) { newValue in
-                            viewModel.onChangeApiType(newValue)
                         }
                     }
-                }
-                .padding(.bottom, 8)
-
-                HStack {
-                    Text("API Name:")
-                        .frame(width: 100, alignment: .leading)
-
-                    TextField("API Name", text: $viewModel.name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-
-                HStack {
-                    Text("API URL:")
-                        .frame(width: 100, alignment: .leading)
-
-                    TextField("Paste your URL here", text: $viewModel.url)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                    Button(action: {
-                        viewModel.url = viewModel.defaultApiConfiguration!.url
-                    }) {
-                        Text("Default")
-                    }
-                }
-
-                if (viewModel.defaultApiConfiguration?.apiKeyRef ?? "") != "" {
+                    .padding(.bottom, 8)
+                    
                     HStack {
-                        Text("API Token:")
+                        Text("API URL:")
                             .frame(width: 100, alignment: .leading)
-
-                        TextField("Paste your token here", text: $viewModel.apiKey)
+                        
+                        TextField("Paste your URL here", text: $viewModel.url)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .focused($isFocused)
-                            .blur(radius: !viewModel.apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
-                            .onChange(of: viewModel.apiKey) { newValue in
-                                do {
-                                    try TokenManager.setToken(newValue, for: "chatgpt")
-                                }
-                                catch {
-                                    print("Error setting token: \(error)")
-                                }
-                            }
+                        
+                        Button(action: {
+                            viewModel.url = viewModel.defaultApiConfiguration!.url
+                        }) {
+                            Text("Default")
+                        }
                     }
-
+                    
+                    if (viewModel.defaultApiConfiguration?.apiKeyRef ?? "") != "" {
+                        HStack {
+                            Text("API Token:")
+                                .frame(width: 100, alignment: .leading)
+                            
+                            TextField("Paste your token here", text: $viewModel.apiKey)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .focused($isFocused)
+                                .blur(radius: !viewModel.apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
+                        }
+                        
+                        HStack {
+                            Spacer()
+                            Link(
+                                "How to get API Token",
+                                destination: URL(
+                                    string: viewModel.defaultApiConfiguration!.apiKeyRef
+                                )!
+                            )
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    
+                    HStack {
+                        // Select model
+                        Text("LLM Model:")
+                            .frame(width: 94, alignment: .leading)
+                        
+                        Picker("", selection: $viewModel.selectedModel) {
+                            ForEach(viewModel.defaultApiConfiguration!.models, id: \.self) { modelName in
+                                Text(modelName).tag(modelName)
+                            }
+                            Text("Enter custom model").tag("custom")
+                        }.onChange(of: viewModel.selectedModel) { newValue in
+                            if newValue == "custom" {
+                                viewModel.isCustomModel = true
+                            }
+                            else {
+                                viewModel.isCustomModel = false
+                                viewModel.model = newValue
+                            }
+                            
+                            if viewModel.model != self.previousModel {
+                                self.lampColor = .gray
+                                self.previousModel = viewModel.model
+                            }
+                        }
+                    }
+                    .padding(.top, 8)
+                    
+                    if viewModel.isCustomModel {
+                        VStack {
+                            TextField("Enter custom model name", text: $viewModel.model)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                    }
+                    
                     HStack {
                         Spacer()
                         Link(
-                            "How to get API Token",
-                            destination: URL(
-                                string: viewModel.defaultApiConfiguration!.apiKeyRef
-                            )!
+                            "Models reference",
+                            destination: URL(string: viewModel.defaultApiConfiguration!.apiModelRef)!
                         )
                         .font(.subheadline)
                         .foregroundColor(.blue)
                     }
-                }
-
-            }
-
-            HStack {
-                // Select model
-                Text("LLM Model:")
-                    .frame(width: 100, alignment: .leading)
-
-                Picker("", selection: $viewModel.selectedModel) {
-                    ForEach(viewModel.defaultApiConfiguration!.models, id: \.self) { modelName in
-                        Text(modelName).tag(modelName)
-                    }
-                    Text("Enter custom model").tag("custom")
-                }.onChange(of: viewModel.selectedModel) { newValue in
-                    if newValue == "custom" {
-                        viewModel.isCustomModel = true
-                    }
-                    else {
-                        viewModel.isCustomModel = false
-                        viewModel.model = newValue
-                    }
-
-                    if viewModel.model != self.previousModel {
-                        self.lampColor = .gray
-                        self.previousModel = viewModel.model
+                    .padding(.bottom)
+                    
+                    HStack {
+                        ButtonTestApiTokenAndModel(
+                            lampColor: $lampColor,
+                            gptToken: viewModel.apiKey,
+                            gptModel: viewModel.model,
+                            apiUrl: viewModel.url,
+                            apiType: viewModel.type
+                        )
                     }
                 }
+                .padding(8)
             }
-            .padding(.top, 8)
-
-            if viewModel.isCustomModel {
-                VStack {
-                    TextField("Enter custom model name", text: $viewModel.model)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-            }
-
-            HStack {
-                Spacer()
-                Link(
-                    "Models reference",
-                    destination: URL(string: viewModel.defaultApiConfiguration!.apiModelRef)!
-                )
-                .font(.subheadline)
-                .foregroundColor(.blue)
-            }
-            .padding(.bottom)
-
-            HStack {
-                Spacer()
-                ButtonTestApiTokenAndModel(
-                    lampColor: $lampColor,
-                    gptToken: viewModel.apiKey,
-                    gptModel: viewModel.model,
-                    apiUrl: viewModel.url,
-                    apiType: viewModel.type
-                )
-            }
-
+            
             VStack {
                 HStack {
-                    // TODO: implement unlimited context size
-                    Toggle(isOn: $viewModel.contextSizeUnlimited) {
-                        Text("Unlimited context size")
-                    }
-                    .disabled(true)
-                    Spacer()
+                    // TODO: implement unlimited context size (is it really needed though?)
+//                    Toggle(isOn: $viewModel.contextSizeUnlimited) {
+//                        Text("Unlimited context size")
+//                    }
+//                    .disabled(true)
+//                    Spacer()
                 }
                 if !viewModel.contextSizeUnlimited {
                     HStack {
                         Slider(
                             value: $viewModel.contextSize,
-                            in: 10...200,
-                            step: 10
+                            in: 5...100,
+                            step: 5
                         ) {
                             Text("Context size")
                         } minimumValueLabel: {
-                            Text("10")
+                            Text("5")
                         } maximumValueLabel: {
-                            Text("200")
+                            Text("100")
                         }
                         .disabled(viewModel.contextSizeUnlimited)
 
@@ -280,6 +278,7 @@ struct APIServiceDetailView: View {
                 message: Text("Are you sure you want to delete this API Service? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
                     viewModel.deleteAPIService()
+                    presentationMode.wrappedValue.dismiss()
                 },
                 secondaryButton: .cancel()
             )

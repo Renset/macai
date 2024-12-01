@@ -17,7 +17,7 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var type: String = AppConstants.defaultApiType
     @Published var url: String = ""
     @Published var model: String = ""
-    @Published var contextSize: Float = 100
+    @Published var contextSize: Float = 20
     @Published var contextSizeUnlimited: Bool = false
     @Published var useStreamResponse: Bool = true
     @Published var generateChatNames: Bool = true
@@ -90,16 +90,18 @@ class APIServiceDetailViewModel: ObservableObject {
             serviceToSave.addedDate = Date()
             let serviceID = UUID()
             serviceToSave.id = serviceID
-
-            do {
-                try TokenManager.setToken(apiKey, for: serviceID.uuidString)
-            }
-            catch {
-                print("Error setting token: \(error)")
-            }
         }
         else {
             serviceToSave.editedDate = Date()
+        }
+        
+        if let serviceIDString = serviceToSave.id?.uuidString {
+            do {
+                try TokenManager.setToken(apiKey, for: serviceIDString)
+            }
+            catch {
+                print("Failed to set token: \(error.localizedDescription)")
+            }
         }
 
         do {

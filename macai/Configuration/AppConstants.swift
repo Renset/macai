@@ -134,11 +134,12 @@ struct AppConstants {
         let defaultModel: String
         let models: [String]
         var maxTokens: Int? = nil
+        var inherits: String? = nil
     }
 
     static let defaultApiConfigurations = [
         "chatgpt": defaultApiConfiguration(
-            name: "ChatGPT",
+            name: "OpenAI",
             url: "https://api.openai.com/v1/chat/completions",
             apiKeyRef: "https://platform.openai.com/docs/api-reference/api-keys",
             apiModelRef: "https://platform.openai.com/docs/models",
@@ -182,9 +183,27 @@ struct AppConstants {
             ],
             maxTokens: 4096
         ),
+        "xai": defaultApiConfiguration(
+            name: "xAI",
+            url: "https://api.x.ai/v1/chat/completions",
+            apiKeyRef: "https://console.x.ai/",
+            apiModelRef: "https://docs.x.ai/docs#models",
+            defaultModel: "grok-beta",
+            models: ["grok-beta"],
+            inherits: "chatgpt"
+        ),
+        "gemini": defaultApiConfiguration(
+            name: "Google Gemini (OpenAI-like)",
+            url: "https://generativelanguage.googleapis.com/v1beta/chat/completions",
+            apiKeyRef: "https://aistudio.google.com/app/apikey",
+            apiModelRef: "https://ai.google.dev/gemini-api/docs/models/gemini#model-variations",
+            defaultModel: "gemini-1.5-flash",
+            models: ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"],
+            inherits: "chatgpt"
+        ),
     ]
 
-    static let apiTypes = ["chatgpt", "ollama", "claude"]
+    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini"]
     static let newChatNotification = Notification.Name("newChatNotification")
 }
 
