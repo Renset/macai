@@ -193,7 +193,11 @@ class ChatGPTHandler: APIService {
                         let messageRole = content["role"] as? String,
                         let messageContent = content["content"] as? String
                     {
-                        return (messageContent, messageRole)
+                        var finalContent = messageContent
+                        if let citations = dict["citations"] as? [String] {
+                            finalContent += "\n\nSources [From citations field]:\n" + citations.joined(separator: "\n")
+                        }
+                        return (finalContent, messageRole)
                     }
                 }
             }
@@ -226,9 +230,11 @@ class ChatGPTHandler: APIService {
                     let delta = firstChoice["delta"] as? [String: String],
                     let contentPart = delta["content"]
                 {
-
                     let finished = false
                     if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
+                        if let citations = dict["citations"] as? [String] {
+                            return (true, nil, "\n\nSources [From citations field]:\n" + citations.joined(separator: "\n"), defaultRole)
+                        }
                         _ = true
                     }
                     return (finished, nil, contentPart, defaultRole)
