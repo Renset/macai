@@ -45,8 +45,8 @@ struct TabAIPersonasView: View {
         }
         .onChange(of: selectedPersonaID) { id in
             selectedPersona = personas.first(where: { $0.objectID == id })
-            print("Selected Persona ID: \(id)")
-            print("Selected Persona: \(selectedPersona?.name ?? "nil")")
+            print("Selected Assistant ID: \(id)")
+            print("Selected Assistant: \(selectedPersona?.name ?? "nil")")
         }
         .sheet(isPresented: $isShowingAddOrEditPersona) {
             PersonaDetailView(
@@ -58,10 +58,6 @@ struct TabAIPersonasView: View {
                     selectedPersona = nil
                 }
             )
-            .onAppear {
-                print(">> View is here")
-                print(">> Selected persona: \(selectedPersona?.name ?? "nil")")
-            }
         }
     }
 
@@ -86,7 +82,7 @@ struct TabAIPersonasView: View {
         Button(action: {
             DatabasePatcher.addDefaultPersonasIfNeeded(context: viewContext, force: true)
         }) {
-            Label("Add Personas from Presets", systemImage: "plus.circle")
+            Label("Add AI Assistants from Presets", systemImage: "plus.circle")
         }
     }
 
@@ -105,14 +101,14 @@ struct TabAIPersonasView: View {
         Group {
             if personas.count == 0 {
                 Text(
-                    "There are no personas yet. Create one by clicking the 'Add New Persona' button below or add personas from presets."
+                    "There are no assistants yet. Create one by clicking the 'Add New Assistant' button below or add assistants from presets."
                 )
             }
             else if personas.count == 1 {
-                Text("Select the only persona above to edit it, or create a new one")
+                Text("Select the only assistant above to edit it, or create a new one")
             }
             else {
-                Text("Select any of \(personas.count) personas to edit or create a new one")
+                Text("Select any of \(personas.count) assistants to edit or create a new one")
             }
         }
     }
@@ -125,7 +121,7 @@ struct TabAIPersonasView: View {
     private func onEdit() {
         selectedPersona = personas.first(where: { $0.objectID == selectedPersonaID })
         isShowingAddOrEditPersona = true
-        print("Opening Persona Detail View: \(selectedPersona?.name ?? "nil")")
+        print("Opening Assistant Detail View: \(selectedPersona?.name ?? "nil")")
     }
 
     private func getPersonaColor(persona: PersonaEntity) -> Color? {
@@ -133,7 +129,7 @@ struct TabAIPersonasView: View {
     }
 
     private func getPersonaName(persona: PersonaEntity) -> String {
-        persona.name ?? "Unnamed Persona"
+        persona.name ?? "Unnamed Assistant"
     }
 
     private func refreshList() {
@@ -161,7 +157,7 @@ struct PersonaDetailView: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text("Name:")
-                    TextField("Enter AI persona name here", text: $name)
+                    TextField("Enter AI Assistant name here", text: $name)
                 }
 
                 VStack {
@@ -218,7 +214,7 @@ struct PersonaDetailView: View {
                     presentationMode.wrappedValue.dismiss()
                 }
 
-                Button(persona == nil ? "Create Persona" : "Update Persona") {
+                Button(persona == nil ? "Create Assistant" : "Update Assistant") {
                     savePersona()
                     onSave()
                 }
@@ -231,7 +227,7 @@ struct PersonaDetailView: View {
         .frame(minHeight: 300)
         .padding()
         .onAppear {
-            print(">> Persona: \(persona?.name ?? "")")
+            print(">> Assistant: \(persona?.name ?? "")")
             if let persona = persona {
                 name = persona.name ?? ""
                 color = Color(hex: persona.color ?? "#FFFFFF") ?? .white
@@ -241,8 +237,8 @@ struct PersonaDetailView: View {
         }
         .alert(isPresented: $showingDeleteConfirmation) {
             Alert(
-                title: Text("Delete Persona"),
-                message: Text("Are you sure you want to delete this persona? This action cannot be undone."),
+                title: Text("Delete Assistant"),
+                message: Text("Are you sure you want to delete this assistant? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
                     deletePersona()
                     onDelete()

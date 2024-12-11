@@ -30,10 +30,10 @@ class DatabasePatcher {
             do {
                 try context.save()
                 defaults.set(true, forKey: AppConstants.defaultPersonasFlag)
-                print("Default personas added successfully")
+                print("Default assistants added successfully")
             }
             catch {
-                print("Failed to add default personas: \(error)")
+                print("Failed to add default assistants: \(error)")
             }
         }
     }
@@ -88,15 +88,15 @@ class DatabasePatcher {
         do {
             let defaultPersonas = try context.fetch(personaFetchRequest)
             if let defaultPersona = defaultPersonas.first {
-                print("Found default persona: \(defaultPersona.name ?? "")")
+                print("Found default assistant: \(defaultPersona.name ?? "")")
                 apiService.defaultPersona = defaultPersona
                 try context.save()
-                print("Successfully set default persona for API service")
+                print("Successfully set default assistant for API service")
             } else {
-                print("Warning: Default Assistant persona not found")
+                print("Warning: Default Assistant not found")
             }
         } catch {
-            print("Error setting default persona: \(error)")
+            print("Error setting default assistant: \(error)")
         }
         
         // Update Chats

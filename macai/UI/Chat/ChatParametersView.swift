@@ -54,7 +54,7 @@ struct ChatParametersView: View {
 
     private var accordionTitle: String {
         let serviceName = chat.apiService?.name ?? "No service selected"
-        let personaName = chat.persona?.name ?? "No persona selected"
+        let personaName = chat.persona?.name ?? "No assistant selected"
         return "\(serviceName) — \(personaName)"
     }
 

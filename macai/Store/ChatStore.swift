@@ -178,7 +178,7 @@ class ChatStore: ObservableObject {
             try self.viewContext.save()
         }
         catch {
-            print("Error deleting all personas: \(error)")
+            print("Error deleting all assistants: \(error)")
         }
     }
 

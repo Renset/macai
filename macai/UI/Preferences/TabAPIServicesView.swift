@@ -104,7 +104,7 @@ struct TabAPIServicesView: View {
                     Text("Context size: \(service.contextSize)")
                     Text("Auto chat name generation: \(service.generateChatNames ? "Yes" : "No")")
                     //Text("Stream responses: \(service.useStreamResponse ? "Yes" : "No")")
-                    Text("Default AI persona: \(service.defaultPersona?.name ?? "None")")
+                    Text("Default AI Assistant: \(service.defaultPersona?.name ?? "None")")
                 }
             }
             else {

@@ -226,7 +226,7 @@ struct APIServiceDetailView: View {
             .padding(.vertical, 8)
 
             HStack {
-                Text("Default AI Persona:")
+                Text("Default AI Assistant:")
                     .frame(width: 160, alignment: .leading)
 
                 Picker("", selection: $viewModel.defaultAiPersona) {
@@ -274,7 +274,7 @@ struct APIServiceDetailView: View {
         .padding(16)
         .alert(isPresented: $showingDeleteConfirmation) {
             Alert(
-                title: Text("Delete Persona"),
+                title: Text("Delete Assistant"),
                 message: Text("Are you sure you want to delete this API Service? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
                     viewModel.deleteAPIService()

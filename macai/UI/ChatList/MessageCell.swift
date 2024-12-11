@@ -30,7 +30,7 @@ struct MessageCell: View {
                             .lineLimit(1)
                     }
                     else {
-                        Text("No persona selected")
+                        Text("No assistant selected")
                             .font(.caption)
                             .lineLimit(1)
                     }

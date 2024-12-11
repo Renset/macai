@@ -41,7 +41,7 @@ struct DangerZoneView: View {
                     Button(action: {
                         currentAlert = .deletePersonas
                     }) {
-                        Label("Delete all AI Personas", systemImage: "trash")
+                        Label("Delete all AI Assistants", systemImage: "trash")
                     }
                     Button(action: {
                         currentAlert = .deleteAPIServices
@@ -66,9 +66,9 @@ struct DangerZoneView: View {
                 )
             case .deletePersonas:
                 return Alert(
-                    title: Text("Delete All AI Personas"),
-                    message: Text("Are you sure you want to delete all AI personas?"),
-                    primaryButton: .destructive(Text("Delete all personas")) {
+                    title: Text("Delete All AI Assistants"),
+                    message: Text("Are you sure you want to delete all AI Assistants?"),
+                    primaryButton: .destructive(Text("Delete")) {
                         store.deleteAllPersonas()
                     },
                     secondaryButton: .cancel()
@@ -77,7 +77,7 @@ struct DangerZoneView: View {
                 return Alert(
                     title: Text("Delete All API Services"),
                     message: Text("Are you sure you want to delete all API Services?"),
-                    primaryButton: .destructive(Text("Delete all API Services")) {
+                    primaryButton: .destructive(Text("Delete")) {
                         store.deleteAllAPIServices()
                     },
                     secondaryButton: .cancel()

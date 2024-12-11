@@ -42,7 +42,7 @@ struct PreferencesView: View {
 
             TabAIPersonasView()
                 .tabItem {
-                    Label("AI Personas", systemImage: "person.2")
+                    Label("AI Assistants", systemImage: "person.2")
                 }
 
             BackupRestoreView(store: store)
