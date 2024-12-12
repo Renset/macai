@@ -170,6 +170,7 @@ struct AppConstants {
                 "qwen2.5:14b",
                 "qwen2.5:32b",
                 "qwen2.5:72b",
+                "qwen2.5-coder",
                 "phi3",
                 "gemma",
             ]
