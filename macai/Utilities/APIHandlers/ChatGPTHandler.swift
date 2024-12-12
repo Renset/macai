@@ -223,8 +223,8 @@ class ChatGPTHandler: APIService {
             if let dict = jsonResponse as? [String: Any] {
                 if let choices = dict["choices"] as? [[String: Any]],
                     let firstChoice = choices.first,
-                    let delta = firstChoice["delta"] as? [String: String],
-                    let contentPart = delta["content"]
+                    let delta = firstChoice["delta"] as? [String: Any],
+                    let contentPart = delta["content"] as? String
                 {
 
                     let finished = false
