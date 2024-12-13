@@ -32,20 +32,22 @@ struct Accordion<Content: View>: View {
                         }
                     }) {
                         HStack {
-                            if let icon = icon {
-                                Image(icon)
-                                    .resizable()
-                                    .renderingMode(.template)
-                                    .interpolation(.high)
-                                    .antialiased(true)
-                                    .frame(width: 12, height: 12)
+                            if !isExpanded {
+                                if let icon = icon {
+                                    Image(icon)
+                                        .resizable()
+                                        .renderingMode(.template)
+                                        .interpolation(.high)
+                                        .antialiased(true)
+                                        .frame(width: 12, height: 12)
+                                }
                             }
+                            
                             Text(title)
                                 .frame(alignment:.leading)
-                            Image(systemName: isExpanded ? "arrow.down.circle" : "arrow.up.circle")
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         }
                     }
-                    Spacer()
                 }
                 .padding(.horizontal, 32)
                 

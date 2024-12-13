@@ -26,9 +26,9 @@ struct ChatParametersView: View {
             icon: chat.apiService?.type != nil ? "logo_" + (chat.apiService?.type ?? "") : nil,
             title: accordionTitle,
             isExpanded: chat.messages.count == 0,
-            isButtonHidden: chat.messages.count == 0
+            isButtonHidden: false
         ) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .center, spacing: 12) {
                 HStack {
                     APIServiceSelector(
                         chat: chat,
@@ -53,9 +53,9 @@ struct ChatParametersView: View {
     }
 
     private var accordionTitle: String {
-        let serviceName = chat.apiService?.name ?? "No service selected"
+        let modelName = chat.gptModel
         let personaName = chat.persona?.name ?? "No assistant selected"
-        return "\(serviceName) — \(personaName)"
+        return "\(modelName) — \(personaName)"
     }
 
     private func handleServiceChange(_ newService: APIServiceEntity) {
@@ -86,20 +86,31 @@ private struct APIServiceSelector: View {
 
     var body: some View {
         HStack {
-            Picker("API Service", selection: $chat.apiService) {
-                ForEach(apiServices, id: \.objectID) { apiService in
-                    Text(apiService.name ?? "Unnamed API Service")
-                        .tag(apiService as APIServiceEntity?)
+            Image("logo_\(chat.apiService?.type ?? "")")
+                .resizable()
+                .renderingMode(.template)
+                .interpolation(.high)
+                .antialiased(true)
+                .frame(width: 16, height: 16)
+
+            if apiServices.count > 1 {
+                Picker("API Service", selection: $chat.apiService) {
+                    ForEach(apiServices, id: \.objectID) { apiService in
+                        Text(apiService.name ?? "Unnamed API Service")
+                            .tag(apiService as APIServiceEntity?)
+                    }
                 }
-            }
-            .frame(maxWidth: 200)
-            .onChange(of: chat.apiService) { newService in
-                if let newService = newService {
-                    onServiceChanged(newService)
+                .frame(maxWidth: 200)
+                .onChange(of: chat.apiService) { newService in
+                    if let newService = newService {
+                        onServiceChanged(newService)
+                    }
                 }
+                .pickerStyle(.menu)
+            } else {
+                Text("API Service: \(chat.apiService?.name ?? "Unnamed API Service")")
             }
-            Text("Model: \(chat.gptModel)")
-            Spacer()
+
         }
         .padding(.horizontal, 20)
     }
@@ -116,12 +127,17 @@ private struct SystemMessageView: View {
                 .textSelection(.enabled)
 
             if isEditable {
-                Button(action: onEdit) {
-                    Label("Edit", systemImage: "pencil")
+                HStack {
+                    Button(action: onEdit) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    .foregroundColor(.gray)
+
+                    Spacer()
                 }
-                .buttonStyle(BorderlessButtonStyle())
-                .foregroundColor(.gray)
                 .frame(height: 12)
+
             }
             else {
                 Color.clear.frame(height: 12)
