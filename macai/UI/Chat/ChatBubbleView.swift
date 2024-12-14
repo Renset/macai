@@ -232,16 +232,19 @@ struct ChatBubbleView: View, Equatable {
     }
 
     private var toolbarContent: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 12) {
             Button(action: {
                 copyMessageToClipboard(content.message)
             }) {
                 Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
                     .animation(.easeInOut(duration: 0.2), value: isCopied)
                     .imageScale(.small)
-                    .foregroundColor(.gray.opacity(0.7))
+                    .frame(width: 10)
+                Text("Copy")
+                    .font(.system(size: 12))
             }
             .buttonStyle(PlainButtonStyle())
+            .foregroundColor(.gray.opacity(0.7))
 
             Button(action: {
                 showingDeleteConfirmation = true

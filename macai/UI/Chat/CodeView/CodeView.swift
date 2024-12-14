@@ -39,7 +39,7 @@ struct CodeView: View {
                     .padding([.horizontal, .bottom], 12)
             }
         }
-        .background(backgroundShape)
+        .background(codeBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8.0))
         .onChange(of: colorScheme) { newScheme in
             updateHighlightedCode(colorScheme: newScheme)
@@ -63,15 +63,15 @@ struct CodeView: View {
             }
             Spacer()
             
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 if lang.lowercased() == "html" {
-                    previewButton
+                    runButton
                 }
                 copyButton
             }
         }
-        .padding(6)
-        .background(headerBackground)
+        .padding(12)
+        
         
     }
     
@@ -83,10 +83,12 @@ struct CodeView: View {
         .buttonStyle(PlainButtonStyle())
     }
     
-    private var previewButton: some View {
+    private var runButton: some View {
         Button(action: togglePreview) {
-            Image(systemName: previewStateManager.isPreviewVisible ? "eye.slash" : "eye")
+            Image(systemName: previewStateManager.isPreviewVisible ? "play.slash" : "play")
                 .frame(height: 12)
+            
+            Text("Run")
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -99,20 +101,12 @@ struct CodeView: View {
         }
     }
     
-    private var headerBackground: Color {
-        colorScheme == .dark ? Color(red: 0.25, green: 0.25, blue: 0.25) : Color(red: 0.86, green: 0.86, blue: 0.86)
+    private var codeBackground: Color {
+        colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96)
     }
-    
-    private var backgroundShape: some View {
-        RoundedRectangle(cornerRadius: 8.0)
-            .stroke(
-                colorScheme == .dark ? Color(red: 0.25, green: 0.25, blue: 0.25) : Color(red: 0.86, green: 0.86, blue: 0.86),
-                lineWidth: 2
-            )
-    }
+
     
     private func updateHighlightedCode(colorScheme: ColorScheme, code: String = "") {
-        //guard !isStreaming else { return }
         DispatchQueue.main.async {
             if (code != "") {
                 viewModel.code = code

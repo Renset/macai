@@ -132,7 +132,8 @@ private struct SystemMessageView: View {
                         Label("Edit", systemImage: "pencil")
                     }
                     .buttonStyle(BorderlessButtonStyle())
-                    .foregroundColor(.gray)
+                    .foregroundColor(.gray.opacity(0.7))
+                    .font(.system(size: 12))
 
                     Spacer()
                 }
