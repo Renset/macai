@@ -126,3 +126,14 @@ extension ChatEntity {
         self.requestMessages.append(newMessage)
     }
 }
+
+extension ChatEntity {
+    func clearMessages() {
+        let allMessages = self.messages.array as? [MessageEntity] ?? []
+        for message in allMessages {
+            self.managedObjectContext?.delete(message)
+        }
+        self.messages = NSOrderedSet()
+        self.newChat = true
+    }
+}

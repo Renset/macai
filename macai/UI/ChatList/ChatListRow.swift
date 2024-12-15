@@ -56,6 +56,9 @@ struct ChatListRow: View {
             Button(action: { renameChat(chat!) }) {
                 Label("Rename", systemImage: "pencil")
             }
+            Button(action: { clearChat(chat!) }) {
+                Label("Clear Chat", systemImage: "eraser")
+            }
             Divider()
             Button(action: { deleteChat(chat!) }) {
                 Label("Delete", systemImage: "trash")
@@ -65,7 +68,7 @@ struct ChatListRow: View {
 
     func deleteChat(_ chat: ChatEntity) {
         let alert = NSAlert()
-        alert.messageText = "Delete chat?"
+        alert.messageText = "Delete chat \(chat.name)?"
         alert.informativeText = "Are you sure you want to delete this chat?"
         alert.addButton(withTitle: "Delete")
         alert.addButton(withTitle: "Cancel")
@@ -108,6 +111,25 @@ struct ChatListRow: View {
 
                 catch {
                     print("Error renaming chat: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    func clearChat(_ chat: ChatEntity) {
+        let alert = NSAlert()
+        alert.messageText = "Clear chat \(chat.name)?"
+        alert.informativeText = "Are you sure you want to delete all messages from this chat? Chat parameters will not be deleted. This action cannot be undone."
+        alert.addButton(withTitle: "Clear")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+            if response == .alertFirstButtonReturn {
+                chat.clearMessages()
+                do {
+                    try viewContext.save()
+                } catch {
+                    print("Error clearing chat: \(error.localizedDescription)")
                 }
             }
         }

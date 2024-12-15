@@ -58,7 +58,7 @@ struct ChatListView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchField
-            
+
             List {
                 ForEach(filteredChats, id: \.id) { chat in
                     ChatListRow(
@@ -112,6 +112,5 @@ struct ChatListView: View {
         .background(isSearchFocused ? Color(NSColor.controlBackgroundColor).opacity(0.4) : Color.clear)
         .cornerRadius(8)
         .padding(.horizontal)
-        .padding(.vertical, 8)
     }
 }

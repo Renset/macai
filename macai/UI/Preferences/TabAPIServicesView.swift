@@ -86,7 +86,7 @@ struct TabAPIServicesView: View {
             getEntityColor: { _ in nil },
             getEntityName: { $0.name ?? "Untitled Service" },
             getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID },
-            getEntityIcon: { "logo_" + $0.type! },
+            getEntityIcon: { "logo_" + ($0.type ?? "") },
             onEdit: {
                 if selectedServiceID != nil {
                     isShowingAddOrEditService = true
