@@ -12,12 +12,14 @@ class ClaudeHandler: APIService {
     let baseURL: URL
     private let apiKey: String
     let model: String
+    private let session: URLSession
 
-    init(config: APIServiceConfiguration) {
+    init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
         self.baseURL = config.apiUrl
         self.apiKey = config.apiKey
         self.model = config.model
+        self.session = session
     }
 
     func sendMessage(
@@ -32,7 +34,7 @@ class ClaudeHandler: APIService {
             stream: false
         )
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        session.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 let result = self.handleAPIResponse(response, data: data, error: error)
 
@@ -69,7 +71,7 @@ class ClaudeHandler: APIService {
 
             Task {
                 do {
-                    let (stream, response) = try await URLSession.shared.bytes(for: request)
+                    let (stream, response) = try await session.bytes(for: request)
                     let result = self.handleAPIResponse(response, data: nil, error: nil)
 
                     switch result {
