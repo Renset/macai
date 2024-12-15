@@ -25,6 +25,8 @@ class APIServiceFactory {
             return OllamaHandler(config: config, session: session)
         case "claude":
             return ClaudeHandler(config: config, session: session)
+        case "perplexity":
+            return PerplexityHandler(config: config, session: session)
         default:
             fatalError("Unsupported API service: \(config.name)")
         }

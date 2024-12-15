@@ -211,9 +211,21 @@ struct AppConstants {
             ],
             inherits: "chatgpt"
         ),
+        "perplexity": defaultApiConfiguration(
+            name: "Perplexity",
+            url: "https://api.perplexity.ai/chat/completions",
+            apiKeyRef: "https://www.perplexity.ai/settings/api",
+            apiModelRef: "https://docs.perplexity.ai/guides/model-cards#supported-models",
+            defaultModel: "llama-3.1-sonar-large-128k-online",
+            models: [
+                "llama-3.1-sonar-small-128k-online",
+                "llama-3.1-sonar-large-128k-online",
+                "llama-3.1-sonar-huge-128k-online"
+            ]
+        ),
     ]
 
-    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini"]
+    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity"]
     static let newChatNotification = Notification.Name("newChatNotification")
 }
 
