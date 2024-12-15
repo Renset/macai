@@ -13,6 +13,7 @@ struct ChatListRow: View {
     @Binding var selectedChat: ChatEntity?
     let viewContext: NSManagedObjectContext
     var searchText: String = ""
+    @StateObject private var chatViewModel: ChatViewModel
 
     init(
         chat: ChatEntity?,
@@ -25,6 +26,7 @@ struct ChatListRow: View {
         self._selectedChat = selectedChat
         self.viewContext = viewContext
         self.searchText = searchText
+        self._chatViewModel = StateObject(wrappedValue: ChatViewModel(chat: chat!, viewContext: viewContext))
     }
 
     var isActive: Binding<Bool> {
@@ -55,6 +57,13 @@ struct ChatListRow: View {
         .contextMenu {
             Button(action: { renameChat(chat!) }) {
                 Label("Rename", systemImage: "pencil")
+            }
+            if chat!.apiService?.generateChatNames ?? false {
+                Button(action: {
+                    chatViewModel.regenerateChatName()
+                }) {
+                    Label("Regenerate Name", systemImage: "arrow.clockwise")
+                }
             }
             Button(action: { clearChat(chat!) }) {
                 Label("Clear Chat", systemImage: "eraser")

@@ -98,15 +98,11 @@ class MessageManager: ObservableObject {
         }
     }
 
-    func generateChatNameIfNeeded(chat: ChatEntity) {
-        guard chat.name == "", chat.messages.count > 0 else {
+    func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
+        guard force || chat.name == "", chat.messages.count > 0 else {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
-            return
-        }
-
-        if !(chat.apiService?.generateChatNames ?? false) {
             return
         }
 

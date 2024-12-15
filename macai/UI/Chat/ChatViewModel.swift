@@ -107,4 +107,8 @@ class ChatViewModel: ObservableObject {
     private func getApiServiceName() -> String {
         return chat.apiService?.type ?? "chatgpt"
     }
+    
+    func regenerateChatName() {
+        messageManager.generateChatNameIfNeeded(chat: chat, force: true)
+    }
 }
