@@ -185,6 +185,20 @@ class PerplexityHandler: APIService {
         return .success(data)
     }
 
+    private func formatContentWithCitations(_ content: String, citations: [String]?) -> String {
+        guard let citations = citations, !isGeneratingChatName else { return content }
+
+        var formattedContent = content
+        for (index, citation) in citations.enumerated() {
+            let reference = "[\(index + 1)]"
+            formattedContent = formattedContent.replacingOccurrences(
+                of: reference,
+                with: "[\\[\(index + 1)\\]](\(citation))"
+            )
+        }
+        return formattedContent
+    }
+
     private func parseJSONResponse(data: Data) -> (String, String)? {
         if let responseString = String(data: data, encoding: .utf8) {
             #if DEBUG
@@ -199,16 +213,8 @@ class PerplexityHandler: APIService {
                         let messageRole = content["role"] as? String,
                         let messageContent = content["content"] as? String
                     {
-                        var finalContent = messageContent
-                        if let citations = dict["citations"] as? [String], !isGeneratingChatName {
-                            for (index, citation) in citations.enumerated() {
-                                let reference = "[\(index + 1)]"
-                                finalContent = finalContent.replacingOccurrences(
-                                    of: reference,
-                                    with: "[\\[\(index + 1)\\]](\(citation))"
-                                )
-                            }
-                        }
+                        let citations = dict["citations"] as? [String]
+                        let finalContent = formatContentWithCitations(messageContent, citations: citations)
                         return (finalContent, messageRole)
                     }
                 }
@@ -242,18 +248,10 @@ class PerplexityHandler: APIService {
                     let delta = firstChoice["delta"] as? [String: Any],
                     let contentPart = delta["content"] as? String
                 {
-                    let finished = false
-                    if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
-                        if let citations = dict["citations"] as? [String] {
-                            var citationsText = "\(contentPart) \n\nSources: "
-                            for (index, citation) in citations.enumerated() {
-                                citationsText += "[\\[\(index + 1)\\]](\(citation)) "
-                            }
-                            return (true, nil, citationsText, defaultRole)
-                        }
-                        _ = true
-                    }
-                    return (finished, nil, contentPart, defaultRole)
+                    let finished = firstChoice["finish_reason"] as? String == "stop"
+                    let citations = dict["citations"] as? [String]
+                    let finalContent = formatContentWithCitations(contentPart, citations: citations)
+                    return (finished, nil, finalContent, defaultRole)
                 }
             }
         }
