@@ -14,6 +14,7 @@ class PerplexityHandler: APIService {
     private let apiKey: String
     let model: String
     private let session: URLSession
+    private var isGeneratingChatName: Bool = false
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
@@ -28,6 +29,8 @@ class PerplexityHandler: APIService {
         temperature: Float,
         completion: @escaping (Result<String, APIError>) -> Void
     ) {
+        isGeneratingChatName = requestMessages.contains(where: { $0["content"] == AppConstants.chatGptGenerateChatInstruction })
+
         let request = prepareRequest(
             requestMessages: requestMessages,
             model: model,
@@ -196,7 +199,17 @@ class PerplexityHandler: APIService {
                         let messageRole = content["role"] as? String,
                         let messageContent = content["content"] as? String
                     {
-                        return (messageContent, messageRole)
+                        var finalContent = messageContent
+                        if let citations = dict["citations"] as? [String], !isGeneratingChatName {
+                            for (index, citation) in citations.enumerated() {
+                                let reference = "[\(index + 1)]"
+                                finalContent = finalContent.replacingOccurrences(
+                                    of: reference,
+                                    with: "[\\[\(index + 1)\\]](\(citation))"
+                                )
+                            }
+                        }
+                        return (finalContent, messageRole)
                     }
                 }
             }
@@ -229,9 +242,15 @@ class PerplexityHandler: APIService {
                     let delta = firstChoice["delta"] as? [String: Any],
                     let contentPart = delta["content"] as? String
                 {
-
                     let finished = false
                     if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
+                        if let citations = dict["citations"] as? [String] {
+                            var citationsText = "\(contentPart) \n\nSources: "
+                            for (index, citation) in citations.enumerated() {
+                                citationsText += "[\\[\(index + 1)\\]](\(citation)) "
+                            }
+                            return (true, nil, citationsText, defaultRole)
+                        }
                         _ = true
                     }
                     return (finished, nil, contentPart, defaultRole)
