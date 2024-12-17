@@ -55,6 +55,7 @@ class PerplexityHandler: APIService {
                     else {
                         completion(.failure(.invalidResponse))
                     }
+                    self.isGeneratingChatName = false
 
                 case .failure(let error):
                     completion(.failure(error))
@@ -189,12 +190,14 @@ class PerplexityHandler: APIService {
         guard let citations = citations, !isGeneratingChatName else { return content }
 
         var formattedContent = content
-        for (index, citation) in citations.enumerated() {
-            let reference = "[\(index + 1)]"
-            formattedContent = formattedContent.replacingOccurrences(
-                of: reference,
-                with: "[\\[\(index + 1)\\]](\(citation))"
-            )
+        if formattedContent.contains("[") {
+            for (index, citation) in citations.enumerated() {
+                let reference = "[\(index + 1)]"
+                formattedContent = formattedContent.replacingOccurrences(
+                    of: reference,
+                    with: "[\\[\(index + 1)\\]](\(citation))"
+                )
+            }
         }
         return formattedContent
     }
