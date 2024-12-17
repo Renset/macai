@@ -14,7 +14,6 @@ class PerplexityHandler: APIService {
     private let apiKey: String
     let model: String
     private let session: URLSession
-    private var isGeneratingChatName: Bool = false
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
@@ -29,8 +28,6 @@ class PerplexityHandler: APIService {
         temperature: Float,
         completion: @escaping (Result<String, APIError>) -> Void
     ) {
-        isGeneratingChatName = requestMessages.contains(where: { $0["content"] == AppConstants.chatGptGenerateChatInstruction })
-
         let request = prepareRequest(
             requestMessages: requestMessages,
             model: model,
@@ -55,8 +52,6 @@ class PerplexityHandler: APIService {
                     else {
                         completion(.failure(.invalidResponse))
                     }
-                    self.isGeneratingChatName = false
-
                 case .failure(let error):
                     completion(.failure(error))
                 }
@@ -103,7 +98,7 @@ class PerplexityHandler: APIService {
                             }
                             let jsonData = String(line[index...]).trimmingCharacters(in: .whitespacesAndNewlines)
                             if let jsonData = jsonData.data(using: .utf8) {
-                                let (finished, error, messageData, messageRole) = parseDeltaJSONResponse(data: jsonData)
+                                let (finished, error, messageData, _) = parseDeltaJSONResponse(data: jsonData)
 
                                 if error != nil {
                                     continuation.finish(throwing: error)
@@ -187,7 +182,7 @@ class PerplexityHandler: APIService {
     }
 
     private func formatContentWithCitations(_ content: String, citations: [String]?) -> String {
-        guard let citations = citations, !isGeneratingChatName else { return content }
+        guard let citations = citations else { return content }
 
         var formattedContent = content
         if formattedContent.contains("[") {
