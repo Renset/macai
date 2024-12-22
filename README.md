@@ -1,13 +1,19 @@
+<p align="center">
+<img width="256" src="https://github.com/user-attachments/assets/3efaabe0-c34e-4b9a-aca1-8dbd1271c0ff" />
+</p>
+
 # macai
 <a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
 <a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
 macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI services (ChatGPT, Claude, xAI (Grok), Google Gemini, Ollama and other compatible APIs). 
 
-<img width="1286" alt="macai window in both light and dark theme" src="https://github.com/user-attachments/assets/6e10b9cb-10be-42c7-be83-c482994103b3">
+
+<img width="716" alt="macai window" src="https://github.com/user-attachments/assets/8c99dfd8-3e38-4a9e-89ab-04e48547c39b">
+
 
 ## Downloads
-You can download latest binary, notarized by Apple, on [Releases](https://github.com/Renset/macai/releases) page. 
+Download [latest binary](https://github.com/Renset/macai/releases), notarized by Apple.
 
 You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
 
@@ -24,6 +30,7 @@ Checkout main branch and open project in Xcode 14.3 or later
   - Anthropic Claude
   - Google Gemini
   - xAI Grok
+  - Perplexity
   - Local LLMs via [Ollama](https://ollama.com)
   - Any OpenAI-compatible API
 
