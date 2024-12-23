@@ -6,8 +6,7 @@
 <a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
 <a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
-macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI services (ChatGPT, Claude, xAI (Grok), Google Gemini, Ollama and other compatible APIs). 
-
+macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI services (ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama and almost any OpenAI-compatible APIs). 
 
 <img width="716" alt="macai window" src="https://github.com/user-attachments/assets/8c99dfd8-3e38-4a9e-89ab-04e48547c39b">
 
