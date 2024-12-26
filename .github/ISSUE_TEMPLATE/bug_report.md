@@ -1,14 +1,14 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: "[BUG]"
+title: "[Bug]"
 labels: bug
 assignees: Renset
 
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+A clear and concise description of what the bug is. One bug at a time! If you want to report multiple bugs and/or features, please create separate tickets for each issue.
 
 **To Reproduce**
 Steps to reproduce the behavior:
