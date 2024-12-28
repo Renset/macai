@@ -12,7 +12,7 @@ macai (macOS AI) is a simple yet powerful native macOS client made to interact w
 
 
 ## Downloads
-Download [latest binary](https://github.com/Renset/macai/releases), notarized by Apple.
+Download [latest universal binary](https://github.com/Renset/macai/releases), notarized by Apple.
 
 You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
 
