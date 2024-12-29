@@ -214,7 +214,11 @@ class ChatGPTHandler: APIService {
         }
 
         let defaultRole = "assistant"
-        let dataString = String(data: data, encoding: .utf8)
+        let dataString = String(data: data, encoding: .utf8)!
+        
+        if dataString.first == ":" {
+            return (false, nil, "", defaultRole)
+        }
         if dataString == "[DONE]" {
             return (true, nil, nil, nil)
         }
