@@ -227,7 +227,7 @@ class PerplexityHandler: APIService {
     private func parseDeltaJSONResponse(data: Data?) -> (Bool, Error?, String?, String?) {
         guard let data = data else {
             print("No data received.")
-            return (true, "No data received" as! Error, nil, nil)
+            return (true, APIError.decodingFailed("No data received in SSE event"), nil, nil)
         }
 
         let defaultRole = "assistant"
@@ -253,9 +253,12 @@ class PerplexityHandler: APIService {
             }
         }
         catch {
-            print(String(data: data, encoding: .utf8))
-            print("Error parsing JSON: \(error)")
-            return (true, error, nil, nil)
+            #if DEBUG
+                print(String(data: data, encoding: .utf8) ?? "Data cannot be converted into String")
+                print("Error parsing JSON: \(error)")
+            #endif
+
+            return (false, APIError.decodingFailed("Failed to parse JSON: \(error.localizedDescription)"), nil, nil)
         }
 
         return (false, nil, nil, nil)
