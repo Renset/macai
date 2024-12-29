@@ -87,7 +87,7 @@ macOS 13.0 and later (both Intel and Apple chips are supported)
 Project is in the active development phase.
 
 ## Contributions
-Contributions are welcome. Take a look at [macai project page](https://github.com/users/Renset/projects/1) and [Issues page](https://github.com/Renset/macai/issues) to see planned features/bug fixes, or create a new one.
+Contributions are welcome. Take a look at [Issues page](https://github.com/Renset/macai/issues) to see already added features/bugs before creating new one. If you plan to fix bug or implement a feature, select any of the open _unassigned_ issues, assign to yourself and feel free to start working on it.
 
 ## Screenshots
 
