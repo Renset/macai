@@ -1,8 +1,8 @@
 name: "💡 Feature Request"
 description: Create a new ticket for a new feature request
-title: "[Feature Request] - <title>"
+title: "[Feature Request] <title>"
 labels: [
-  "question"
+  "feature"
 ]
 body:
   - type: textarea
@@ -36,7 +36,7 @@ body:
       description: What are the drawbacks/impacts of your feature request ?
       placeholder: Identify the drawbacks and impacts while being neutral on your feature request
     validations:
-      required: true
+      required: false
   - type: textarea
     id: unresolved_question
     attributes:
