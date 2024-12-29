@@ -90,7 +90,7 @@ class ChatGPTHandler: APIService {
                     }
 
                     for try await line in stream.lines {
-                        if line.data(using: .utf8) != nil {
+                        if line.data(using: .utf8) != nil && isNotSSEComment(line) {
                             let prefix = "data: "
                             var index = line.startIndex
                             if line.starts(with: prefix) {
@@ -98,7 +98,7 @@ class ChatGPTHandler: APIService {
                             }
                             let jsonData = String(line[index...]).trimmingCharacters(in: .whitespacesAndNewlines)
                             if let jsonData = jsonData.data(using: .utf8) {
-                                let (finished, error, messageData, messageRole) = parseDeltaJSONResponse(data: jsonData)
+                                let (finished, error, messageData, _) = parseDeltaJSONResponse(data: jsonData)
 
                                 if error != nil {
                                     continuation.finish(throwing: error)
@@ -210,7 +210,7 @@ class ChatGPTHandler: APIService {
     private func parseDeltaJSONResponse(data: Data?) -> (Bool, Error?, String?, String?) {
         guard let data = data else {
             print("No data received.")
-            return (true, "No data received" as! Error, nil, nil)
+            return (true, APIError.decodingFailed("No data received in SSE event"), nil, nil)
         }
 
         let defaultRole = "assistant"
@@ -238,11 +238,18 @@ class ChatGPTHandler: APIService {
             }
         }
         catch {
-            print(String(data: data, encoding: .utf8))
-            print("Error parsing JSON: \(error)")
-            return (true, error, nil, nil)
+            #if DEBUG
+                print(String(data: data, encoding: .utf8) ?? "Data cannot be converted into String")
+                print("Error parsing JSON: \(error)")
+            #endif
+            
+            return (false, APIError.decodingFailed("Failed to parse JSON: \(error.localizedDescription)"), nil, nil)
         }
 
         return (false, nil, nil, nil)
+    }
+    
+    private func isNotSSEComment(_ string: String) -> Bool {
+        return !string.starts(with: ":")
     }
 }
