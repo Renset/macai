@@ -96,7 +96,11 @@ struct macaiApp: App {
 
             CommandGroup(after: .newItem) {
                 Button("New Chat") {
-                    NotificationCenter.default.post(name: AppConstants.newChatNotification, object: nil)
+                    NotificationCenter.default.post(
+                        name: AppConstants.newChatNotification,
+                        object: nil,
+                        userInfo: ["windowId": NSApp.keyWindow?.windowNumber ?? 0]
+                    )
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             }
