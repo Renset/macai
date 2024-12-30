@@ -12,6 +12,7 @@ import Foundation
 import SwiftUI
 
 struct ContentView: View {
+    @State private var window: NSWindow?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -76,13 +77,18 @@ struct ContentView: View {
                 }
             }
         })
+        .background(WindowAccessor(window: $window))
         .onAppear {
             NotificationCenter.default.addObserver(
                 forName: AppConstants.newChatNotification,
                 object: nil,
                 queue: .main
-            ) { _ in
-                newChat()
+            ) { notification in
+                let windowId = window?.windowNumber
+                if let sourceWindowId = notification.userInfo?["windowId"] as? Int,
+                   sourceWindowId == windowId {
+                    newChat()
+                }
             }
         }
         .navigationTitle("Chats")
@@ -230,4 +236,18 @@ struct PreviewPane: View {
                 }
         )
     }
+}
+
+struct WindowAccessor: NSViewRepresentable {
+    @Binding var window: NSWindow?
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            self.window = view.window
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
