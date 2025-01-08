@@ -10,11 +10,15 @@ macai (macOS AI) is a simple yet powerful native macOS client made to interact w
 
 <img width="716" alt="macai window" src="https://github.com/user-attachments/assets/8c99dfd8-3e38-4a9e-89ab-04e48547c39b">
 
-
 ## Downloads
-Download [latest universal binary](https://github.com/Renset/macai/releases), notarized by Apple.
-
 You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
+
+### Homebrew
+Install macai cask with homebrew:
+`brew install --cask macai`
+
+### Manual
+Download [latest universal binary](https://github.com/Renset/macai/releases), notarized by Apple.
 
 ## Build from source
 Checkout main branch and open project in Xcode 14.3 or later
