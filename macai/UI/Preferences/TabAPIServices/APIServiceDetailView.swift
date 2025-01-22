@@ -102,31 +102,44 @@ struct APIServiceDetailView: View {
                     
                     
                     HStack {
-                        // Select model
                         Text("LLM Model:")
                             .frame(width: 94, alignment: .leading)
                         
-                        Picker("", selection: $viewModel.selectedModel) {
-                            ForEach(viewModel.defaultApiConfiguration!.models, id: \.self) { modelName in
-                                Text(modelName).tag(modelName)
+                        if viewModel.isLoadingModels {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.5)
+                                    .frame(height: 24)
+                                
+                                Spacer()
                             }
-                            Text("Enter custom model").tag("custom")
-                        }.onChange(of: viewModel.selectedModel) { newValue in
-                            if newValue == "custom" {
-                                viewModel.isCustomModel = true
+
+                        } else {
+                            Picker("", selection: $viewModel.selectedModel) {
+                                ForEach(viewModel.availableModels, id: \.self) { modelName in
+                                    Text(modelName).tag(modelName)
+                                }
+                                Text("Enter custom model").tag("custom")
                             }
-                            else {
-                                viewModel.isCustomModel = false
-                                viewModel.model = newValue
-                            }
-                            
-                            if viewModel.model != self.previousModel {
-                                self.lampColor = .gray
-                                self.previousModel = viewModel.model
+                            .onChange(of: viewModel.selectedModel) { newValue in
+                                if newValue == "custom" {
+                                    viewModel.isCustomModel = true
+                                } else {
+                                    viewModel.isCustomModel = false
+                                    viewModel.model = newValue
+                                }
                             }
                         }
                     }
                     .padding(.top, 8)
+                    
+                    if let error = viewModel.modelFetchError {
+                        Text("Couldn't get the list of models. API Server for selected service might be down: \(error)")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
+                    }
                     
                     if viewModel.isCustomModel {
                         VStack {

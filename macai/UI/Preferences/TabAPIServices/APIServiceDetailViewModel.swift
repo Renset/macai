@@ -27,6 +27,9 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var selectedModel: String =
         (AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]?.defaultModel ?? "")
     @Published var defaultApiConfiguration = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]
+    @Published var fetchedModels: [AIModel] = []
+    @Published var isLoadingModels: Bool = false
+    @Published var modelFetchError: String? = nil
 
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?) {
         self.viewContext = viewContext
@@ -34,6 +37,7 @@ class APIServiceDetailViewModel: ObservableObject {
 
         setupInitialValues()
         setupBindings()
+        fetchModelsForService()
     }
 
     private func setupInitialValues() {
@@ -73,6 +77,53 @@ class APIServiceDetailViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    private func fetchModelsForService() {
+        guard type.lowercased() == "ollama" else {
+            fetchedModels = []
+            return
+        }
+        
+        isLoadingModels = true
+        modelFetchError = nil
+        
+        let config = APIServiceConfig(
+            name: type,
+            apiUrl: URL(string: url)!,
+            apiKey: "", // Ollama doesn't need API key
+            model: ""
+        )
+        
+        let apiService = APIServiceFactory.createAPIService(config: config)
+        
+        Task {
+            do {
+                let models = try await apiService.fetchModels()
+                DispatchQueue.main.async {
+                    self.fetchedModels = models
+                    self.isLoadingModels = false
+                    
+                    if !models.contains(where: { $0.id == self.selectedModel }) {
+                        self.selectedModel = models.first?.id ?? self.defaultApiConfiguration!.defaultModel
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.modelFetchError = error.localizedDescription
+                    self.isLoadingModels = false
+                    self.fetchedModels = []
+                }
+            }
+        }
+    }
+
+    var availableModels: [String] {
+        if type.lowercased() == "ollama" {
+            return fetchedModels.map { $0.id }
+        } else {
+            return defaultApiConfiguration?.models ?? []
+        }
     }
 
     func saveAPIService() {
@@ -122,7 +173,7 @@ class APIServiceDetailViewModel: ObservableObject {
             print("Error deleting API service: \(error)")
         }
     }
-
+    
     func onChangeApiType(_ type: String) {
         self.name = self.name == self.defaultApiConfiguration!.name ? "" : self.name
         self.defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
@@ -130,5 +181,7 @@ class APIServiceDetailViewModel: ObservableObject {
         self.url = self.defaultApiConfiguration!.url
         self.model = self.defaultApiConfiguration!.defaultModel
         self.selectedModel = self.model
+        
+        fetchModelsForService()
     }
 }

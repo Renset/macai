@@ -7,6 +7,14 @@
 
 import Foundation
 
+private struct OllamaModelsResponse: Codable {
+    let models: [OllamaModel]
+}
+
+private struct OllamaModel: Codable {
+    let name: String
+}
+
 class OllamaHandler: APIService {
     let name: String
     let baseURL: URL
@@ -115,6 +123,34 @@ class OllamaHandler: APIService {
                     continuation.finish(throwing: APIError.requestFailed(error))
                 }
             }
+        }
+    }
+    
+    func fetchModels() async throws -> [AIModel] {
+        let tagsURL = baseURL.deletingLastPathComponent().appendingPathComponent("tags")
+        
+        var request = URLRequest(url: tagsURL)
+        request.httpMethod = "GET"
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            let result = handleAPIResponse(response, data: data, error: nil)
+            switch result {
+            case .success(let responseData):
+                guard let responseData = responseData else {
+                    throw APIError.invalidResponse
+                }
+                
+                let ollamaResponse = try JSONDecoder().decode(OllamaModelsResponse.self, from: responseData)
+                
+                return ollamaResponse.models.map { AIModel(id: $0.name) }
+                
+            case .failure(let error):
+                throw error
+            }
+        } catch {
+            throw APIError.requestFailed(error)
         }
     }
 

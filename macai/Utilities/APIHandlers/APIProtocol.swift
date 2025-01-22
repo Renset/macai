@@ -26,8 +26,11 @@ protocol APIService {
         temperature: Float,
         completion: @escaping (Result<String, APIError>) -> Void
     )
+    
     func sendMessageStream(_ requestMessages: [[String: String]], temperature: Float) async throws
         -> AsyncThrowingStream<String, Error>
+    
+    func fetchModels() async throws -> [AIModel]
 }
 
 protocol APIServiceConfiguration {
@@ -35,4 +38,18 @@ protocol APIServiceConfiguration {
     var apiUrl: URL { get set }
     var apiKey: String { get set }
     var model: String { get set }
+}
+
+struct AIModel: Codable, Identifiable {
+    let id: String
+    
+    init(id: String) {
+        self.id = id
+    }
+}
+
+extension APIService {
+    func fetchModels() async throws -> [AIModel] {
+        return []
+    }
 }
