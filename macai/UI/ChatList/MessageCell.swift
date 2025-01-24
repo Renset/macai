@@ -17,6 +17,19 @@ struct MessageCell: View {
     @Environment(\.colorScheme) var colorScheme
 
     var searchText: String = ""
+    
+    private var filteredMessage: String {
+        if !message.starts(with: "<think>") {
+            return message
+        }
+        let messageWithoutNewlines = message.replacingOccurrences(of: "\n", with: " ")
+        let messageWithoutThinking = messageWithoutNewlines.replacingOccurrences(
+            of: "<think>.*?</think>",
+            with: "",
+            options: .regularExpression
+        )
+        return messageWithoutThinking.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var body: some View {
         Button {
@@ -42,8 +55,8 @@ struct MessageCell: View {
                             .truncationMode(.tail)
                     }
 
-                    if message != "" {
-                        HighlightedText(message, highlight: searchText)
+                    if filteredMessage != "" {
+                        HighlightedText(filteredMessage, highlight: searchText)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
