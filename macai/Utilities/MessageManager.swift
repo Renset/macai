@@ -117,13 +117,26 @@ class MessageManager: ObservableObject {
 
             switch result {
             case .success(let messageBody):
-                let chatName = messageBody
+                let chatName = self.sanitizeChatName(messageBody)
                 chat.name = chatName
                 self.viewContext.saveWithRetry(attempts: 3)
             case .failure(let error):
                 print("Error generating chat name: \(error)")
             }
         }
+    }
+
+    private func sanitizeChatName(_ rawName: String) -> String {
+        if let range = rawName.range(of: "**(.+?)**", options: .regularExpression) {
+            return String(rawName[range]).trimmingCharacters(in: CharacterSet(charactersIn: "*"))
+        }
+
+        let lines = rawName.components(separatedBy: .newlines)
+        if let lastNonEmptyLine = lines.last(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            return lastNonEmptyLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return rawName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func testAPI(model: String, completion: @escaping (Result<Void, Error>) -> Void) {

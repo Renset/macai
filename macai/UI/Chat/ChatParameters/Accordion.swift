@@ -14,14 +14,20 @@ struct Accordion<Content: View>: View {
     let content: Content
     var isButtonHidden: Bool = false
 
-    init(icon: String?, title: String, isExpanded: Bool = false, isButtonHidden: Bool = false, @ViewBuilder content: () -> Content) {
+    init(
+        icon: String?,
+        title: String,
+        isExpanded: Bool = false,
+        isButtonHidden: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
         self.icon = icon
         self.title = title
         self._isExpanded = State(initialValue: isExpanded)
         self.isButtonHidden = isButtonHidden
         self.content = content()
     }
-    
+
     var body: some View {
         VStack {
             if !isButtonHidden {
@@ -42,15 +48,15 @@ struct Accordion<Content: View>: View {
                                         .frame(width: 12, height: 12)
                                 }
                             }
-                            
+
                             Text(title)
-                                .frame(alignment:.leading)
-                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .frame(alignment: .leading)
+                            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         }
                     }
                 }
                 .padding(.horizontal, 32)
-                
+
             }
             if isExpanded {
                 content

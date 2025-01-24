@@ -58,6 +58,7 @@ struct ChatListView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchField
+                .padding(.bottom, 8)
 
             List {
                 ForEach(filteredChats, id: \.id) { chat in

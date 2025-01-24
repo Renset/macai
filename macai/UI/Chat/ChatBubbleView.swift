@@ -14,6 +14,7 @@ enum MessageElements {
     case table(header: [String], data: [[String]])
     case code(code: String, lang: String, indent: Int)
     case formula(String)
+    case thinking(String, isExpanded: Bool)
 }
 
 struct ChatBubbleContent: Equatable {
@@ -94,6 +95,9 @@ struct ChatBubbleView: View, Equatable {
                         )
                         ForEach(0..<parsedElements.count, id: \.self) { index in
                             switch parsedElements[index] {
+                            case .thinking(let content, _):
+                                ThinkingProcessView(content: content)
+                                    .padding(.vertical, 4)
                             case .text(let text):
                                 let attributedString: NSAttributedString = {
                                     let options = AttributedString.MarkdownParsingOptions(
