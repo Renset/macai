@@ -17,7 +17,7 @@ struct MessageParser {
         case codeBlock
         case formulaBlock
         case formulaLine
-        case thinking  // Add new case
+        case thinking
     }
 
     func detectBlockType(line: String) -> BlockType {
@@ -187,6 +187,35 @@ struct MessageParser {
             let blockType = detectBlockType(line: line)
 
             switch blockType {
+
+            case .codeBlock:
+                leadingSpaces = line.count - line.trimmingCharacters(in: .whitespaces).count
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                toggleCodeBlock(line: line)
+
+            case .table:
+                handleTableLine(line: line)
+
+            case .formulaBlock:
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                openFormulaBlock()
+
+            case .formulaLine:
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\]") {
+                    closeFormulaBlock()
+                    appendFormulaLines()
+                }
+                else {
+                    handleFormulaLine(line: line)
+                    if !isFormulaBlockOpened {
+                        appendFormulaLines()
+                    }
+                }
+
             case .thinking:
                 if line.contains("</think>") {
                     let thinking =
@@ -221,43 +250,7 @@ struct MessageParser {
                         thinkingLines.append(line)
                     }
                 }
-                else {
-                    if !currentTableData.isEmpty {
-                        appendTable()
-                    }
-                    textLines.append(line)
-                }
-
-            case .codeBlock:
-                leadingSpaces = line.count - line.trimmingCharacters(in: .whitespaces).count
-                combineTextLinesIfNeeded()
-                appendTableIfNeeded()
-                toggleCodeBlock(line: line)
-
-            case .table:
-                handleTableLine(line: line)
-
-            case .formulaBlock:
-                combineTextLinesIfNeeded()
-                appendTableIfNeeded()
-                openFormulaBlock()
-
-            case .formulaLine:
-                combineTextLinesIfNeeded()
-                appendTableIfNeeded()
-                if line.trimmingCharacters(in: .whitespaces).hasPrefix("\\]") {
-                    closeFormulaBlock()
-                    appendFormulaLines()
-                }
-                else {
-                    handleFormulaLine(line: line)
-                    if !isFormulaBlockOpened {
-                        appendFormulaLines()
-                    }
-                }
-
-            case .text:
-                if isCodeBlockOpened {
+                else if isCodeBlockOpened {
                     if leadingSpaces > 0 {
                         codeLines.append(String(line.dropFirst(leadingSpaces)))
                     }

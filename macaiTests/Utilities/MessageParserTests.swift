@@ -39,7 +39,7 @@ class MessageParserTests: XCTestCase {
         This is another sample text.
         """
 
-        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
+        let result = parser.parseMessageFromString(input: input)
         XCTAssertEqual(result.count, 3)
 
         switch result[0] {
@@ -86,7 +86,7 @@ class MessageParserTests: XCTestCase {
         [Enter Romeo and Juliet]
         """
         
-        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
+        let result = parser.parseMessageFromString(input: input)
         XCTAssertEqual(result.count, 2)
 
         switch result[0] {
@@ -98,7 +98,7 @@ class MessageParserTests: XCTestCase {
         
         switch result[1] {
         case .code(code: let highlightedCode):
-            XCTAssertEqual(String(highlightedCode.code!.string), """
+            XCTAssertEqual(String(highlightedCode.code), """
             The Infamous FizzBuzz Program.
             By ChatGPT.
             
@@ -148,7 +148,7 @@ class MessageParserTests: XCTestCase {
         
         """
 
-        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
+        let result = parser.parseMessageFromString(input: input)
         XCTAssertEqual(result.count, 11)
 
         switch result[1] {
@@ -161,7 +161,7 @@ class MessageParserTests: XCTestCase {
 
         switch result[3] {
         case .code(code: let highlightedCode):
-            XCTAssertEqual(String(highlightedCode.code!.string), """
+            XCTAssertEqual(String(highlightedCode.code), """
             This is a code block
             """)
         default:
@@ -224,7 +224,7 @@ class MessageParserTests: XCTestCase {
         - \\( \\Phi(X) \\) is the dilaton field.
         """
 
-        let result = parser.parseMessageFromString(input: input, shouldSkipCodeHighlighting: false)
+        let result = parser.parseMessageFromString(input: input)
         XCTAssertEqual(result.count, 3)
         
         switch result[0] {
