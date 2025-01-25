@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ThinkingProcessView: View {
     let content: String
-    @State private var isExpanded: Bool = false
+    @State private var isExpanded: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

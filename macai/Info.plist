@@ -2,11 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
 	<key>SUFeedURL</key>
 	<string>https://renset.dev/macai/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>b2+Lx88mRPO5YKCOyTZET091/tSpMKrqwMNCEwahQCU=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>7200</integer>
 </dict>
 </plist>
