@@ -38,7 +38,6 @@ struct ContentView: View {
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
     @State private var columnVisibility = NavigationSplitViewVisibility.all
-    
 
     var body: some View {
         NavigationSplitView {
@@ -86,22 +85,52 @@ struct ContentView: View {
             ) { notification in
                 let windowId = window?.windowNumber
                 if let sourceWindowId = notification.userInfo?["windowId"] as? Int,
-                   sourceWindowId == windowId {
+                    sourceWindowId == windowId
+                {
                     newChat()
                 }
             }
         }
         .navigationTitle("Chats")
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Image("logo_\(selectedChat?.apiService?.type ?? "")")
+                                .resizable()
+                                .renderingMode(.template)
+                                .interpolation(.high)
+                                .frame(width: 16, height: 16)
+                                
+                if let selectedChat = selectedChat {
+                    Menu {
+                        ForEach(apiServices, id: \.objectID) { apiService in
+                            Button(action: {
+                                selectedChat.apiService = apiService
+                                handleServiceChange(selectedChat, apiService)
+                            }) {
+                                HStack {
+                                    Text(apiService.name ?? "Unnamed API Service")
+                                    if selectedChat.apiService == apiService {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+
+                        Divider()
+
+                        Text("Current Model: \(selectedChat.gptModel)")
+                            .foregroundColor(.secondary)
+                    } label: {
+                        Text(selectedChat.apiService?.name ?? "Select API Service")
+                    }
+                }
+
                 Button(action: {
                     newChat()
                 }) {
                     Image(systemName: "square.and.pencil")
                 }
-            }
 
-            ToolbarItem(placement: .primaryAction) {
                 if #available(macOS 14.0, *) {
                     SettingsLink {
                         Image(systemName: "gear")
@@ -115,8 +144,8 @@ struct ContentView: View {
                     }
                 }
             }
-
         }
+
         .onChange(of: scenePhase) { phase in
             print("Scene phase changed: \(phase)")
             if phase == .inactive {
@@ -194,6 +223,20 @@ struct ContentView: View {
         else {
             fatalError("Chat not found in array")
         }
+    }
+
+    private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
+        if let newDefaultPersona = newService.defaultPersona {
+            chat.persona = newDefaultPersona
+            if let newSystemMessage = chat.persona?.systemMessage,
+                !newSystemMessage.isEmpty
+            {
+                chat.systemMessage = newSystemMessage
+            }
+        }
+        chat.gptModel = newService.model ?? AppConstants.chatGptDefaultModel
+        chat.objectWillChange.send()
+        try? viewContext.save()
     }
 
 }

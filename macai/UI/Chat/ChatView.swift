@@ -36,6 +36,12 @@ struct ChatView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isBottomContainerExpanded = false
 
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)],
+        animation: .default
+    )
+    private var apiServices: FetchedResults<APIServiceEntity>
+
     init(viewContext: NSManagedObjectContext, chat: ChatEntity) {
         self.viewContext = viewContext
         self._chat = State(initialValue: chat)
@@ -49,14 +55,6 @@ struct ChatView: View {
         VStack(spacing: 0) {
             ScrollView {
                 ScrollViewReader { scrollView in
-                    ChatParametersView(
-                        viewContext: viewContext,
-                        chat: chat,
-                        isHovered: isHovered,
-                        chatViewModel: chatViewModel
-                    )
-                    .padding(.vertical)
-
                     VStack {
                         SystemMessageBubbleView(
                             message: chat.systemMessage,
@@ -274,6 +272,21 @@ extension ChatView {
 
     private func resetError() {
         currentError = nil
+    }
+
+    private func handleServiceChange(_ newService: APIServiceEntity) {
+        if let newDefaultPersona = newService.defaultPersona {
+            chat.persona = newDefaultPersona
+            if let newSystemMessage = chat.persona?.systemMessage,
+                !newSystemMessage.isEmpty
+            {
+                chat.systemMessage = newSystemMessage
+            }
+        }
+        chat.gptModel = newService.model ?? AppConstants.chatGptDefaultModel
+        chat.objectWillChange.send()
+        try? viewContext.save()
+        chatViewModel.recreateMessageManager()
     }
 }
 
