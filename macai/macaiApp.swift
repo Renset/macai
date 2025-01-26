@@ -92,7 +92,7 @@ struct macaiApp: App {
                 CheckForUpdatesView(updater: updaterController.updater)
             }
 
-            CommandGroup(after: .newItem) {
+            CommandGroup(replacing: .newItem) {
                 Button("New Chat") {
                     NotificationCenter.default.post(
                         name: AppConstants.newChatNotification,
@@ -100,7 +100,12 @@ struct macaiApp: App {
                         userInfo: ["windowId": NSApp.keyWindow?.windowNumber ?? 0]
                     )
                 }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .keyboardShortcut("n", modifiers: .command)
+
+                Button("New Window") {
+                    NSApplication.shared.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
+                }
+                .keyboardShortcut("n", modifiers: [.command, .option])
             }
 
             CommandGroup(after: .sidebar) {
@@ -110,9 +115,8 @@ struct macaiApp: App {
                         with: nil
                     )
                 }
-                .keyboardShortcut("s", modifiers: [.command, .shift])
+                .keyboardShortcut("s", modifiers: [.command])
             }
-
         }
 
         Settings {
