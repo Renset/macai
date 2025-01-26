@@ -10,8 +10,6 @@ import SwiftUI
 struct ChatParametersView: View {
     let viewContext: NSManagedObjectContext
     @State var chat: ChatEntity
-    @Binding var newMessage: String
-    @Binding var editSystemMessage: Bool
     @State var isHovered: Bool
     @ObservedObject var chatViewModel: ChatViewModel
 
@@ -35,17 +33,6 @@ struct ChatParametersView: View {
                         apiServices: apiServices,
                         onServiceChanged: handleServiceChange
                     )
-                }
-
-                PersonaSelectorView(chat: chat)
-
-                SystemMessageView(
-                    message: chat.systemMessage,
-                    isEditable: !editSystemMessage && isHovered,
-                    onEdit: handleSystemMessageEdit
-                )
-                .onHover { hovering in
-                    isHovered = hovering
                 }
             }
             .frame(maxWidth: .infinity)
@@ -71,11 +58,6 @@ struct ChatParametersView: View {
         chat.objectWillChange.send()
         try? viewContext.save()
         chatViewModel.recreateMessageManager()
-    }
-
-    private func handleSystemMessageEdit() {
-        newMessage = chat.systemMessage
-        editSystemMessage = true
     }
 }
 
@@ -107,42 +89,11 @@ private struct APIServiceSelector: View {
                     }
                 }
                 .pickerStyle(.menu)
-            } else {
+            }
+            else {
                 Text("API Service: \(chat.apiService?.name ?? "Unnamed API Service")")
             }
 
-        }
-        .padding(.horizontal, 20)
-    }
-}
-
-private struct SystemMessageView: View {
-    let message: String
-    let isEditable: Bool
-    let onEdit: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text("System message: \(message)")
-                .textSelection(.enabled)
-
-            if isEditable {
-                HStack {
-                    Button(action: onEdit) {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .foregroundColor(.gray.opacity(0.7))
-                    .font(.system(size: 12))
-
-                    Spacer()
-                }
-                .frame(height: 12)
-
-            }
-            else {
-                Color.clear.frame(height: 12)
-            }
         }
         .padding(.horizontal, 20)
     }

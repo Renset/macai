@@ -22,18 +22,21 @@ struct ChatBubbleContent: Equatable {
     let own: Bool
     let waitingForResponse: Bool?
     let errorMessage: ErrorMessage?
-    let initialMessage: Bool
+    let systemMessage: Bool
     let isStreaming: Bool
 
     static func == (lhs: ChatBubbleContent, rhs: ChatBubbleContent) -> Bool {
         return lhs.message == rhs.message && lhs.own == rhs.own && lhs.waitingForResponse == rhs.waitingForResponse
-            && lhs.initialMessage == rhs.initialMessage && lhs.isStreaming == rhs.isStreaming
+            && lhs.systemMessage == rhs.systemMessage && lhs.isStreaming == rhs.isStreaming
     }
 }
 
 struct ChatBubbleView: View, Equatable {
     let content: ChatBubbleContent
     var message: MessageEntity?
+    var color: String?
+    var onEdit: (() -> Void)?
+
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
     private let outgoingBubbleColorLight = Color(red: 0.92, green: 0.92, blue: 0.92)
@@ -158,8 +161,8 @@ struct ChatBubbleView: View, Equatable {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
-                    content.initialMessage
-                        ? Color(.systemOrange)
+                    content.systemMessage
+                        ? (Color(hex: color ?? "#CCCCCC") ?? .gray).opacity(0.6)
                         : colorScheme == .dark
                             ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
                             : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
@@ -237,6 +240,20 @@ struct ChatBubbleView: View, Equatable {
 
     private var toolbarContent: some View {
         HStack(spacing: 12) {
+            if content.systemMessage {
+                Button(action: {
+                    onEdit?()
+                }) {
+                    Image(systemName: "pencil")
+                        .imageScale(.small)
+                        .frame(width: 10)
+                    Text("Edit")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(PlainButtonStyle())
+                .foregroundColor(.gray.opacity(0.7))
+            }
+
             Button(action: {
                 copyMessageToClipboard(content.message)
             }) {

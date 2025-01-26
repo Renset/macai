@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4A0E02852D0F571000D2FAF3 /* PerplexityHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */; };
 		4A1614112D430AE300A1EF8D /* ThinkingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */; };
+		4A1614132D46B9BA00A1EF8D /* SystemMessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */; };
 		4A194C062C9633BC003C8782 /* EntityListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A194C052C9633BC003C8782 /* EntityListView.swift */; };
 		4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0929CEFB7F002A139A /* MessageCell.swift */; };
 		4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */; };
@@ -52,6 +53,7 @@
 		4A885C582CEA3F7B0018BBED /* ChatListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C572CEA3F7B0018BBED /* ChatListRow.swift */; };
 		4A8E2E0B2C56FCFD00F077F2 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */; };
 		4A98B1C029CA60ED0064835A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A98B1BF29CA60ED0064835A /* Info.plist */; };
+		4AA681C72D3DAB40005C4E6E /* ChatBottomContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */; };
 		4AA6EF592C565F90003B6D41 /* APIServiceConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF582C565F90003B6D41 /* APIServiceConfig.swift */; };
 		4AA6EF5B2C565FDF003B6D41 /* APIServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF5A2C565FDF003B6D41 /* APIServiceFactory.swift */; };
 		4AA6EF5D2C566009003B6D41 /* MessageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF5C2C566009003B6D41 /* MessageManager.swift */; };
@@ -95,6 +97,7 @@
 /* Begin PBXFileReference section */
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
 		4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinkingProcessView.swift; sourceTree = "<group>"; };
+		4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMessageBubbleView.swift; sourceTree = "<group>"; };
 		4A194C052C9633BC003C8782 /* EntityListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityListView.swift; sourceTree = "<group>"; };
 		4A1F0A0929CEFB7F002A139A /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
 		4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreen.swift; sourceTree = "<group>"; };
@@ -136,6 +139,7 @@
 		4A885C572CEA3F7B0018BBED /* ChatListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListRow.swift; sourceTree = "<group>"; };
 		4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		4A98B1BF29CA60ED0064835A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBottomContainerView.swift; sourceTree = "<group>"; };
 		4AA6EF582C565F90003B6D41 /* APIServiceConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceConfig.swift; sourceTree = "<group>"; };
 		4AA6EF5A2C565FDF003B6D41 /* APIServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceFactory.swift; sourceTree = "<group>"; };
 		4AA6EF5C2C566009003B6D41 /* MessageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageManager.swift; sourceTree = "<group>"; };
@@ -222,6 +226,8 @@
 		4A272A6729F5CB5300F93D0D /* Chat */ = {
 			isa = PBXGroup;
 			children = (
+				4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */,
+				4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */,
 				4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */,
 				4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */,
 				4A254A6B2CEA69DF00F66935 /* CodeView */,
@@ -609,6 +615,8 @@
 				4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */,
 				4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */,
 				4AA6EF5B2C565FDF003B6D41 /* APIServiceFactory.swift in Sources */,
+				4AA681C72D3DAB40005C4E6E /* ChatBottomContainerView.swift in Sources */,
+				4A1614132D46B9BA00A1EF8D /* SystemMessageBubbleView.swift in Sources */,
 				4AFDEB7A2AFF908700BA8642 /* TabChatSettingsView.swift in Sources */,
 				4AFDEB782AFF904400BA8642 /* TabGeneralSettingsView.swift in Sources */,
 				4AA6EF592C565F90003B6D41 /* APIServiceConfig.swift in Sources */,

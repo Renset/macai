@@ -33,6 +33,8 @@ struct ChatView: View {
     @State private var selectedApiService: APIServiceEntity?
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     @State private var currentError: ErrorMessage?
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isBottomContainerExpanded = false
 
     init(viewContext: NSManagedObjectContext, chat: ChatEntity) {
         self.viewContext = viewContext
@@ -50,14 +52,20 @@ struct ChatView: View {
                     ChatParametersView(
                         viewContext: viewContext,
                         chat: chat,
-                        newMessage: $newMessage,
-                        editSystemMessage: $editSystemMessage,
                         isHovered: isHovered,
                         chatViewModel: chatViewModel
                     )
                     .padding(.vertical)
 
                     VStack {
+                        SystemMessageBubbleView(
+                            message: chat.systemMessage,
+                            color: chat.persona?.color,
+                            newMessage: $newMessage,
+                            editSystemMessage: $editSystemMessage
+                        )
+                        .id("system_message")
+
                         if chat.messages.count > 0 {
                             ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
                                 let bubbleContent = ChatBubbleContent(
@@ -65,10 +73,9 @@ struct ChatView: View {
                                     own: messageEntity.own,
                                     waitingForResponse: messageEntity.waitingForResponse,
                                     errorMessage: nil,
-                                    initialMessage: false,
+                                    systemMessage: false,
                                     isStreaming: isStreaming
                                 )
-
                                 ChatBubbleView(content: bubbleContent, message: messageEntity)
                                     .id(messageEntity.id)
                             }
@@ -80,7 +87,7 @@ struct ChatView: View {
                                 own: false,
                                 waitingForResponse: true,
                                 errorMessage: nil,
-                                initialMessage: false,
+                                systemMessage: false,
                                 isStreaming: isStreaming
                             )
 
@@ -93,7 +100,7 @@ struct ChatView: View {
                                 own: false,
                                 waitingForResponse: false,
                                 errorMessage: error,
-                                initialMessage: false,
+                                systemMessage: false,
                                 isStreaming: isStreaming
                             )
 
@@ -138,40 +145,42 @@ struct ChatView: View {
                 .id("chatContainer")
             }
             .modifier(MeasureModifier(renderTime: $renderTime))
-
-            // Input field, with multiline support and send button
-            HStack {
-                MessageInputView(
-                    text: $newMessage,
-                    onEnter: {
-                        if editSystemMessage {
-                            chat.systemMessage = newMessage
-                            newMessage = ""
-                            editSystemMessage = false
-                            store.saveInCoreData()
-                        }
-                        else if newMessage != "" && newMessage != " " {
-                            self.sendMessage()
-                        }
-                    },
-                    isFocused: .focused
+            .padding(.bottom, 6)
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        backgroundColor.opacity(0.25),
+                        backgroundColor.opacity(0.5),
+                        backgroundColor.opacity(0.9),
+                        backgroundColor,
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-                .onDisappear(perform: {
-                    chat.newMessage = newMessage
-                    store.saveInCoreData()
-                })
-                .onAppear(perform: {
-                    DispatchQueue.main.async {
-                        newMessage = chat.newMessage ?? ""
-                    }
-                })
-
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .multilineTextAlignment(.leading)
-                .lineLimit(nil)
-                .padding()
+                .frame(height: 40)
+                .padding(.trailing, 16)
+                .allowsHitTesting(false)
             }
-            .border(width: 1, edges: [.top], color: Color(NSColor.windowBackgroundColor).opacity(0.8))
+
+            ChatBottomContainerView(
+                chat: chat,
+                newMessage: $newMessage,
+                onSendMessage: {
+                    if editSystemMessage {
+                        chat.systemMessage = newMessage
+                        newMessage = ""
+                        editSystemMessage = false
+                        store.saveInCoreData()
+                    }
+                    else if newMessage != "" && newMessage != " " {
+                        self.sendMessage()
+                    }
+                },
+                onExpandedStateChange: { expanded in
+                    isBottomContainerExpanded = expanded
+                }
+            )
 
         }
         .background(backgroundColor)

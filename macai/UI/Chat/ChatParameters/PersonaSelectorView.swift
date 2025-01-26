@@ -97,7 +97,7 @@ struct PersonaSelectorView: View {
                             .id(persona)
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 14)
                 .padding(.vertical, 12)
             }
             .overlay(alignment: .leading) {
