@@ -87,18 +87,26 @@ class ChatViewModel: ObservableObject {
         _messageManager = createMessageManager()
     }
 
+    var canSendMessage: Bool {
+        return chat.apiService != nil
+    }
+
     private func loadCurrentAPIConfig() -> APIServiceConfiguration? {
+        guard let apiService = chat.apiService, let apiServiceUrl = apiService.url else {
+            return nil
+        }
+
         var apiKey = ""
         do {
-            apiKey = try TokenManager.getToken(for: chat.apiService?.id?.uuidString ?? "") ?? ""
+            apiKey = try TokenManager.getToken(for: apiService.id?.uuidString ?? "") ?? ""
         }
         catch {
-            print("Error extracting token: \(error) for \(chat.apiService?.id?.uuidString ?? "")")
+            print("Error extracting token: \(error) for \(apiService.id?.uuidString ?? "")")
         }
 
         return APIServiceConfig(
             name: getApiServiceName(),
-            apiUrl: (chat.apiService?.url)!,
+            apiUrl: apiServiceUrl,
             apiKey: apiKey,
             model: chat.gptModel
         )

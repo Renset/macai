@@ -15,6 +15,7 @@ enum APIError: Error {
     case rateLimited
     case serverError(String)
     case unknown(String)
+    case noApiService(String)
 }
 
 protocol APIService {

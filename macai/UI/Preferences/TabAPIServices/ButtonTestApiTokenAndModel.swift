@@ -69,6 +69,7 @@ struct ButtonTestApiTokenAndModel: View {
                         case .rateLimited: "Rate limited"
                         case .serverError(let message): message
                         case .unknown(let message): message
+                        case .noApiService(let message): message
                         }
                     showErrorAlert(error: errorMessage)
                 }

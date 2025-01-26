@@ -193,26 +193,43 @@ struct ChatView: View {
                 renderTime = CFAbsoluteTimeGetCurrent() - startTime
             }
         })
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RecreateMessageManager"))) {
+            notification in
+            if let chatId = notification.userInfo?["chatId"] as? UUID,
+                chatId == chat.id
+            {
+                print("RecreateMessageManager notification received for chat \(chatId)")
+                chatViewModel.recreateMessageManager()
+            }
+        }
+
     }
 }
 
 extension ChatView {
     func sendMessage(ignoreMessageInput: Bool = false) {
+        guard chatViewModel.canSendMessage else {
+            currentError = ErrorMessage(
+                type: .noApiService("No API service selected. Select the API service to send your first message"),
+                timestamp: Date()
+            )
+            return
+        }
+
         resetError()
-    
+
         let messageBody = newMessage
         let isFirstMessage = chat.messages.count == 0
-    
+
         if !ignoreMessageInput {
             saveNewMessageInStore(with: messageBody)
-            
+
             if isFirstMessage {
                 withAnimation {
                     isBottomContainerExpanded = false
                 }
             }
         }
-        
         if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
             chatViewModel.sendMessageStream(

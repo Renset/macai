@@ -95,11 +95,11 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Image("logo_\(selectedChat?.apiService?.type ?? "")")
-                                .resizable()
-                                .renderingMode(.template)
-                                .interpolation(.high)
-                                .frame(width: 16, height: 16)
-                                
+                    .resizable()
+                    .renderingMode(.template)
+                    .interpolation(.high)
+                    .frame(width: 16, height: 16)
+
                 if let selectedChat = selectedChat {
                     Menu {
                         ForEach(apiServices, id: \.objectID) { apiService in
@@ -234,9 +234,16 @@ struct ContentView: View {
                 chat.systemMessage = newSystemMessage
             }
         }
+        chat.apiService = newService
         chat.gptModel = newService.model ?? AppConstants.chatGptDefaultModel
         chat.objectWillChange.send()
         try? viewContext.save()
+
+        NotificationCenter.default.post(
+            name: NSNotification.Name("RecreateMessageManager"),
+            object: nil,
+            userInfo: ["chatId": chat.id]
+        )
     }
 
 }

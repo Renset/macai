@@ -28,6 +28,8 @@ struct ErrorMessage {
             return "Server Error"
         case .unknown(_):
             return "Unknown Error"
+        case .noApiService(_):
+            return "No API Service selected"
         }
     }
 
@@ -46,6 +48,8 @@ struct ErrorMessage {
         case .serverError(let message):
             return message
         case .unknown(let message):
+            return message
+        case .noApiService(let message):
             return message
         }
     }
