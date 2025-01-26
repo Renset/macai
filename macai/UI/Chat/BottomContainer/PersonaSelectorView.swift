@@ -48,7 +48,7 @@ struct PersonaChipView: View {
                     )
                     .shadow(
                         color: personaColor.opacity(isSelected ? 0.7 : (isHovered ? 0.2 : 0)),
-                        radius: isSelected ? 8 : 4
+                        radius: isSelected ? 7 : 4
                     )
             )
             .animation(.easeOut(duration: 0.2), value: isHovered)

@@ -10,20 +10,25 @@ struct ChatBottomContainerView: View {
     @ObservedObject var chat: ChatEntity
     @Binding var newMessage: String
     var onSendMessage: () -> Void
-    @State private var isPersonaSelectorExpanded: Bool
+    @Binding var isExpanded: Bool
     var onExpandedStateChange: ((Bool) -> Void)?  // Add this line
 
     init(
         chat: ChatEntity,
         newMessage: Binding<String>,
-        onSendMessage: @escaping () -> Void,
-        onExpandedStateChange: ((Bool) -> Void)? = nil
+        isExpanded: Binding<Bool>,
+        onSendMessage: @escaping () -> Void
     ) {
         self.chat = chat
         self._newMessage = newMessage
         self.onSendMessage = onSendMessage
-        self._isPersonaSelectorExpanded = State(initialValue: chat.messages.count == 0)
-        self.onExpandedStateChange = onExpandedStateChange
+        self._isExpanded = isExpanded
+
+        if chat.messages.count == 0 {
+            DispatchQueue.main.async {
+                isExpanded.wrappedValue = true
+            }
+        }
     }
 
     var body: some View {
@@ -32,14 +37,14 @@ struct ChatBottomContainerView: View {
                 Spacer()
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        isPersonaSelectorExpanded.toggle()
-                        onExpandedStateChange?(isPersonaSelectorExpanded)
+                        isExpanded.toggle()
+                        onExpandedStateChange?(isExpanded)
                     }
                 }) {
                     HStack {
                         Text(chat.persona?.name ?? "Select Assistant")
                             .font(.caption)
-                        Image(systemName: isPersonaSelectorExpanded ? "chevron.down" : "chevron.right")
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .font(.caption)
                     }
                 }
@@ -50,7 +55,7 @@ struct ChatBottomContainerView: View {
 
             VStack(spacing: 0) {
                 VStack {
-                    if isPersonaSelectorExpanded {
+                    if isExpanded {
                         PersonaSelectorView(chat: chat)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }

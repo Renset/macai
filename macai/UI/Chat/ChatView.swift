@@ -164,6 +164,7 @@ struct ChatView: View {
             ChatBottomContainerView(
                 chat: chat,
                 newMessage: $newMessage,
+                isExpanded: $isBottomContainerExpanded,
                 onSendMessage: {
                     if editSystemMessage {
                         chat.systemMessage = newMessage
@@ -174,9 +175,6 @@ struct ChatView: View {
                     else if newMessage != "" && newMessage != " " {
                         self.sendMessage()
                     }
-                },
-                onExpandedStateChange: { expanded in
-                    isBottomContainerExpanded = expanded
                 }
             )
 
@@ -201,13 +199,20 @@ struct ChatView: View {
 extension ChatView {
     func sendMessage(ignoreMessageInput: Bool = false) {
         resetError()
-
+    
         let messageBody = newMessage
-
+        let isFirstMessage = chat.messages.count == 0
+    
         if !ignoreMessageInput {
             saveNewMessageInStore(with: messageBody)
+            
+            if isFirstMessage {
+                withAnimation {
+                    isBottomContainerExpanded = false
+                }
+            }
         }
-
+        
         if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
             chatViewModel.sendMessageStream(
@@ -272,21 +277,6 @@ extension ChatView {
 
     private func resetError() {
         currentError = nil
-    }
-
-    private func handleServiceChange(_ newService: APIServiceEntity) {
-        if let newDefaultPersona = newService.defaultPersona {
-            chat.persona = newDefaultPersona
-            if let newSystemMessage = chat.persona?.systemMessage,
-                !newSystemMessage.isEmpty
-            {
-                chat.systemMessage = newSystemMessage
-            }
-        }
-        chat.gptModel = newService.model ?? AppConstants.chatGptDefaultModel
-        chat.objectWillChange.send()
-        try? viewContext.save()
-        chatViewModel.recreateMessageManager()
     }
 }
 
