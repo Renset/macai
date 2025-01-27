@@ -8,7 +8,7 @@
 
 macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI services (ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama and almost any OpenAI-compatible APIs). 
 
-<img width="716" alt="macai window" src="https://github.com/user-attachments/assets/8c99dfd8-3e38-4a9e-89ab-04e48547c39b">
+<img width="1322" alt="macai window" src="https://github.com/user-attachments/assets/3a9677e4-0d75-4d19-9d5f-3d74b896fcf8">
 
 ## Downloads
 You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
