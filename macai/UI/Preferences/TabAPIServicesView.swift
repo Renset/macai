@@ -91,7 +91,8 @@ struct TabAPIServicesView: View {
                 if selectedServiceID != nil {
                     isShowingAddOrEditService = true
                 }
-            }
+            },
+            onMove: nil
         )
     }
 

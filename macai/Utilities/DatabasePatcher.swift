@@ -12,12 +12,14 @@ import SwiftUI
 class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext) {
         addDefaultPersonasIfNeeded(context: context)
+        patchPersonaOrdering(context: context)
+        //resetPersonaOrdering(context: context)
     }
 
     static func addDefaultPersonasIfNeeded(context: NSManagedObjectContext, force: Bool = false) {
         let defaults = UserDefaults.standard
         if force || !defaults.bool(forKey: AppConstants.defaultPersonasFlag) {
-            for persona in AppConstants.PersonaPresets.allPersonas {
+            for (index, persona) in AppConstants.PersonaPresets.allPersonas.enumerated() {
                 let newPersona = PersonaEntity(context: context)
                 newPersona.name = persona.name
                 newPersona.color = persona.color
@@ -25,6 +27,7 @@ class DatabasePatcher {
                 newPersona.addedDate = Date()
                 newPersona.temperature = persona.temperature
                 newPersona.id = UUID()
+                newPersona.order = Int16(index)
             }
 
             do {
@@ -35,6 +38,50 @@ class DatabasePatcher {
             catch {
                 print("Failed to add default assistants: \(error)")
             }
+        }
+    }
+
+    static func patchPersonaOrdering(context: NSManagedObjectContext) {
+        let fetchRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)]
+
+        do {
+            let personas = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for (index, persona) in personas.enumerated() {
+                if persona.order == 0 && index != 0 {
+                    persona.order = Int16(index)
+                    needsSave = true
+                }
+            }
+
+            if needsSave {
+                try context.save()
+                print("Successfully patched persona ordering")
+            }
+        }
+        catch {
+            print("Error patching persona ordering: \(error)")
+        }
+    }
+
+    static func resetPersonaOrdering(context: NSManagedObjectContext) {
+        let fetchRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+
+        do {
+            let personas = try context.fetch(fetchRequest)
+            for persona in personas {
+                persona.order = 0
+            }
+            try context.save()
+            print("Successfully reset all persona ordering")
+
+            // Re-apply the ordering patch
+            patchPersonaOrdering(context: context)
+        }
+        catch {
+            print("Error resetting persona ordering: \(error)")
         }
     }
 
@@ -80,11 +127,11 @@ class DatabasePatcher {
                 defaults.set("", forKey: "gptToken")
             }
         }
-        
+
         // Set Default Assistant as the default for default API service
         let personaFetchRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
         personaFetchRequest.predicate = NSPredicate(format: "name == %@", "Default Assistant")
-        
+
         do {
             let defaultPersonas = try context.fetch(personaFetchRequest)
             if let defaultPersona = defaultPersonas.first {
@@ -92,30 +139,33 @@ class DatabasePatcher {
                 apiService.defaultPersona = defaultPersona
                 try context.save()
                 print("Successfully set default assistant for API service")
-            } else {
+            }
+            else {
                 print("Warning: Default Assistant not found")
             }
-        } catch {
+        }
+        catch {
             print("Error setting default assistant: \(error)")
         }
-        
+
         // Update Chats
         let fetchRequest = NSFetchRequest<ChatEntity>(entityName: "ChatEntity")
         do {
             let existingChats = try context.fetch(fetchRequest)
             print("Found \(existingChats.count) existing chats to update")
-            
+
             for chat in existingChats {
                 chat.apiService = apiService
                 chat.gptModel = apiService.model ?? AppConstants.chatGptDefaultModel
             }
-            
+
             try context.save()
             print("Successfully updated all existing chats with new API service")
-        } catch {
+        }
+        catch {
             print("Error updating existing chats: \(error)")
         }
-        
+
         defaults.set(apiService.objectID.uriRepresentation().absoluteString, forKey: "defaultApiService")
 
         // Migration completed

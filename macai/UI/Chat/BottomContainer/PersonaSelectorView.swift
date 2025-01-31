@@ -62,7 +62,7 @@ struct PersonaChipView: View {
 
 struct PersonaSelectorView: View {
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true)],
         animation: .default
     )
     private var personas: FetchedResults<PersonaEntity>

@@ -18,6 +18,7 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
     var getEntityDefault: (Entity) -> Bool = { _ in false }
     var getEntityIcon: (Entity) -> String? = { _ in nil }
     let onEdit: (() -> Void)?
+    let onMove: ((IndexSet, Int) -> Void)?
 
     var body: some View {
         VStack {
@@ -27,7 +28,8 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
                         color: getEntityColor?(entity),
                         name: getEntityName(entity),
                         defaultEntity: getEntityDefault(entity),
-                        icon: getEntityIcon(entity)
+                        icon: getEntityIcon(entity),
+                        showDragHandle: onMove != nil
                     )
                     .tag(entity.objectID)
                     .gesture(
@@ -40,8 +42,8 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
                             selectedEntityID = entity.objectID
                         }
                     )
-
                 }
+                .onMove(perform: onMove)
             }
             .listStyle(SidebarListStyle())
             .frame(minWidth: 200, maxHeight: 180)
@@ -73,6 +75,7 @@ struct EntityRowView: View {
     let name: String
     let defaultEntity: Bool
     let icon: String?
+    let showDragHandle: Bool
 
     var body: some View {
         HStack {
@@ -91,7 +94,6 @@ struct EntityRowView: View {
             }
             Text(name)
 
-            // Regular Spacer() doesn't work properly with double tap gesture, replace with Color.clear
             Color.clear
                 .contentShape(Rectangle())
                 .frame(maxWidth: .infinity)
@@ -106,6 +108,11 @@ struct EntityRowView: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.blue)
                     )
+            }
+
+            if showDragHandle {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
             }
         }
         .padding(4)
