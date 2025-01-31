@@ -31,7 +31,7 @@ class OllamaHandler: APIService {
     }
 
     func sendMessage(
-        _ requestMessages: [[String: String]],
+        _ requestMessages: [[String: Any]],
         temperature: Float,
         completion: @escaping (Result<String, APIError>) -> Void
     ) {
@@ -154,7 +154,7 @@ class OllamaHandler: APIService {
         }
     }
 
-    private func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool)
+    private func prepareRequest(requestMessages: [[String: Any]], model: String, temperature: Float, stream: Bool)
         -> URLRequest
     {
         var request = URLRequest(url: baseURL)
