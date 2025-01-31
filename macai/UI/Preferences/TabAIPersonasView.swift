@@ -43,6 +43,7 @@ struct TabAIPersonasView: View {
                 }
             }
         }
+        .frame(minHeight: 300)
         .onChange(of: selectedPersonaID) { id in
             selectedPersona = personas.first(where: { $0.objectID == id })
             print("Selected Assistant ID: \(id)")
@@ -224,7 +225,6 @@ struct PersonaDetailView: View {
             .padding(.top, 16)
 
         }
-        .frame(minHeight: 300)
         .padding()
         .onAppear {
             print(">> Assistant: \(persona?.name ?? "")")
@@ -247,7 +247,6 @@ struct PersonaDetailView: View {
             )
         }
     }
-    
 
     private func getTemperatureLabel() -> String {
         if temperature > 0.8 {

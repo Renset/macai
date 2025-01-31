@@ -24,21 +24,16 @@ struct PreferencesView: View {
 
     var body: some View {
         TabView {
-            // TODO: update General Settings tab for general app settings
-            //            GeneralSettingsView(lampColor: $lampColor)
-            //                .tabItem {
-            //                    Label("LLM Settings", systemImage: "gearshape")
-            //                }
+
+            TabGeneralSettingsView()
+                .tabItem {
+                    Label("General", systemImage: "gearshape")
+                }
 
             TabAPIServicesView()
                 .tabItem {
                     Label("API Services", systemImage: "network")
                 }
-
-            //            ChatSettingsView(lampColor: $lampColor)
-            //                .tabItem {
-            //                    Label("New Chat", systemImage: "message")
-            //                }
 
             TabAIPersonasView()
                 .tabItem {

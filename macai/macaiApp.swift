@@ -87,6 +87,13 @@ struct macaiApp: App {
         WindowGroup {
             ContentView().environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                if UserDefaults.standard.bool(forKey: "autoCheckForUpdates") {
+                    updaterController.updater.checkForUpdates()
+                }
+            }
+        }
         .commands {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updater: updaterController.updater)

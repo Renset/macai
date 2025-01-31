@@ -49,6 +49,7 @@
 		4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C532CEA3D960018BBED /* PreviewStateManager.swift */; };
 		4A885C562CEA3F6C0018BBED /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C552CEA3F6C0018BBED /* ChatListView.swift */; };
 		4A885C582CEA3F7B0018BBED /* ChatListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C572CEA3F7B0018BBED /* ChatListRow.swift */; };
+		4A8A78C82D4C41A00057A6CC /* TabGeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8A78C72D4C41980057A6CC /* TabGeneralSettingsView.swift */; };
 		4A8E2E0B2C56FCFD00F077F2 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */; };
 		4A98B1C029CA60ED0064835A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A98B1BF29CA60ED0064835A /* Info.plist */; };
 		4AA681C72D3DAB40005C4E6E /* ChatBottomContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */; };
@@ -66,8 +67,6 @@
 		4AE3CEB72C93A88D00A9CF4C /* TabAPIServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */; };
 		4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
 		4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
-		4AFDEB782AFF904400BA8642 /* TabGeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB772AFF904400BA8642 /* TabGeneralSettingsView.swift */; };
-		4AFDEB7A2AFF908700BA8642 /* TabChatSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB792AFF908700BA8642 /* TabChatSettingsView.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
 		4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */; };
 		4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7202C472F53006F99FB /* APIProtocol.swift */; };
@@ -133,6 +132,7 @@
 		4A885C532CEA3D960018BBED /* PreviewStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewStateManager.swift; sourceTree = "<group>"; };
 		4A885C552CEA3F6C0018BBED /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
 		4A885C572CEA3F7B0018BBED /* ChatListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListRow.swift; sourceTree = "<group>"; };
+		4A8A78C72D4C41980057A6CC /* TabGeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabGeneralSettingsView.swift; sourceTree = "<group>"; };
 		4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		4A98B1BF29CA60ED0064835A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBottomContainerView.swift; sourceTree = "<group>"; };
@@ -150,8 +150,6 @@
 		4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAPIServicesView.swift; sourceTree = "<group>"; };
 		4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailView.swift; sourceTree = "<group>"; };
 		4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcher.swift; sourceTree = "<group>"; };
-		4AFDEB772AFF904400BA8642 /* TabGeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabGeneralSettingsView.swift; sourceTree = "<group>"; };
-		4AFDEB792AFF908700BA8642 /* TabChatSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabChatSettingsView.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
 		4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabDangerZoneView.swift; sourceTree = "<group>"; };
 		4AFEE7202C472F53006F99FB /* APIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIProtocol.swift; sourceTree = "<group>"; };
@@ -258,12 +256,11 @@
 		4A272A6929F5CD4700F93D0D /* Preferences */ = {
 			isa = PBXGroup;
 			children = (
+				4A8A78C72D4C41980057A6CC /* TabGeneralSettingsView.swift */,
 				4A164BB82C95CC450060ECFE /* TabAPIServices */,
 				4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */,
 				4A399CC329BCE67800E98796 /* PreferencesView.swift */,
 				4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */,
-				4AFDEB772AFF904400BA8642 /* TabGeneralSettingsView.swift */,
-				4AFDEB792AFF908700BA8642 /* TabChatSettingsView.swift */,
 				4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */,
 				4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */,
 			);
@@ -617,8 +614,6 @@
 				4AA6EF5B2C565FDF003B6D41 /* APIServiceFactory.swift in Sources */,
 				4AA681C72D3DAB40005C4E6E /* ChatBottomContainerView.swift in Sources */,
 				4A1614132D46B9BA00A1EF8D /* SystemMessageBubbleView.swift in Sources */,
-				4AFDEB7A2AFF908700BA8642 /* TabChatSettingsView.swift in Sources */,
-				4AFDEB782AFF904400BA8642 /* TabGeneralSettingsView.swift in Sources */,
 				4AA6EF592C565F90003B6D41 /* APIServiceConfig.swift in Sources */,
 				4AADF71F2C9CE788001B7A26 /* ClaudeHandler.swift in Sources */,
 				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
@@ -636,6 +631,7 @@
 				4A254A6D2CEA69EB00F66935 /* HighlighterManager.swift in Sources */,
 				4A272A7429F5DAA800F93D0D /* Models.swift in Sources */,
 				4ABB86792CFBDBD3004EC7B1 /* HighlightedText.swift in Sources */,
+				4A8A78C82D4C41A00057A6CC /* TabGeneralSettingsView.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -799,7 +795,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.0.5;
+				CURRENT_PROJECT_VERSION = 2.0.4;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -818,7 +814,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.4;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -841,7 +837,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.0.5;
+				CURRENT_PROJECT_VERSION = 2.0.4;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -860,7 +856,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.4;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
