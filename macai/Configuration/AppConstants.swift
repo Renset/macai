@@ -8,7 +8,7 @@
 import Foundation
 
 struct AppConstants {
-    static let requestTimeout: TimeInterval = 180
+    static let requestTimeout: TimeInterval = 600
     static let apiUrlChatCompletions: String = "https://api.openai.com/v1/chat/completions"
     static let chatGptDefaultModel = "gpt-4o"
     static let chatGptContextSize: Double = 10
