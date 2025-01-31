@@ -10,47 +10,46 @@ import SwiftUI
 struct DangerZoneView: View {
     @ObservedObject var store: ChatStore
     @State private var currentAlert: AlertType?
-        
+
     enum AlertType: Identifiable {
         case deleteChats, deletePersonas, deleteAPIServices
         var id: Self { self }
     }
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading) {
             HStack {
-                Text("Danger Zone")
-                    .font(.headline)
-                Spacer()
-            }
-
-            HStack {
-                Text("These actions are irreversible. All data will be deleted permanently.")
-                    .foregroundColor(.gray)
+                Text(
+                    "Here you can remove all chats, AI Assistants and API Services. Use with caution: this action cannot be undone."
+                )
+                .foregroundColor(.gray)
+                .fixedSize(horizontal: false, vertical: true)
                 Spacer()
             }
             .padding(.bottom, 16)
-            
-            VStack(alignment: .center) {
-                
-                    Button(action: {
+
+            VStack(alignment: .leading) {
+                Button(
+                    action: {
                         currentAlert = .deleteChats
-                    }, label: {
-                        Label("Delete all chats", systemImage: "trash").foregroundColor(.red)
-                    })
-                    Button(action: {
-                        currentAlert = .deletePersonas
-                    }) {
-                        Label("Delete all AI Assistants", systemImage: "trash")
+                    },
+                    label: {
+                        Text("Delete all chats")
                     }
-                    Button(action: {
-                        currentAlert = .deleteAPIServices
-                    }) {
-                        Label("Delete all API Services", systemImage: "trash")
-                    }
-                
+                )
+                Button(action: {
+                    currentAlert = .deletePersonas
+                }) {
+                    Text("Delete all AI Assistants")
+                }
+                Button(action: {
+                    currentAlert = .deleteAPIServices
+                }) {
+                    Text("Delete all API Services")
+                }
+
             }
-            
+
         }
         .padding(32)
         .alert(item: $currentAlert) { alertType in

@@ -13,12 +13,6 @@ struct BackupRestoreView: View {
     var body: some View {
         VStack {
             HStack {
-                Text("Backup & Restore")
-                    .font(.headline)
-                Spacer()
-            }
-
-            HStack {
                 Text("Chats are exported into plaintext, unencrypted JSON file. You can import them back later.")
                     .foregroundColor(.gray)
                 Spacer()
