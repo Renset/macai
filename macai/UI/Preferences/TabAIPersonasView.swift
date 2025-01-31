@@ -11,7 +11,7 @@ import SwiftUI
 struct TabAIPersonasView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true)],
         animation: .default
     )
     private var personas: FetchedResults<PersonaEntity>
@@ -75,10 +75,24 @@ struct TabAIPersonasView: View {
                     selectedPersona = persona
                     isShowingAddOrEditPersona = true
                 }
+            },
+            onMove: { fromOffsets, toOffset in
+                var updatedItems = Array(personas)
+                updatedItems.move(fromOffsets: fromOffsets, toOffset: toOffset)
+                
+                for (index, item) in updatedItems.enumerated() {
+                    item.order = Int16(index)
+                }
+                
+                do {
+                    try viewContext.save()
+                } catch {
+                    print("Failed to save reordering: \(error)")
+                }
             }
         )
     }
-
+    
     private var addPresetsButton: some View {
         Button(action: {
             DatabasePatcher.addDefaultPersonasIfNeeded(context: viewContext, force: true)
