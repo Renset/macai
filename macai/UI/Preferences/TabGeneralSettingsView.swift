@@ -23,11 +23,11 @@ struct TabGeneralSettingsView: View {
                     .onChange(of: autoCheckForUpdates) { newValue in
                         updaterController.updater.automaticallyChecksForUpdates = newValue
                     }
-                
+
                 Spacer()
 
                 Button("Check for Updates Now") {
-                    updaterController.updater.checkForUpdates()
+                    updaterController.checkForUpdates(nil)
                 }
             }
         }

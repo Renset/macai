@@ -90,7 +90,7 @@ struct macaiApp: App {
         .onChange(of: scenePhase) { phase in
             if phase == .active {
                 if UserDefaults.standard.bool(forKey: "autoCheckForUpdates") {
-                    updaterController.updater.checkForUpdates()
+                    updaterController.updater.checkForUpdatesInBackground()
                 }
             }
         }
