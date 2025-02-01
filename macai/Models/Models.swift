@@ -137,3 +137,18 @@ extension ChatEntity {
         self.newChat = true
     }
 }
+
+extension APIServiceEntity: NSCopying {
+    public func copy(with zone: NSZone? = nil) -> Any {
+        let copy = APIServiceEntity(context: self.managedObjectContext!)
+        copy.name = self.name
+        copy.type = self.type
+        copy.url = self.url
+        copy.model = self.model
+        copy.contextSize = self.contextSize
+        copy.useStreamResponse = self.useStreamResponse
+        copy.generateChatNames = self.generateChatNames
+        copy.defaultPersona = self.defaultPersona
+        return copy
+    }
+}
