@@ -33,6 +33,17 @@ struct TabAPIServicesView: View {
 
             HStack {
                 if selectedServiceID != nil {
+                    Button(action: onEdit) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+                    
+                    Button(action: onDuplicate) {
+                        Label("Duplicate", systemImage: "plus.square.on.square")
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    
                     if !isSelectedServiceDefault {
                         Button(action: {
                             defaultApiServiceID = selectedServiceID?.uriRepresentation().absoluteString
@@ -41,22 +52,10 @@ struct TabAPIServicesView: View {
                         }
                         .buttonStyle(BorderlessButtonStyle())
                     }
-                    else {
-                        Button(action: {
-                            // Still keep button without action to keep geometry persistent
-                        }) {
-                            Label("Default Service", systemImage: "star.fill")
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        .foregroundColor(.blue)
-                    }
                     Spacer()
-                    Button(action: onEdit) {
-                        Label("Edit Selected", systemImage: "pencil")
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-                } else {
+
+                }
+                else {
                     Spacer()
                 }
                 Button(action: onAdd) {
@@ -121,6 +120,37 @@ struct TabAPIServicesView: View {
     private func onAdd() {
         selectedServiceID = nil
         isShowingAddOrEditService = true
+    }
+
+    private func onDuplicate() {
+        if let selectedService = apiServices.first(where: { $0.objectID == selectedServiceID }) {
+            let newService = selectedService.copy() as! APIServiceEntity
+            newService.name = (selectedService.name ?? "") + " Copy"
+            newService.addedDate = Date()
+
+            // Generate new UUID and copy the token
+            let newServiceID = UUID()
+            newService.id = newServiceID
+
+            if let oldServiceIDString = selectedService.id?.uuidString {
+                do {
+                    if let token = try TokenManager.getToken(for: oldServiceIDString) {
+                        try TokenManager.setToken(token, for: newServiceID.uuidString)
+                    }
+                }
+                catch {
+                    print("Error copying API token: \(error)")
+                }
+            }
+
+            do {
+                try viewContext.save()
+                refreshList()
+            }
+            catch {
+                print("Error duplicating service: \(error)")
+            }
+        }
     }
 
     private func onEdit() {
