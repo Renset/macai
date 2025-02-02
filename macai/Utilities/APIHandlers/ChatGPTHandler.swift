@@ -23,7 +23,7 @@ class ChatGPTHandler: APIService {
     }
 
     func sendMessage(
-        _ requestMessages: [[String: String]],
+        _ requestMessages: [[String: Any]],
         temperature: Float,
         completion: @escaping (Result<String, APIError>) -> Void
     ) {
@@ -41,12 +41,26 @@ class ChatGPTHandler: APIService {
                 switch result {
                 case .success(let responseData):
                     if let responseData = responseData {
-                        guard let (messageContent, _) = self.parseJSONResponse(data: responseData) else {
+                        guard let (messageContent, _, t_msg, t_id) = self.parseJSONResponse(data: responseData) else {
                             completion(.failure(.decodingFailed("Failed to parse response")))
                             return
                         }
-
-                        completion(.success(messageContent))
+                        
+                        if let t_msg = t_msg {
+                            var messages = requestMessages
+                            messages.append(t_msg)
+                            var webresult: String
+                            messages.append([
+                                "role": "tool",
+                                "tool_call_id": t_id,
+                                "name": "search_web",
+                                "content": self.searchWeb(messageContent)
+                            ])
+                            self.sendMessage(messages, temperature: temperature, completion: completion)
+                        
+                        } else {
+                            completion(.success(messageContent))
+                        }
                     }
                     else {
                         completion(.failure(.invalidResponse))
@@ -57,6 +71,40 @@ class ChatGPTHandler: APIService {
                 }
             }
         }.resume()
+    }
+    
+    func searchWeb(_ query: String) -> String {
+        guard let url = URL(string: "http://127.0.0.1:3000/\(query)") else { return "bad url" }
+        
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: String = ""
+        
+        session.dataTask(with: url) { data, response, error in
+            if let error = error {
+                result = "Error: \(error)"
+                semaphore.signal()
+                return
+            }
+            
+            guard let data = data else {
+                result = "No data received"
+                semaphore.signal()
+                return
+            }
+            
+            // Handle the response data
+            if let str = String(data: data, encoding: .utf8) {
+                result = str
+                semaphore.signal()
+                return
+            }
+            
+            result = "bad string"
+            semaphore.signal()
+        }.resume()
+        
+        semaphore.wait()
+        return result
     }
 
     func sendMessageStream(_ requestMessages: [[String: String]], temperature: Float) async throws
@@ -123,7 +171,7 @@ class ChatGPTHandler: APIService {
         }
     }
 
-    private func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool)
+    private func prepareRequest(requestMessages: [[String: Any]], model: String, temperature: Float, stream: Bool)
         -> URLRequest
     {
         var request = URLRequest(url: baseURL)
@@ -142,6 +190,23 @@ class ChatGPTHandler: APIService {
             "stream": stream,
             "messages": requestMessages,
             "temperature": temperatureOverride,
+            "tools": [[
+                "type": "function",
+                "function": [
+                    "name": "search_web",
+                    "description": "useful for when you need to search for information on the web",
+                    "parameters": [
+                      "type": "object",
+                      "properties": [
+                        "query": [
+                          "type": "string",
+                          "description": "the query to search for"
+                        ]
+                      ],
+                      "required": ["query"]
+                    ]
+                ]
+            ]]
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
@@ -181,7 +246,7 @@ class ChatGPTHandler: APIService {
         return .success(data)
     }
 
-    private func parseJSONResponse(data: Data) -> (String, String)? {
+    private func parseJSONResponse(data: Data) -> (String, String, [String: Any]?, String)? {
         if let responseString = String(data: data, encoding: .utf8) {
             #if DEBUG
                 print("Response: \(responseString)")
@@ -195,7 +260,21 @@ class ChatGPTHandler: APIService {
                         let messageRole = content["role"] as? String,
                         let messageContent = content["content"] as? String
                     {
-                        return (messageContent, messageRole)
+                        return (messageContent, messageRole, nil, "")
+                    }
+                    if let choices = dict["choices"] as? [[String: Any]],
+                        let lastIndex = choices.indices.last,
+                        let content = choices[lastIndex]["message"] as? [String: Any],
+                        let messageRole = content["role"] as? String,
+                        let toolCalls = content["tool_calls"] as? [[String: Any]],
+                        let firstTool = toolCalls.first,
+                        let function = firstTool["function"] as? [String: Any],
+                        //let f_name = function["name"] as? String,
+                        let f_arguments = function["arguments"] as? String,
+                        let f_id = firstTool["id"] as? String
+                    {
+                        
+                        return (f_arguments, messageRole, content, f_id)
                     }
                 }
             }
