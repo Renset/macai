@@ -20,23 +20,36 @@ struct TabAIPersonasView: View {
     @State private var selectedPersona: PersonaEntity?
     @State private var selectedPersonaID: NSManagedObjectID?
     @State private var refreshID = UUID()
+    @State private var showingDeleteConfirmation = false
+    @State private var personaToDelete: PersonaEntity?
 
     var body: some View {
         VStack {
             entityListView
                 .id(refreshID)
 
-            HStack {
-                Spacer()
-                if personas.count == 0 {
-                    addPresetsButton
-                }
+            HStack(spacing: 20) {
                 if selectedPersonaID != nil {
                     Button(action: onEdit) {
-                        Label("Edit Selected", systemImage: "pencil")
+                        Label("Edit", systemImage: "pencil")
                     }
                     .buttonStyle(BorderlessButtonStyle())
                     .keyboardShortcut(.defaultAction)
+
+                    Button(action: {
+                        if let persona = personas.first(where: { $0.objectID == selectedPersonaID }) {
+                            personaToDelete = persona
+                            showingDeleteConfirmation = true
+                        }
+
+                    }) {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                }
+                Spacer()
+                if personas.count == 0 {
+                    addPresetsButton
                 }
                 Button(action: onAdd) {
                     Label("Add New", systemImage: "plus")
@@ -60,6 +73,20 @@ struct TabAIPersonasView: View {
                 }
             )
         }
+        .alert(isPresented: $showingDeleteConfirmation) {
+            Alert(
+                title: Text("Delete Assistant \(personaToDelete?.name ?? "Unknown")"),
+                message: Text("Are you sure you want to delete this assistant? This action cannot be undone."),
+                primaryButton: .destructive(Text("Delete")) {
+                    if let persona = personaToDelete {
+                        viewContext.delete(persona)
+                        try? viewContext.save()
+                        selectedPersonaID = nil
+                    }
+                },
+                secondaryButton: .cancel()
+            )
+        }
     }
 
     private var entityListView: some View {
@@ -79,20 +106,21 @@ struct TabAIPersonasView: View {
             onMove: { fromOffsets, toOffset in
                 var updatedItems = Array(personas)
                 updatedItems.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                
+
                 for (index, item) in updatedItems.enumerated() {
                     item.order = Int16(index)
                 }
-                
+
                 do {
                     try viewContext.save()
-                } catch {
+                }
+                catch {
                     print("Failed to save reordering: \(error)")
                 }
             }
         )
     }
-    
+
     private var addPresetsButton: some View {
         Button(action: {
             DatabasePatcher.addDefaultPersonasIfNeeded(context: viewContext, force: true)
@@ -291,6 +319,19 @@ struct PersonaDetailView: View {
         if persona == nil {
             personaToSave.addedDate = Date()
             personaToSave.id = UUID()
+
+            let fetchRequest: NSFetchRequest<PersonaEntity> = PersonaEntity.fetchRequest()
+            do {
+                let existingPersonas = try viewContext.fetch(fetchRequest)
+                for existingPersona in existingPersonas {
+                    existingPersona.order += 1
+                }
+                personaToSave.order = 0
+            }
+            catch {
+                personaToSave.order = 0
+                print("Error fetching personas for order: \(error)")
+            }
         }
         else {
             personaToSave.editedDate = Date()

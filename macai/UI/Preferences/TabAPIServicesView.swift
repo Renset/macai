@@ -31,19 +31,19 @@ struct TabAPIServicesView: View {
             entityListView
                 .id(refreshID)
 
-            HStack {
+            HStack(spacing: 20) {
                 if selectedServiceID != nil {
                     Button(action: onEdit) {
                         Label("Edit", systemImage: "pencil")
                     }
                     .buttonStyle(BorderlessButtonStyle())
                     .keyboardShortcut(.defaultAction)
-                    
+
                     Button(action: onDuplicate) {
                         Label("Duplicate", systemImage: "plus.square.on.square")
                     }
                     .buttonStyle(BorderlessButtonStyle())
-                    
+
                     if !isSelectedServiceDefault {
                         Button(action: {
                             defaultApiServiceID = selectedServiceID?.uriRepresentation().absoluteString
