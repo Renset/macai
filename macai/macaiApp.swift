@@ -99,6 +99,16 @@ struct macaiApp: App {
                 CheckForUpdatesView(updater: updaterController.updater)
             }
 
+            CommandMenu("Chat") {
+                Button("Retry Last Message") {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("RetryMessage"),
+                        object: nil
+                    )
+                }
+                .keyboardShortcut("r", modifiers: .command)
+            }
+
             CommandGroup(replacing: .newItem) {
                 Button("New Chat") {
                     NotificationCenter.default.post(

@@ -72,7 +72,8 @@ struct ChatView: View {
                                     waitingForResponse: messageEntity.waitingForResponse,
                                     errorMessage: nil,
                                     systemMessage: false,
-                                    isStreaming: isStreaming
+                                    isStreaming: isStreaming,
+                                    isLatestMessage: messageEntity.id == chatViewModel.sortedMessages.last?.id
                                 )
                                 ChatBubbleView(content: bubbleContent, message: messageEntity)
                                     .id(messageEntity.id)
@@ -86,7 +87,8 @@ struct ChatView: View {
                                 waitingForResponse: true,
                                 errorMessage: nil,
                                 systemMessage: false,
-                                isStreaming: isStreaming
+                                isStreaming: isStreaming,
+                                isLatestMessage: false
                             )
 
                             ChatBubbleView(content: bubbleContent)
@@ -99,7 +101,8 @@ struct ChatView: View {
                                 waitingForResponse: false,
                                 errorMessage: error,
                                 systemMessage: false,
-                                isStreaming: isStreaming
+                                isStreaming: isStreaming,
+                                isLatestMessage: true
                             )
 
                             ChatBubbleView(content: bubbleContent)
@@ -122,6 +125,31 @@ struct ChatView: View {
                             }
                         }
                     }
+                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
+                        guard !chat.waitingForResponse && !isStreaming else { return }
+
+                        if currentError != nil {
+                            sendMessage(ignoreMessageInput: true)
+                        }
+                        else {
+                            if let lastUserMessage = chatViewModel.sortedMessages.last(where: { $0.own }) {
+                                let messageToResend = lastUserMessage.body
+
+                                if let lastMessage = chatViewModel.sortedMessages.last {
+                                    viewContext.delete(lastMessage)
+                                    if !lastMessage.own,
+                                        let secondLastMessage = chatViewModel.sortedMessages.dropLast().last
+                                    {
+                                        viewContext.delete(secondLastMessage)
+                                    }
+                                    try? viewContext.save()
+                                }
+
+                                newMessage = messageToResend
+                                sendMessage()
+                            }
+                        }
+                    }
                     .onAppear {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             if let lastMessage = chatViewModel.sortedMessages.last {
@@ -131,11 +159,12 @@ struct ChatView: View {
                             }
                         }
                     }
-                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
-                        if currentError != nil {
-                            sendMessage(ignoreMessageInput: true)
-                        }
-                    }
+                    // Remove the duplicate RetryMessage handler
+                    // .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
+                    //     if currentError != nil {
+                    //         sendMessage(ignoreMessageInput: true)
+                    //     }
+                    // }
                     .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
                         currentError = nil
                     }

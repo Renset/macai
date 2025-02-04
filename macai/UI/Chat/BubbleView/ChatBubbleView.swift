@@ -24,10 +24,13 @@ struct ChatBubbleContent: Equatable {
     let errorMessage: ErrorMessage?
     let systemMessage: Bool
     let isStreaming: Bool
+    let isLatestMessage: Bool
 
     static func == (lhs: ChatBubbleContent, rhs: ChatBubbleContent) -> Bool {
-        return lhs.message == rhs.message && lhs.own == rhs.own && lhs.waitingForResponse == rhs.waitingForResponse
-            && lhs.systemMessage == rhs.systemMessage && lhs.isStreaming == rhs.isStreaming
+        return lhs.message == rhs.message && lhs.own == rhs.own && 
+            lhs.waitingForResponse == rhs.waitingForResponse &&
+            lhs.systemMessage == rhs.systemMessage && lhs.isStreaming == rhs.isStreaming &&
+            lhs.isLatestMessage == rhs.isLatestMessage
     }
 }
 
@@ -248,6 +251,23 @@ struct ChatBubbleView: View, Equatable {
                         .imageScale(.small)
                         .frame(width: 10)
                     Text("Edit")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(PlainButtonStyle())
+                .foregroundColor(.gray.opacity(0.7))
+            }
+
+            if content.isLatestMessage && !content.systemMessage {
+                Button(action: {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("RetryMessage"),
+                        object: nil
+                    )
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .imageScale(.small)
+                        .frame(width: 10)
+                    Text("Retry")
                         .font(.system(size: 12))
                 }
                 .buttonStyle(PlainButtonStyle())
