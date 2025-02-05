@@ -26,7 +26,8 @@ struct APIServiceDetailView: View {
     private let types = AppConstants.apiTypes
     @State private var previousModel = ""
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
-
+    @State private var loadingIconIndex = 0
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -85,6 +86,9 @@ struct APIServiceDetailView: View {
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .focused($isFocused)
                                 .blur(radius: !viewModel.apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
+                                .onChange(of: viewModel.apiKey) { newValue in
+                                    viewModel.onChangeApiKey(newValue)
+                                }
                         }
                         
                         HStack {
@@ -105,41 +109,33 @@ struct APIServiceDetailView: View {
                         Text("LLM Model:")
                             .frame(width: 94, alignment: .leading)
                         
-                        if viewModel.isLoadingModels {
-                            HStack {
-                                ProgressView()
-                                    .scaleEffect(0.5)
-                                    .frame(height: 24)
-                                
-                                Spacer()
+                        Picker("", selection: $viewModel.selectedModel) {
+                            ForEach(viewModel.availableModels, id: \.self) { modelName in
+                                Text(modelName).tag(modelName)
                             }
-
-                        } else {
-                            Picker("", selection: $viewModel.selectedModel) {
-                                ForEach(viewModel.availableModels, id: \.self) { modelName in
-                                    Text(modelName).tag(modelName)
-                                }
-                                Text("Enter custom model").tag("custom")
-                            }
-                            .onChange(of: viewModel.selectedModel) { newValue in
-                                if newValue == "custom" {
-                                    viewModel.isCustomModel = true
-                                } else {
-                                    viewModel.isCustomModel = false
-                                    viewModel.model = newValue
-                                }
+                            Text("Enter custom model").tag("custom")
+                        }
+                        .onChange(of: viewModel.selectedModel) { newValue in
+                            if newValue == "custom" {
+                                viewModel.isCustomModel = true
+                            } else {
+                                viewModel.isCustomModel = false
+                                viewModel.model = newValue
                             }
                         }
+                        
+                        ButtonWithStatusIndicator(
+                            title: "Update",
+                            action: { viewModel.onUpdateModelsList() },
+                            isLoading: viewModel.isLoadingModels,
+                            hasError: viewModel.modelFetchError != nil,
+                            errorMessage: "Can't get models from server (or I don't know how), but don't worry - using default list",
+                            successMessage: "Click to refresh models list",
+                            isSuccess: !viewModel.isLoadingModels && viewModel.modelFetchError == nil && viewModel.availableModels.count > 0
+                        )
                     }
                     .padding(.top, 8)
                     
-                    if let error = viewModel.modelFetchError {
-                        Text("Couldn't get the list of models. API Server for selected service might be down: \(error)")
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
-                    }
                     
                     if viewModel.isCustomModel {
                         VStack {

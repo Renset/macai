@@ -14,7 +14,8 @@ struct SystemMessageBubbleView: View {
                 waitingForResponse: false,
                 errorMessage: nil,
                 systemMessage: true,
-                isStreaming: false
+                isStreaming: false,
+                isLatestMessage: false
             ),
             color: color,
             onEdit: {

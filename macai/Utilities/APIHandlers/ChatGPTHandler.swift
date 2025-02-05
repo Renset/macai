@@ -7,6 +7,14 @@
 
 import Foundation
 
+private struct ChatGPTModelsResponse: Codable {
+    let data: [ChatGPTModel]
+}
+
+private struct ChatGPTModel: Codable {
+    let id: String
+}
+
 class ChatGPTHandler: APIService {
     let name: String
     let baseURL: URL
@@ -120,6 +128,35 @@ class ChatGPTHandler: APIService {
                     continuation.finish(throwing: error)
                 }
             }
+        }
+    }
+    
+    func fetchModels() async throws -> [AIModel] {
+        let modelsURL = baseURL.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("models")
+        
+        var request = URLRequest(url: modelsURL)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            let result = handleAPIResponse(response, data: data, error: nil)
+            switch result {
+            case .success(let responseData):
+                guard let responseData = responseData else {
+                    throw APIError.invalidResponse
+                }
+                
+                let gptResponse = try JSONDecoder().decode(ChatGPTModelsResponse.self, from: responseData)
+                
+                return gptResponse.data.map { AIModel(id: $0.id) }
+                
+            case .failure(let error):
+                throw error
+            }
+        } catch {
+            throw APIError.requestFailed(error)
         }
     }
 

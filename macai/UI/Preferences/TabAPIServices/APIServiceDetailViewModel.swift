@@ -80,7 +80,7 @@ class APIServiceDetailViewModel: ObservableObject {
     }
 
     private func fetchModelsForService() {
-        guard type.lowercased() == "ollama" else {
+        guard type.lowercased() == "ollama" || !apiKey.isEmpty else {
             fetchedModels = []
             return
         }
@@ -91,7 +91,7 @@ class APIServiceDetailViewModel: ObservableObject {
         let config = APIServiceConfig(
             name: type,
             apiUrl: URL(string: url)!,
-            apiKey: "",  // Ollama doesn't need API key
+            apiKey: apiKey,
             model: ""
         )
 
@@ -120,7 +120,7 @@ class APIServiceDetailViewModel: ObservableObject {
     }
 
     var availableModels: [String] {
-        if type.lowercased() == "ollama" {
+        if fetchedModels.isEmpty == false {
             return fetchedModels.map { $0.id }
         }
         else {
@@ -184,6 +184,15 @@ class APIServiceDetailViewModel: ObservableObject {
         self.model = self.defaultApiConfiguration!.defaultModel
         self.selectedModel = self.model
 
+        fetchModelsForService()
+    }
+
+    func onChangeApiKey(_ token: String) {
+        self.apiKey = token
+        fetchModelsForService()
+    }
+
+    func onUpdateModelsList() {
         fetchModelsForService()
     }
 }

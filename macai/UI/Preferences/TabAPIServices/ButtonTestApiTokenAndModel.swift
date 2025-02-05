@@ -18,24 +18,15 @@ struct ButtonTestApiTokenAndModel: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
-        HStack {
-            Button(action: {
-                testAPI()
-            }) {
-                Text("Test API token & model")
-            }
-            
-            Image(systemName: testOk ? "checkmark" : "circle.fill")
-                .resizable()
-                .renderingMode(.template)
-                .interpolation(.high)
-                .antialiased(true)
-                .foregroundColor(lampColor)
-                .frame(width: 10, height: 10)
-                .shadow(color: lampColor, radius: 4, x: 0, y: 0)
-                .padding(.leading, 2)
-                .padding(.top, 2)
-        }
+        ButtonWithStatusIndicator(
+            title: "Test API token & model",
+            action: { testAPI() },
+            isLoading: lampColor == .yellow,
+            hasError: lampColor == .red,
+            errorMessage: nil,
+            successMessage: "API connection test successful",
+            isSuccess: testOk
+        )
     }
 
     private func testAPI() {
