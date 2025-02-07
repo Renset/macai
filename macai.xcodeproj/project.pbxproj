@@ -67,6 +67,7 @@
 		4ADCA45B2C9B74E8005664A6 /* APIServiceDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADCA45A2C9B74E8005664A6 /* APIServiceDetailViewModel.swift */; };
 		4AE3CEB72C93A88D00A9CF4C /* TabAPIServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */; };
 		4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
+		4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */; };
 		4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
 		4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */; };
@@ -151,6 +152,7 @@
 		4ADCA45A2C9B74E8005664A6 /* APIServiceDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailViewModel.swift; sourceTree = "<group>"; };
 		4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAPIServicesView.swift; sourceTree = "<group>"; };
 		4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailView.swift; sourceTree = "<group>"; };
+		4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandler.swift; sourceTree = "<group>"; };
 		4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcher.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
 		4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabDangerZoneView.swift; sourceTree = "<group>"; };
@@ -425,6 +427,7 @@
 		4AFEE71F2C472F29006F99FB /* APIHandlers */ = {
 			isa = PBXGroup;
 			children = (
+				4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */,
 				4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */,
 				4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */,
 				4AFEE7202C472F53006F99FB /* APIProtocol.swift */,
@@ -637,6 +640,7 @@
 				4ABB86792CFBDBD3004EC7B1 /* HighlightedText.swift in Sources */,
 				4A8A78C82D4C41A00057A6CC /* TabGeneralSettingsView.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
+				4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

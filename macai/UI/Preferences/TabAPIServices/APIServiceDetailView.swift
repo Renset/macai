@@ -27,31 +27,31 @@ struct APIServiceDetailView: View {
     @State private var previousModel = ""
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
     @State private var loadingIconIndex = 0
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Service Name:")
                     .frame(width: 100, alignment: .leading)
-                
+
                 TextField("API Name", text: $viewModel.name)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
-            
+
             GroupBox {
                 VStack {
                     VStack {
                         HStack {
                             Text("API Type:")
                                 .frame(width: 100, alignment: .leading)
-                            
+
                             Image("logo_\(viewModel.type)")
                                 .resizable()
                                 .renderingMode(.template)
                                 .interpolation(.high)
                                 .antialiased(true)
                                 .frame(width: 14, height: 14)
-                                                       
+
                             Picker("", selection: $viewModel.type) {
                                 ForEach(types, id: \.self) {
                                     Text(AppConstants.defaultApiConfigurations[$0]?.name ?? $0)
@@ -62,26 +62,26 @@ struct APIServiceDetailView: View {
                         }
                     }
                     .padding(.bottom, 8)
-                    
+
                     HStack {
                         Text("API URL:")
                             .frame(width: 100, alignment: .leading)
-                        
+
                         TextField("Paste your URL here", text: $viewModel.url)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+
                         Button(action: {
                             viewModel.url = viewModel.defaultApiConfiguration!.url
                         }) {
                             Text("Default")
                         }
                     }
-                    
+
                     if (viewModel.defaultApiConfiguration?.apiKeyRef ?? "") != "" {
                         HStack {
                             Text("API Token:")
                                 .frame(width: 100, alignment: .leading)
-                            
+
                             TextField("Paste your token here", text: $viewModel.apiKey)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .focused($isFocused)
@@ -90,7 +90,7 @@ struct APIServiceDetailView: View {
                                     viewModel.onChangeApiKey(newValue)
                                 }
                         }
-                        
+
                         HStack {
                             Spacer()
                             Link(
@@ -103,12 +103,11 @@ struct APIServiceDetailView: View {
                             .foregroundColor(.blue)
                         }
                     }
-                    
-                    
+
                     HStack {
                         Text("LLM Model:")
                             .frame(width: 94, alignment: .leading)
-                        
+
                         Picker("", selection: $viewModel.selectedModel) {
                             ForEach(viewModel.availableModels, id: \.self) { modelName in
                                 Text(modelName).tag(modelName)
@@ -118,32 +117,36 @@ struct APIServiceDetailView: View {
                         .onChange(of: viewModel.selectedModel) { newValue in
                             if newValue == "custom" {
                                 viewModel.isCustomModel = true
-                            } else {
+                            }
+                            else {
                                 viewModel.isCustomModel = false
                                 viewModel.model = newValue
                             }
                         }
-                        
-                        ButtonWithStatusIndicator(
-                            title: "Update",
-                            action: { viewModel.onUpdateModelsList() },
-                            isLoading: viewModel.isLoadingModels,
-                            hasError: viewModel.modelFetchError != nil,
-                            errorMessage: "Can't get models from server (or I don't know how), but don't worry - using default list",
-                            successMessage: "Click to refresh models list",
-                            isSuccess: !viewModel.isLoadingModels && viewModel.modelFetchError == nil && viewModel.availableModels.count > 0
-                        )
+
+                        if AppConstants.defaultApiConfigurations[viewModel.type]?.modelsFetching ?? false {
+                            ButtonWithStatusIndicator(
+                                title: "Update",
+                                action: { viewModel.onUpdateModelsList() },
+                                isLoading: viewModel.isLoadingModels,
+                                hasError: viewModel.modelFetchError != nil,
+                                errorMessage:
+                                    "Can't get models from server (or I don't know how), but don't worry - using default list",
+                                successMessage: "Click to refresh models list",
+                                isSuccess: !viewModel.isLoadingModels && viewModel.modelFetchError == nil
+                                    && viewModel.availableModels.count > 0
+                            )
+                        }
                     }
                     .padding(.top, 8)
-                    
-                    
+
                     if viewModel.isCustomModel {
                         VStack {
                             TextField("Enter custom model name", text: $viewModel.model)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
-                    
+
                     HStack {
                         Spacer()
                         Link(
@@ -154,7 +157,7 @@ struct APIServiceDetailView: View {
                         .foregroundColor(.blue)
                     }
                     .padding(.bottom)
-                    
+
                     HStack {
                         ButtonTestApiTokenAndModel(
                             lampColor: $lampColor,
@@ -167,15 +170,15 @@ struct APIServiceDetailView: View {
                 }
                 .padding(8)
             }
-            
+
             VStack {
                 HStack {
                     // TODO: implement unlimited context size (is it really needed though?)
-//                    Toggle(isOn: $viewModel.contextSizeUnlimited) {
-//                        Text("Unlimited context size")
-//                    }
-//                    .disabled(true)
-//                    Spacer()
+                    //                    Toggle(isOn: $viewModel.contextSizeUnlimited) {
+                    //                        Text("Unlimited context size")
+                    //                    }
+                    //                    .disabled(true)
+                    //                    Spacer()
                 }
                 if !viewModel.contextSizeUnlimited {
                     HStack {

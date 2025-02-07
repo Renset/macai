@@ -7,6 +7,14 @@
 
 import Foundation
 
+private struct ClaudeModelsResponse: Codable {
+    let data: [ClaudeModel]
+}
+
+private struct ClaudeModel: Codable {
+    let id: String
+}
+
 class ClaudeHandler: APIService {
     let name: String
     let baseURL: URL
@@ -20,6 +28,36 @@ class ClaudeHandler: APIService {
         self.apiKey = config.apiKey
         self.model = config.model
         self.session = session
+    }
+
+    func fetchModels() async throws -> [AIModel] {
+        let modelsURL = baseURL.deletingLastPathComponent().appendingPathComponent("models")
+        
+        var request = URLRequest(url: modelsURL)
+        request.httpMethod = "GET"
+        request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "Anthropic-Version")
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            let result = handleAPIResponse(response, data: data, error: nil)
+            switch result {
+            case .success(let responseData):
+                guard let responseData = responseData else {
+                    throw APIError.invalidResponse
+                }
+                
+                let claudeResponse = try JSONDecoder().decode(ClaudeModelsResponse.self, from: responseData)
+                
+                return claudeResponse.data.map { AIModel(id: $0.id) }
+                
+            case .failure(let error):
+                throw error
+            }
+        } catch {
+            throw APIError.requestFailed(error)
+        }
     }
 
     func sendMessage(

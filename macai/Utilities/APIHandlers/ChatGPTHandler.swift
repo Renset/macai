@@ -18,10 +18,10 @@ private struct ChatGPTModel: Codable {
 class ChatGPTHandler: APIService {
     let name: String
     let baseURL: URL
-    private let apiKey: String
+    internal let apiKey: String
     let model: String
-    private let session: URLSession
-
+    internal let session: URLSession
+    
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
         self.baseURL = config.apiUrl
@@ -186,7 +186,7 @@ class ChatGPTHandler: APIService {
         return request
     }
 
-    private func handleAPIResponse(_ response: URLResponse?, data: Data?, error: Error?) -> Result<Data?, APIError> {
+    internal func handleAPIResponse(_ response: URLResponse?, data: Data?, error: Error?) -> Result<Data?, APIError> {
         if let error = error {
             return .failure(.requestFailed(error))
         }

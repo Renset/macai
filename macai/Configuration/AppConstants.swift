@@ -133,6 +133,7 @@ struct AppConstants {
         let models: [String]
         var maxTokens: Int? = nil
         var inherits: String? = nil
+        var modelsFetching: Bool = true
     }
 
     static let defaultApiConfigurations = [
@@ -208,8 +209,7 @@ struct AppConstants {
                 "gemini-1.5-flash",
                 "gemini-1.5-flash-8b",
                 "gemini-1.5-pro",
-            ],
-            inherits: "chatgpt"
+            ]
         ),
         "perplexity": defaultApiConfiguration(
             name: "Perplexity",
@@ -218,10 +218,15 @@ struct AppConstants {
             apiModelRef: "https://docs.perplexity.ai/guides/model-cards#supported-models",
             defaultModel: "llama-3.1-sonar-large-128k-online",
             models: [
+                "sonar-reasoning-pro",
+                "sonar-reasoning",
+                "sonar-pro",
+                "sonar",
                 "llama-3.1-sonar-small-128k-online",
                 "llama-3.1-sonar-large-128k-online",
-                "llama-3.1-sonar-huge-128k-online"
-            ]
+                "llama-3.1-sonar-huge-128k-online",
+            ],
+            modelsFetching: false
         ),
     ]
 
