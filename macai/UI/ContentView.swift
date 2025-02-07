@@ -226,14 +226,17 @@ struct ContentView: View {
     }
 
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
-        if let newDefaultPersona = newService.defaultPersona {
-            chat.persona = newDefaultPersona
-            if let newSystemMessage = chat.persona?.systemMessage,
-                !newSystemMessage.isEmpty
-            {
-                chat.systemMessage = newSystemMessage
+        if chat.messages.count == 0 {
+            if let newDefaultPersona = newService.defaultPersona {
+                chat.persona = newDefaultPersona
+                if let newSystemMessage = chat.persona?.systemMessage,
+                    !newSystemMessage.isEmpty
+                {
+                    chat.systemMessage = newSystemMessage
+                }
             }
         }
+        
         chat.apiService = newService
         chat.gptModel = newService.model ?? AppConstants.chatGptDefaultModel
         chat.objectWillChange.send()
