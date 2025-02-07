@@ -12,7 +12,7 @@ struct ThinkingProcessView: View {
                 }
             }) {
                 HStack {
-                    Text("Thinking Process")
+                    Text("Reasoning")
                         .foregroundColor(.gray)
 
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
