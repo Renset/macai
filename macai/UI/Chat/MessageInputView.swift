@@ -23,6 +23,11 @@ struct MessageInputView: View {
     private let lineWidthOnFocus = 3.0
     private let lineColorOnBlur = Color.gray.opacity(0.5)
     private let lineColorOnFocus = Color.blue.opacity(0.8)
+    @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
+
+    private var effectiveFontSize: Double {
+        chatFontSize
+    }
 
     enum Focus {
         case focused, notFocused
@@ -30,22 +35,23 @@ struct MessageInputView: View {
 
     var body: some View {
         ZStack {
-            // Hidden text view for dynamic height calculation
-            Text(text)
-                .font(.body)
+            Text(text == "" ? inputPlaceholderText : text)
+                .font(.system(size: effectiveFontSize))
                 .lineLimit(10)
-                .background(GeometryReader { geometryText in
-                    Color.clear
-                        .onAppear {
-                            dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
-                        }
-                        .onChange(of: geometryText.size) { _ in
-                            dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
-                        }
-                })
+                .background(
+                    GeometryReader { geometryText in
+                        Color.clear
+                            .onAppear {
+                                dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
+                            }
+                            .onChange(of: geometryText.size) { _ in
+                                dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
+                            }
+                    }
+                )
                 .padding(inputPadding)
                 .hidden()
-            
+
             ScrollView {
                 VStack {
                     OmenTextField(
@@ -53,11 +59,11 @@ struct MessageInputView: View {
                         text: $text,
                         isFocused: $isFocused.equalTo(.focused),
                         returnKeyType: frontReturnKeyType,
+                        fontSize: effectiveFontSize,
                         onCommit: {
                             onEnter()
                         }
                     )
-                    
                 }
             }
             .padding(inputPadding)
@@ -76,10 +82,10 @@ struct MessageInputView: View {
             }
         }
     }
-    
+
     private func calculateDynamicHeight(using height: CGFloat? = nil) -> CGFloat {
         let newHeight = height ?? dynamicHeight
-        return min(max(newHeight, initialInputSize), maxInputHeight) + inputPadding*2
+        return min(max(newHeight, initialInputSize), maxInputHeight) + inputPadding * 2
     }
 }
 

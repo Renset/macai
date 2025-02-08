@@ -60,7 +60,17 @@ class PersistenceController {
 @main
 struct macaiApp: App {
     @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
+    @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
+    @State private var currentColorScheme: ColorScheme? = nil
+
+    var preferredColorScheme: ColorScheme? {
+        switch preferredColorSchemeRaw {
+        case 1: return .light
+        case 2: return .dark
+        default: return nil
+        }
+    }
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) var systemColorScheme
 
@@ -85,7 +95,15 @@ struct macaiApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView().environment(\.managedObjectContext, persistenceController.container.viewContext)
+            ContentView()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .preferredColorScheme(currentColorScheme)
+                .onAppear {
+                    currentColorScheme = preferredColorScheme ?? systemColorScheme
+                }
+                .onChange(of: preferredColorSchemeRaw) { _ in
+                    currentColorScheme = preferredColorScheme ?? systemColorScheme
+                }
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
@@ -137,8 +155,15 @@ struct macaiApp: App {
         }
 
         Settings {
-            PreferencesView().environment(\.managedObjectContext, persistenceController.container.viewContext)
+            PreferencesView()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .preferredColorScheme(currentColorScheme)
+                .onAppear {
+                    currentColorScheme = preferredColorScheme ?? systemColorScheme
+                }
+                .onChange(of: preferredColorSchemeRaw) { _ in
+                    currentColorScheme = preferredColorScheme ?? systemColorScheme
+                }
         }
     }
-
 }

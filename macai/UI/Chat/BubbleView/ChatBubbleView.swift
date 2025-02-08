@@ -27,10 +27,9 @@ struct ChatBubbleContent: Equatable {
     let isLatestMessage: Bool
 
     static func == (lhs: ChatBubbleContent, rhs: ChatBubbleContent) -> Bool {
-        return lhs.message == rhs.message && lhs.own == rhs.own && 
-            lhs.waitingForResponse == rhs.waitingForResponse &&
-            lhs.systemMessage == rhs.systemMessage && lhs.isStreaming == rhs.isStreaming &&
-            lhs.isLatestMessage == rhs.isLatestMessage
+        return lhs.message == rhs.message && lhs.own == rhs.own && lhs.waitingForResponse == rhs.waitingForResponse
+            && lhs.systemMessage == rhs.systemMessage && lhs.isStreaming == rhs.isStreaming
+            && lhs.isLatestMessage == rhs.isLatestMessage
     }
 }
 
@@ -50,6 +49,11 @@ struct ChatBubbleView: View, Equatable {
     @State private var isHovered = false
     @State private var showingDeleteConfirmation = false
     @State private var isCopied = false
+    @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
+
+    private var effectiveFontSize: Double {
+        chatFontSize
+    }
 
     static func == (lhs: ChatBubbleView, rhs: ChatBubbleView) -> Bool {
         lhs.content == rhs.content
@@ -117,7 +121,7 @@ struct ChatBubbleView: View, Equatable {
                                         attributedString: initialAttributedString
                                     )
                                     let fullRange = NSRange(location: 0, length: mutableAttributedString.length)
-                                    let systemFont = NSFont.systemFont(ofSize: 14)
+                                    let systemFont = NSFont.systemFont(ofSize: effectiveFontSize)
 
                                     mutableAttributedString.addAttribute(.font, value: systemFont, range: fullRange)
                                     mutableAttributedString.addAttribute(
