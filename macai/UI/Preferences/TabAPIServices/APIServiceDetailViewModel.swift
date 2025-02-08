@@ -104,8 +104,9 @@ class APIServiceDetailViewModel: ObservableObject {
                     self.fetchedModels = models
                     self.isLoadingModels = false
 
-                    if !models.contains(where: { $0.id == self.selectedModel }) {
-                        self.selectedModel = models.first?.id ?? self.defaultApiConfiguration!.defaultModel
+                    if !models.contains(where: { $0.id == self.selectedModel }) && !self.availableModels.contains(where: { $0 == self.selectedModel }) {
+                        self.selectedModel = "custom"
+                        self.isCustomModel = true
                     }
                 }
             }

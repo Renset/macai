@@ -123,6 +123,7 @@ struct APIServiceDetailView: View {
                                 viewModel.model = newValue
                             }
                         }
+                        .disabled(viewModel.isLoadingModels)
 
                         if AppConstants.defaultApiConfigurations[viewModel.type]?.modelsFetching ?? false {
                             ButtonWithStatusIndicator(
