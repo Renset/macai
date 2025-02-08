@@ -34,7 +34,7 @@
       "location" : "https://github.com/Renset/OmenTextField",
       "state" : {
         "branch" : "main",
-        "revision" : "f83a162377b65542d4748d375837ab17604b3097"
+        "revision" : "4e077092b140241d7b3448352ade33a839478892"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mgriebling/SwiftMath",
       "state" : {
-        "revision" : "3964a0c4b13abcb5b58c8ebb8041ce67f393c414",
-        "version" : "1.4.0"
+        "revision" : "606f9be66db6afe0c41c3b064723a57061723db7",
+        "version" : "1.7.1"
       }
     }
   ],
