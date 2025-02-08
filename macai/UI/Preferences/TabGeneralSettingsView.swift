@@ -12,6 +12,8 @@ struct TabGeneralSettingsView: View {
     @AppStorage("autoCheckForUpdates") var autoCheckForUpdates = true
     @AppStorage("chatFontSize") var chatFontSize: Double = 14.0
     @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
+    @Environment(\.colorScheme) private var systemColorScheme
+    @State private var selectedColorSchemeRaw: Int = 0
 
     private var preferredColorScheme: Binding<ColorScheme?> {
         Binding(
@@ -23,10 +25,25 @@ struct TabGeneralSettingsView: View {
                 }
             },
             set: { newValue in
-                switch newValue {
-                case .light: preferredColorSchemeRaw = 1
-                case .dark: preferredColorSchemeRaw = 2
-                case .none: preferredColorSchemeRaw = 0
+                // This ugly solution is needed to workaround the SwiftUI (?) bug with the view not updated completely on setting theme to System
+                if newValue == nil {
+                    let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                    preferredColorSchemeRaw = isDark ? 2 : 1
+                    selectedColorSchemeRaw = 0
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        preferredColorSchemeRaw = 0
+                    }
+                }
+                else {
+                    switch newValue {
+                    case .light: preferredColorSchemeRaw = 1
+                    case .dark: preferredColorSchemeRaw = 2
+                    case .none: preferredColorSchemeRaw = 0
+                    case .some(_):
+                        preferredColorSchemeRaw = 0
+                    }
+                    selectedColorSchemeRaw = preferredColorSchemeRaw
                 }
             }
         )
@@ -50,7 +67,7 @@ struct TabGeneralSettingsView: View {
                             }
                             .frame(width: 120)
                             .gridCellAnchor(.top)
-                            
+
                             VStack(spacing: 4) {
                                 HStack {
                                     Text("A")
@@ -83,8 +100,8 @@ struct TabGeneralSettingsView: View {
 
                             HStack(spacing: 12) {
                                 ThemeButton(
-                                    title: "Auto",
-                                    isSelected: preferredColorScheme.wrappedValue == nil,
+                                    title: "macOS",
+                                    isSelected: selectedColorSchemeRaw == 0,
                                     mode: .system
                                 ) {
                                     preferredColorScheme.wrappedValue = nil
@@ -92,7 +109,7 @@ struct TabGeneralSettingsView: View {
 
                                 ThemeButton(
                                     title: "Light",
-                                    isSelected: preferredColorScheme.wrappedValue == .light,
+                                    isSelected: selectedColorSchemeRaw == 1,
                                     mode: .light
                                 ) {
                                     preferredColorScheme.wrappedValue = .light
@@ -100,7 +117,7 @@ struct TabGeneralSettingsView: View {
 
                                 ThemeButton(
                                     title: "Dark",
-                                    isSelected: preferredColorScheme.wrappedValue == .dark,
+                                    isSelected: selectedColorSchemeRaw == 2,
                                     mode: .dark
                                 ) {
                                     preferredColorScheme.wrappedValue = .dark
@@ -129,5 +146,8 @@ struct TabGeneralSettingsView: View {
 
         }
         .padding()
+        .onAppear {
+            self.selectedColorSchemeRaw = self.preferredColorSchemeRaw
+        }
     }
 }

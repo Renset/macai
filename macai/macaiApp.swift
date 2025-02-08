@@ -62,7 +62,6 @@ struct macaiApp: App {
     @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
     @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
-    @State private var currentColorScheme: ColorScheme? = nil
 
     var preferredColorScheme: ColorScheme? {
         switch preferredColorSchemeRaw {
@@ -72,7 +71,6 @@ struct macaiApp: App {
         }
     }
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) var systemColorScheme
 
     private let updaterController: SPUStandardUpdaterController
     let persistenceController = PersistenceController.shared
@@ -97,13 +95,8 @@ struct macaiApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .preferredColorScheme(currentColorScheme)
-                .onAppear {
-                    currentColorScheme = preferredColorScheme ?? systemColorScheme
-                }
-                .onChange(of: preferredColorSchemeRaw) { _ in
-                    currentColorScheme = preferredColorScheme ?? systemColorScheme
-                }
+                .preferredColorScheme(preferredColorScheme)
+
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
@@ -157,13 +150,7 @@ struct macaiApp: App {
         Settings {
             PreferencesView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .preferredColorScheme(currentColorScheme)
-                .onAppear {
-                    currentColorScheme = preferredColorScheme ?? systemColorScheme
-                }
-                .onChange(of: preferredColorSchemeRaw) { _ in
-                    currentColorScheme = preferredColorScheme ?? systemColorScheme
-                }
+                .preferredColorScheme(preferredColorScheme)
         }
     }
 }
