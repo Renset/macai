@@ -23,7 +23,7 @@ protocol APIService {
     var baseURL: URL { get }
 
     func sendMessage(
-        _ requestMessages: [[String: String]],
+        _ requestMessages: [[String: Any]],
         temperature: Float,
         completion: @escaping (Result<String, APIError>) -> Void
     )
