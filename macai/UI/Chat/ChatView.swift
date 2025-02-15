@@ -35,6 +35,8 @@ struct ChatView: View {
     @State private var currentError: ErrorMessage?
     @Environment(\.colorScheme) private var colorScheme
     @State private var isBottomContainerExpanded = false
+    @State private var codeBlocksRendered = false
+    @State private var pendingCodeBlocks = 0
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)],
@@ -150,15 +152,6 @@ struct ChatView: View {
                             }
                         }
                     }
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            if let lastMessage = chatViewModel.sortedMessages.last {
-                                withAnimation(.easeOut(duration: 0.1)) {
-                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                                }
-                            }
-                        }
-                    }
                     // Remove the duplicate RetryMessage handler
                     // .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
                     //     if currentError != nil {
@@ -168,7 +161,32 @@ struct ChatView: View {
                     .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
                         currentError = nil
                     }
+                    .onAppear {
+                        pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
+                            count + (message.body.components(separatedBy: "```").count - 1) / 2
+                        }
+
+                        if let lastMessage = chatViewModel.sortedMessages.last {
+                            scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+
+                        if pendingCodeBlocks == 0 {
+                            codeBlocksRendered = true
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) { _ in
+                        if pendingCodeBlocks > 0 {
+                            pendingCodeBlocks -= 1
+                            if pendingCodeBlocks == 0 {
+                                codeBlocksRendered = true
+                                if let lastMessage = chatViewModel.sortedMessages.last {
+                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
+                            }
+                        }
+                    }
                 }
+                
                 .id("chatContainer")
             }
             .modifier(MeasureModifier(renderTime: $renderTime))

@@ -5,10 +5,10 @@
 //  Created by Renat on 07.06.2024.
 //
 
-import SwiftUI
 import AttributedText
 import Foundation
 import Highlightr
+import SwiftUI
 
 struct CodeView: View {
     let code: String
@@ -18,18 +18,21 @@ struct CodeView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject private var previewStateManager: PreviewStateManager
     @State private var highlightedCode: NSAttributedString?
-    
+    @State private var isRendered = false
+
     init(code: String, lang: String, isStreaming: Bool = false) {
         self.code = code
         self.lang = lang
         self.isStreaming = isStreaming
-        _viewModel = StateObject(wrappedValue: CodeViewModel(
-            code: code,
-            language: lang,
-            isStreaming: isStreaming
-        ))
+        _viewModel = StateObject(
+            wrappedValue: CodeViewModel(
+                code: code,
+                language: lang,
+                isStreaming: isStreaming
+            )
+        )
     }
-    
+
     var body: some View {
         VStack {
             headerView
@@ -37,6 +40,13 @@ struct CodeView: View {
                 AttributedText(highlighted)
                     .textSelection(.enabled)
                     .padding([.horizontal, .bottom], 12)
+            }
+            else {
+                Text(code)
+                    .textSelection(.enabled)
+                    .padding([.horizontal, .bottom], 12)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .background(codeBackground)
@@ -50,11 +60,20 @@ struct CodeView: View {
                 updateHighlightedCode(colorScheme: colorScheme, code: code)
             }
         }
+        .onChange(of: highlightedCode) { _ in
+            if !isRendered {
+                isRendered = true
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("CodeBlockRendered"),
+                    object: nil
+                )
+            }
+        }
         .onAppear {
             updateHighlightedCode(colorScheme: colorScheme)
         }
     }
-    
+
     private var headerView: some View {
         HStack {
             if lang != "" {
@@ -62,7 +81,7 @@ struct CodeView: View {
                     .fontWeight(.bold)
             }
             Spacer()
-            
+
             HStack(spacing: 12) {
                 if lang.lowercased() == "html" {
                     runButton
@@ -71,10 +90,9 @@ struct CodeView: View {
             }
         }
         .padding(12)
-        
-        
+
     }
-    
+
     private var copyButton: some View {
         Button(action: viewModel.copyToClipboard) {
             Image(systemName: viewModel.isCopied ? "checkmark" : "doc.on.doc")
@@ -82,33 +100,33 @@ struct CodeView: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     private var runButton: some View {
         Button(action: togglePreview) {
             Image(systemName: previewStateManager.isPreviewVisible ? "play.slash" : "play")
                 .frame(height: 12)
-            
+
             Text("Run")
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     private func togglePreview() {
         if previewStateManager.isPreviewVisible {
             previewStateManager.hidePreview()
-        } else {
+        }
+        else {
             previewStateManager.showPreview(content: code)
         }
     }
-    
+
     private var codeBackground: Color {
         colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96)
     }
 
-    
     private func updateHighlightedCode(colorScheme: ColorScheme, code: String = "") {
         DispatchQueue.main.async {
-            if (code != "") {
+            if code != "" {
                 viewModel.code = code
             }
             viewModel.updateHighlighting(colorScheme: colorScheme)
