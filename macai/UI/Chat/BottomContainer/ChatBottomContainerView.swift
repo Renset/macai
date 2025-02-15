@@ -9,20 +9,26 @@ import SwiftUI
 struct ChatBottomContainerView: View {
     @ObservedObject var chat: ChatEntity
     @Binding var newMessage: String
-    var onSendMessage: () -> Void
     @Binding var isExpanded: Bool
-    var onExpandedStateChange: ((Bool) -> Void)?  // Add this line
+    @Binding var editSystemMessage: Bool
+    @Binding var isStreaming: Bool
+    var onSendMessage: () -> Void
+    var onExpandedStateChange: ((Bool) -> Void)?
 
     init(
         chat: ChatEntity,
         newMessage: Binding<String>,
         isExpanded: Binding<Bool>,
+        editSystemMessage: Binding<Bool>,
+        isStreaming: Binding<Bool>,
         onSendMessage: @escaping () -> Void
     ) {
         self.chat = chat
         self._newMessage = newMessage
-        self.onSendMessage = onSendMessage
         self._isExpanded = isExpanded
+        self._editSystemMessage = editSystemMessage
+        self._isStreaming = isStreaming
+        self.onSendMessage = onSendMessage
 
         if chat.messages.count == 0 {
             DispatchQueue.main.async {
@@ -70,7 +76,19 @@ struct ChatBottomContainerView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .multilineTextAlignment(.leading)
                     .lineLimit(nil)
-                    .padding()
+                    .padding(.leading)
+                    .padding(.top)
+                    .padding(.bottom)
+                    .padding(.trailing, 6)
+
+                    ContextActionButton(
+                        action: onSendMessage,
+                        isWaitingForResponse: chat.waitingForResponse || isStreaming,
+                        isEditingSystemMessage: editSystemMessage,
+                        hasInputText: !newMessage.isEmpty,
+                        hasMessages: chat.messages.count > 0
+                    )
+                    .padding(.trailing)
                 }
                 .border(width: 1, edges: [.top], color: Color(NSColor.windowBackgroundColor).opacity(0.8))
             }

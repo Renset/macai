@@ -194,14 +194,25 @@ struct ChatView: View {
                 chat: chat,
                 newMessage: $newMessage,
                 isExpanded: $isBottomContainerExpanded,
+                editSystemMessage: $editSystemMessage,
+                isStreaming: $isStreaming,
                 onSendMessage: {
-                    if editSystemMessage {
+                    if chat.waitingForResponse || isStreaming {
+                        handleResponseFinished()
+                    }
+                    else if editSystemMessage {
                         chat.systemMessage = newMessage
                         newMessage = ""
                         editSystemMessage = false
                         store.saveInCoreData()
                     }
-                    else if newMessage != "" && newMessage != " " {
+                    else if newMessage.isEmpty && chat.messages.count > 0 {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("RetryMessage"),
+                            object: nil
+                        )
+                    }
+                    else if !newMessage.isEmpty {
                         self.sendMessage()
                     }
                 }
@@ -317,7 +328,9 @@ extension ChatView {
     }
 
     private func handleResponseFinished() {
+        chatViewModel.stopGeneration()
         self.isStreaming = false
+        self.waitingForResponse = false
         chat.waitingForResponse = false
     }
 

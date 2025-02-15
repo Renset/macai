@@ -11,6 +11,7 @@ import SwiftUI
 
 class ChatViewModel: ObservableObject {
     @Published var messages: NSOrderedSet
+    @Published var isStreaming: Bool = false
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
 
@@ -48,16 +49,26 @@ class ChatViewModel: ObservableObject {
 
     @MainActor
     func sendMessageStream(_ message: String, contextSize: Int, completion: @escaping (Result<Void, Error>) -> Void) {
+        isStreaming = true
         self.messageManager.sendMessageStream(message, in: chat, contextSize: contextSize) { [weak self] result in
             switch result {
             case .success:
                 self?.chat.objectWillChange.send()
+                self?.isStreaming = false
                 completion(.success(()))
                 self?.reloadMessages()
             case .failure(let error):
+                self?.isStreaming = false
                 completion(.failure(error))
             }
         }
+    }
+
+    @MainActor
+    func stopGeneration() {
+        messageManager.stopGeneration(for: chat.id)
+        chat.waitingForResponse = false
+        isStreaming = false
     }
 
     func generateChatNameIfNeeded() {
@@ -115,7 +126,7 @@ class ChatViewModel: ObservableObject {
     private func getApiServiceName() -> String {
         return chat.apiService?.type ?? "chatgpt"
     }
-    
+
     func regenerateChatName() {
         messageManager.generateChatNameIfNeeded(chat: chat, force: true)
     }

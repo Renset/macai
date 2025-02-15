@@ -5,15 +5,14 @@
 //  Created by Renat Notfullin on 15.12.2024.
 //
 
-
 import Foundation
 
 class PerplexityHandler: APIService {
     let name: String
     let baseURL: URL
+    let session: URLSession
     private let apiKey: String
     let model: String
-    private let session: URLSession
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name

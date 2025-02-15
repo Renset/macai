@@ -18,9 +18,9 @@ private struct ChatGPTModel: Codable {
 class ChatGPTHandler: APIService {
     let name: String
     let baseURL: URL
+    let session: URLSession
     internal let apiKey: String
     let model: String
-    internal let session: URLSession
     
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name

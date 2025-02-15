@@ -9,6 +9,8 @@ import CoreData
 import Foundation
 
 class MessageManager: ObservableObject {
+    @MainActor
+    private var activeTasks: [UUID: Task<Void, Never>] = [:]
     private var apiService: APIService
     private var viewContext: NSManagedObjectContext
     private var lastUpdateTime = Date()
@@ -52,23 +54,50 @@ class MessageManager: ObservableObject {
     }
 
     @MainActor
+    private var currentTask: Task<Void, Never>?
+
+    @MainActor
+    func stopGeneration() {
+        currentTask?.cancel()
+        currentTask = nil
+    }
+
+    @MainActor
+    func stopGeneration(for chatId: UUID) {
+        if let task = activeTasks[chatId] {
+            task.cancel()
+            activeTasks[chatId] = nil
+            
+            apiService.cancelOngoingRequests()
+            apiService.resetSession()
+        }
+    }
+
+    @MainActor
     func sendMessageStream(
         _ message: String,
         in chat: ChatEntity,
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
-        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
+        let task = Task {
+            let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
+            let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat)
+                .roundedToOneDecimal()
 
-        Task {
             do {
+                if Task.isCancelled { return }
 
                 let stream = try await apiService.sendMessageStream(requestMessages, temperature: temperature)
                 var accumulatedResponse = ""
                 chat.waitingForResponse = true
 
                 for try await chunk in stream {
+                    if Task.isCancelled { 
+                        completion(.success(()))
+                        return 
+                    }
+
                     accumulatedResponse += chunk
                     if let lastMessage = chat.lastMessage {
                         if lastMessage.own {
@@ -87,15 +116,29 @@ class MessageManager: ObservableObject {
                         }
                     }
                 }
-                updateLastMessage(chat: chat, lastMessage: chat.lastMessage!, accumulatedResponse: accumulatedResponse)
-                addNewMessageToRequestMessages(chat: chat, content: accumulatedResponse, role: AppConstants.defaultRole)
-                completion(.success(()))
+
+                if !Task.isCancelled {
+                    updateLastMessage(
+                        chat: chat,
+                        lastMessage: chat.lastMessage!,
+                        accumulatedResponse: accumulatedResponse
+                    )
+                    addNewMessageToRequestMessages(
+                        chat: chat,
+                        content: accumulatedResponse,
+                        role: AppConstants.defaultRole
+                    )
+                    completion(.success(()))
+                }
             }
             catch {
-                print("Streaming error: \(error)")
-                completion(.failure(error))
+                if !Task.isCancelled {
+                    print("Streaming error: \(error)")
+                    completion(.failure(error))
+                }
             }
         }
+        activeTasks[chat.id] = task
     }
 
     func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {

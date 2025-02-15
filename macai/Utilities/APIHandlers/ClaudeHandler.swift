@@ -18,9 +18,9 @@ private struct ClaudeModel: Codable {
 class ClaudeHandler: APIService {
     let name: String
     let baseURL: URL
+    let session: URLSession
     private let apiKey: String
     let model: String
-    private let session: URLSession
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
@@ -32,30 +32,31 @@ class ClaudeHandler: APIService {
 
     func fetchModels() async throws -> [AIModel] {
         let modelsURL = baseURL.deletingLastPathComponent().appendingPathComponent("models")
-        
+
         var request = URLRequest(url: modelsURL)
         request.httpMethod = "GET"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("2023-06-01", forHTTPHeaderField: "Anthropic-Version")
-        
+
         do {
             let (data, response) = try await session.data(for: request)
-            
+
             let result = handleAPIResponse(response, data: data, error: nil)
             switch result {
             case .success(let responseData):
                 guard let responseData = responseData else {
                     throw APIError.invalidResponse
                 }
-                
+
                 let claudeResponse = try JSONDecoder().decode(ClaudeModelsResponse.self, from: responseData)
-                
+
                 return claudeResponse.data.map { AIModel(id: $0.id) }
-                
+
             case .failure(let error):
                 throw error
             }
-        } catch {
+        }
+        catch {
             throw APIError.requestFailed(error)
         }
     }
