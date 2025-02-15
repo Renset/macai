@@ -7,7 +7,15 @@
 
 import SwiftUI
 
-struct ChatListRow: View {
+struct ChatListRow: View, Equatable {
+    static func == (lhs: ChatListRow, rhs: ChatListRow) -> Bool {
+        lhs.chat?.id == rhs.chat?.id &&
+        lhs.chat?.updatedDate == rhs.chat?.updatedDate &&
+        lhs.chat?.name == rhs.chat?.name &&
+        lhs.chat?.lastMessage?.body == rhs.chat?.lastMessage?.body &&
+        lhs.searchText == rhs.searchText &&
+        (lhs.selectedChat?.id == rhs.selectedChat?.id)
+    }
     let chat: ChatEntity?
     let chatID: UUID  // Store the ID separately
     @Binding var selectedChat: ChatEntity?

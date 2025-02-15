@@ -61,16 +61,16 @@ struct ChatListView: View {
                 .padding(.bottom, 8)
 
             List {
-                ForEach(filteredChats, id: \.id) { chat in
+                ForEach(filteredChats, id: \.objectID) { chat in
                     ChatListRow(
                         chat: chat,
                         selectedChat: $selectedChat,
                         viewContext: viewContext,
                         searchText: searchText
                     )
-                    .tag(chat.id)
                 }
             }
+            .listStyle(.sidebar)
         }
         .background(
             Button("") {
