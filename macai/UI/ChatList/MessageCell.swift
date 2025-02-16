@@ -7,7 +7,15 @@
 
 import SwiftUI
 
-struct MessageCell: View {
+struct MessageCell: View, Equatable {
+    static func == (lhs: MessageCell, rhs: MessageCell) -> Bool {
+        lhs.chat.id == rhs.chat.id &&
+        lhs.timestamp == rhs.timestamp &&
+        lhs.message == rhs.message &&
+        lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
+        lhs.searchText == rhs.searchText
+    }
+    
     @ObservedObject var chat: ChatEntity
     @State var timestamp: Date
     var message: String
