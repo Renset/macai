@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ATSApplicationFontsPath</key>
+	<string>fonts</string>
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
 	<key>SUEnableInstallerLauncherService</key>
@@ -12,5 +14,9 @@
 	<string>b2+Lx88mRPO5YKCOyTZET091/tSpMKrqwMNCEwahQCU=</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>7200</integer>
+	<key>UIAppFonts</key>
+	<array>
+		<string>FiraCode-VF.ttf</string>
+	</array>
 </dict>
 </plist>

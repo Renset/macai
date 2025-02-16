@@ -10,6 +10,7 @@ import SwiftUI
 class CodeViewModel: ObservableObject {
     @Published var highlightedCode: NSAttributedString?
     @Published var isCopied = false
+    @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
     
     public var code: String
     private let language: String
@@ -27,6 +28,7 @@ class CodeViewModel: ObservableObject {
             code: code,
             language: language,
             theme: theme,
+            fontSize: chatFontSize,
             isStreaming: isStreaming
         )
     }

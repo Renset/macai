@@ -19,7 +19,9 @@ struct CodeView: View {
     @EnvironmentObject private var previewStateManager: PreviewStateManager
     @State private var highlightedCode: NSAttributedString?
     @State private var isRendered = false
-
+    @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
+    @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
+    
     init(code: String, lang: String, isStreaming: Bool = false) {
         self.code = code
         self.lang = lang
@@ -32,7 +34,7 @@ struct CodeView: View {
             )
         )
     }
-
+    
     var body: some View {
         VStack {
             headerView
@@ -45,7 +47,7 @@ struct CodeView: View {
                 Text(code)
                     .textSelection(.enabled)
                     .padding([.horizontal, .bottom], 12)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.custom(codeFont, size: chatFontSize - 1))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -70,6 +72,14 @@ struct CodeView: View {
             }
         }
         .onAppear {
+            updateHighlightedCode(colorScheme: colorScheme)
+        }
+        .onChange(of: chatFontSize) { _ in
+            HighlighterManager.shared.invalidateCache()
+            updateHighlightedCode(colorScheme: colorScheme)
+        }
+        .onChange(of: codeFont) { _ in
+            HighlighterManager.shared.invalidateCache()
             updateHighlightedCode(colorScheme: colorScheme)
         }
     }

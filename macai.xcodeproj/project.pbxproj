@@ -35,6 +35,8 @@
 		4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC529BCF02500E98796 /* ChatStore.swift */; };
 		4A471B862C29C56800C66926 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 4A471B852C29C56800C66926 /* SwiftMath */; };
 		4A471B882C29CD3D00C66926 /* AdaptiveMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */; };
+		4A4F204B2D62650800D1F57F /* FiraCode-VF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
+		4A4F204C2D62651900D1F57F /* FiraCode-VF.ttf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
 		4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
 		4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
 		4A55DCA729C264BC00A3800C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
@@ -95,6 +97,19 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		4A4F20452D625EBE00D1F57F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = fonts;
+			dstSubfolderSpec = 7;
+			files = (
+				4A4F204C2D62651900D1F57F /* FiraCode-VF.ttf in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
@@ -126,6 +141,7 @@
 		4A399CC329BCE67800E98796 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		4A399CC529BCF02500E98796 /* ChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStore.swift; sourceTree = "<group>"; };
 		4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMathView.swift; sourceTree = "<group>"; };
+		4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "FiraCode-VF.ttf"; sourceTree = "<group>"; };
 		4A55DCA629C264BC00A3800C /* TableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableView.swift; sourceTree = "<group>"; };
 		4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
 		4A5F64B929C64F9D000403F7 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -375,6 +391,7 @@
 		4A399C9729BC8FEF00E98796 /* macai */ = {
 			isa = PBXGroup;
 			children = (
+				4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */,
 				4A399C9C29BC8FF100E98796 /* Assets.xcassets */,
 				4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */,
 				4ABDBE6429F86B3900661B2D /* Configuration */,
@@ -455,6 +472,7 @@
 				4A399C9129BC8FEF00E98796 /* Sources */,
 				4A399C9229BC8FEF00E98796 /* Frameworks */,
 				4A399C9329BC8FEF00E98796 /* Resources */,
+				4A4F20452D625EBE00D1F57F /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -568,6 +586,7 @@
 				4A98B1C029CA60ED0064835A /* Info.plist in Resources */,
 				4A399CA129BC8FF100E98796 /* Preview Assets.xcassets in Resources */,
 				4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */,
+				4A4F204B2D62650800D1F57F /* FiraCode-VF.ttf in Resources */,
 				4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

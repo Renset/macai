@@ -29,7 +29,9 @@ struct AppConstants {
     static let defaultTemperatureForChatNameGeneration: Float = 0.6
     static let defaultTemperatureForChat: Float = 0.7
     static let o1Models: [String] = ["o1-preview", "o1-mini"]
-
+    static let firaCode = "FiraCodeRoman-Regular"
+    static let ptMono = "PTMono-Regular"
+    
     struct Persona {
         let name: String
         let color: String

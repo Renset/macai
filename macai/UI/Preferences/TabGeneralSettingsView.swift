@@ -7,13 +7,30 @@
 
 import Sparkle
 import SwiftUI
+import AttributedText
 
 struct TabGeneralSettingsView: View {
+    private let previewCode = """
+    func bar() -> Int {
+        var 🍺: Double = 0
+        var 🧑‍🔬: Double = 1
+        while 🧑‍🔬 > 0 {
+            🍺 += 1/🧑‍🔬
+            🧑‍🔬 *= 2
+            if 🍺 >= 2 { 
+                break 
+            }
+        }
+        return Int(🍺)
+    }
+    """
     @AppStorage("autoCheckForUpdates") var autoCheckForUpdates = true
     @AppStorage("chatFontSize") var chatFontSize: Double = 14.0
     @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
+    @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var selectedColorSchemeRaw: Int = 0
+    @State private var codeResult: String = ""
 
     private var preferredColorScheme: Binding<ColorScheme?> {
         Binding(
@@ -87,9 +104,47 @@ struct TabGeneralSettingsView: View {
                             }
                             .frame(maxWidth: .infinity)
                         }
-
+                        
                         Divider()
-
+                        
+                        GridRow {
+                            HStack {
+                                Text("Code Font")
+                                Spacer()
+                            }
+                            .frame(width: 120)
+                            .gridCellAnchor(.top)
+                                
+                            VStack(alignment: .leading, spacing: 4) {
+                                ScrollView {
+                                    if let highlighted = HighlighterManager.shared.highlight(
+                                        code: previewCode,
+                                        language: "swift",
+                                        theme: systemColorScheme == .dark ? "monokai-sublime" : "code-brewer",
+                                        fontSize: chatFontSize
+                                    ) {
+                                        AttributedText(highlighted)
+                                    } else {
+                                        Text(previewCode)
+                                            .font(.custom(codeFont, size: chatFontSize))
+                                    }
+                                }
+                                
+                                Picker("", selection: $codeFont) {
+                                    Text("Fira Code").tag(AppConstants.firaCode)
+                                    Text("PT Mono").tag(AppConstants.ptMono)
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                            .padding(8)
+                            .background(systemColorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                            .cornerRadius(6)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 140)
+                        }
+                        
+                        Divider()
+                        
                         GridRow {
                             HStack {
                                 Text("Theme")
