@@ -37,6 +37,8 @@ struct ChatView: View {
     @State private var isBottomContainerExpanded = false
     @State private var codeBlocksRendered = false
     @State private var pendingCodeBlocks = 0
+    @State private var userIsScrolling = false
+    @State private var scrollDebounceWorkItem: DispatchWorkItem?
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)],
@@ -112,18 +114,63 @@ struct ChatView: View {
                         }
                     }
                     .padding(24)
-                    .onReceive([chat.messages.count].publisher) { newCount in
-                        if waitingForResponse || currentError != nil {
-                            withAnimation {
-                                scrollView.scrollTo(-1)
-                            }
+                    .onAppear {
+                        pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
+                            count + (message.body.components(separatedBy: "```").count - 1) / 2
                         }
-                        else if newCount > self.messageCount {
-                            self.messageCount = newCount
 
-                            let sortedMessages = chatViewModel.sortedMessages
-                            if let lastMessage = sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.id)
+                        if let lastMessage = chatViewModel.sortedMessages.last {
+                            scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+
+                        if pendingCodeBlocks == 0 {
+                            codeBlocksRendered = true
+                        }
+                    }
+                    .onSwipe { event in
+                        switch event.direction {
+                        case .up:
+                            userIsScrolling = true
+                        case .none:
+                            break
+                        case .down:
+                            break
+                        case .left:
+                            break
+                        case .right:
+                            break
+                        }
+                    }
+                    .onChange(of: chatViewModel.sortedMessages.last?.body) { _ in
+                        if isStreaming && !userIsScrolling {
+                            scrollDebounceWorkItem?.cancel()
+
+                            let workItem = DispatchWorkItem {
+                                if let lastMessage = chatViewModel.sortedMessages.last {
+                                    withAnimation(.easeOut(duration: 1)) {
+                                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                    }
+                                }
+                            }
+
+                            scrollDebounceWorkItem = workItem
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
+                        }
+                    }
+                    .onReceive([chat.messages.count].publisher) { newCount in
+                        DispatchQueue.main.async {
+                            if waitingForResponse || currentError != nil {
+                                withAnimation {
+                                    scrollView.scrollTo(-1)
+                                }
+                            }
+                            else if newCount > self.messageCount {
+                                self.messageCount = newCount
+
+                                let sortedMessages = chatViewModel.sortedMessages
+                                if let lastMessage = sortedMessages.last {
+                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
                     }
@@ -152,29 +199,11 @@ struct ChatView: View {
                             }
                         }
                     }
-                    // Remove the duplicate RetryMessage handler
-                    // .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
-                    //     if currentError != nil {
-                    //         sendMessage(ignoreMessageInput: true)
-                    //     }
-                    // }
                     .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
                         currentError = nil
                     }
-                    .onAppear {
-                        pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
-                            count + (message.body.components(separatedBy: "```").count - 1) / 2
-                        }
-
-                        if let lastMessage = chatViewModel.sortedMessages.last {
-                            scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
-
-                        if pendingCodeBlocks == 0 {
-                            codeBlocksRendered = true
-                        }
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) { _ in
+                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) {
+                        _ in
                         if pendingCodeBlocks > 0 {
                             pendingCodeBlocks -= 1
                             if pendingCodeBlocks == 0 {
@@ -186,7 +215,7 @@ struct ChatView: View {
                         }
                     }
                 }
-                
+
                 .id("chatContainer")
             }
             .modifier(MeasureModifier(renderTime: $renderTime))
@@ -277,6 +306,9 @@ extension ChatView {
                 }
             }
         }
+        
+        userIsScrolling = false
+
         if chat.apiService?.useStreamResponse ?? false {
             self.isStreaming = true
             chatViewModel.sendMessageStream(
@@ -337,6 +369,7 @@ extension ChatView {
     private func handleResponseFinished() {
         self.isStreaming = false
         chat.waitingForResponse = false
+        userIsScrolling = false
     }
 
     private func resetError() {
