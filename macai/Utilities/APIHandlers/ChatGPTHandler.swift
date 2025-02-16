@@ -170,7 +170,7 @@ class ChatGPTHandler: APIService {
 
         var temperatureOverride = temperature
 
-        if AppConstants.o1Models.contains(self.model) {
+        if AppConstants.openAiReasoningModels.contains(self.model) {
             temperatureOverride = 1
         }
 

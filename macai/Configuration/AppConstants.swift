@@ -28,10 +28,13 @@ struct AppConstants {
     static let defaultPersonaTemperature: Float = 0.7
     static let defaultTemperatureForChatNameGeneration: Float = 0.6
     static let defaultTemperatureForChat: Float = 0.7
-    static let o1Models: [String] = ["o1-preview", "o1-mini"]
+    static let openAiReasoningModels: [String] = [
+        "o1", "o1-preview", "o1-mini", "o3-mini", "o3-mini-high", "o3-mini-2025-01-31", "o1-preview-2024-09-12",
+        "o1-mini-2024-09-12", "o1-2024-12-17",
+    ]
     static let firaCode = "FiraCodeRoman-Regular"
     static let ptMono = "PTMono-Regular"
-    
+
     struct Persona {
         let name: String
         let color: String
@@ -201,7 +204,7 @@ struct AppConstants {
             inherits: "chatgpt"
         ),
         "gemini": defaultApiConfiguration(
-            name: "Google Gemini (OpenAI-like)",
+            name: "Google Gemini",
             url: "https://generativelanguage.googleapis.com/v1beta/chat/completions",
             apiKeyRef: "https://aistudio.google.com/app/apikey",
             apiModelRef: "https://ai.google.dev/gemini-api/docs/models/gemini#model-variations",

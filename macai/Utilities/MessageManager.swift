@@ -143,7 +143,7 @@ class MessageManager: ObservableObject {
         var requestMessages: [[String: String]] = []
         var temperature = AppConstants.defaultPersonaTemperature
 
-        if !AppConstants.o1Models.contains(model) {
+        if !AppConstants.openAiReasoningModels.contains(model) {
             requestMessages.append([
                 "role": "system",
                 "content": "You are a test assistant.",
@@ -213,7 +213,7 @@ class MessageManager: ObservableObject {
     {
         var messages: [[String: String]] = []
 
-        if !AppConstants.o1Models.contains(chat.gptModel) {
+        if !AppConstants.openAiReasoningModels.contains(chat.gptModel) {
             messages.append([
                 "role": "system",
                 "content": chat.systemMessage,
