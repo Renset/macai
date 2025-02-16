@@ -132,17 +132,11 @@ class PerplexityHandler: APIService {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        var temperatureOverride = temperature
-
-        if AppConstants.o1Models.contains(self.model) {
-            temperatureOverride = 1
-        }
-
         let jsonDict: [String: Any] = [
             "model": self.model,
             "stream": stream,
             "messages": requestMessages,
-            "temperature": temperatureOverride,
+            "temperature": temperature,
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])

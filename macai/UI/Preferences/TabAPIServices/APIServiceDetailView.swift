@@ -249,7 +249,7 @@ struct APIServiceDetailView: View {
                 }
             }
 
-            if AppConstants.o1Models.contains(viewModel.model) {
+            if AppConstants.openAiReasoningModels.contains(viewModel.model) {
                 Text(
                     "💁‍♂️ OpenAI API doesn't support system message and temperature other than 1 for o1 models. macai will send system message as a user message internally, while temperature will be always set to 1.0"
                 )
