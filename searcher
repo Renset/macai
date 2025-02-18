@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+
+require 'webrick'
+require 'json'
+require 'uri'
+require 'net/http'
+
+server = WEBrick::HTTPServer.new(Port: 3000)
+
+server.mount_proc '/' do |req, res|
+  pp req.path
+  decoded = URI.decode_www_form_component(req.path.delete_prefix('/'))
+  pp decoded
+  result = JSON.parse(decoded)
+  pp result
+  query = result["query"]
+  pp query
+
+  search_uri = URI('https://wiby.me/json/')
+  search_uri.query = URI.encode_www_form({
+    q: query,
+    format: 'json',
+    no_html: 1
+  })
+  pp search_uri
+
+  search_response = Net::HTTP.get(search_uri)
+  pp search_response
+
+  res.body = search_response
+end
+
+trap('INT') { server.shutdown }
+server.start
