@@ -160,7 +160,7 @@ class ChatGPTHandler: APIService {
         }
     }
 
-    private func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool)
+    internal func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool)
         -> URLRequest
     {
         var request = URLRequest(url: baseURL)
@@ -218,7 +218,7 @@ class ChatGPTHandler: APIService {
         return .success(data)
     }
 
-    private func parseJSONResponse(data: Data) -> (String, String)? {
+    internal func parseJSONResponse(data: Data) -> (String, String)? {
         if let responseString = String(data: data, encoding: .utf8) {
             #if DEBUG
                 print("Response: \(responseString)")
@@ -244,7 +244,7 @@ class ChatGPTHandler: APIService {
         return nil
     }
 
-    private func parseDeltaJSONResponse(data: Data?) -> (Bool, Error?, String?, String?) {
+    internal func parseDeltaJSONResponse(data: Data?) -> (Bool, Error?, String?, String?) {
         guard let data = data else {
             print("No data received.")
             return (true, APIError.decodingFailed("No data received in SSE event"), nil, nil)
@@ -286,7 +286,7 @@ class ChatGPTHandler: APIService {
         return (false, nil, nil, nil)
     }
     
-    private func isNotSSEComment(_ string: String) -> Bool {
+    internal func isNotSSEComment(_ string: String) -> Bool {
         return !string.starts(with: ":")
     }
 }

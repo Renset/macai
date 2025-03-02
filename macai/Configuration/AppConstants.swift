@@ -233,9 +233,20 @@ struct AppConstants {
             ],
             modelsFetching: false
         ),
+        "deepseek": defaultApiConfiguration(
+            name: "Deepseek",
+            url: "https://api.deepseek.com/chat/completions",
+            apiKeyRef: "https://api-docs.deepseek.com/",
+            apiModelRef: "https://api-docs.deepseek.com/quick_start/pricing",
+            defaultModel: "deepseek-chat",
+            models: [
+                "deepseek-chat",
+                "deepseek-reasoner"
+            ]
+        ),
     ]
 
-    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity"]
+    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek"]
     static let newChatNotification = Notification.Name("newChatNotification")
 }
 
