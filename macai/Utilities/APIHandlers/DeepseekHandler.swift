@@ -177,4 +177,31 @@ class DeepseekHandler: ChatGPTHandler {
             }
         }
     }
+    
+    override func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool) -> URLRequest {
+        let filteredMessages = requestMessages.map { message -> [String: String] in
+            var newMessage = message
+            if let content = message["content"] {
+                newMessage["content"] = removeThinkingTags(from: content)
+            }
+            return newMessage
+        }
+        
+        return super.prepareRequest(requestMessages: filteredMessages, model: model, temperature: temperature, stream: stream)
+    }
+    
+    private func removeThinkingTags(from content: String) -> String {
+        let pattern = "<think>\\s*([\\s\\S]*?)\\s*</think>"
+        
+        do {
+            let regex = try NSRegularExpression(pattern: pattern, options: [])
+            let range = NSRange(content.startIndex..., in: content)
+            let modifiedString = regex.stringByReplacingMatches(in: content, options: [], range: range, withTemplate: "")
+            
+            return modifiedString.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            print("Error creating regex: \(error.localizedDescription)")
+            return content
+        }
+    }
 }
