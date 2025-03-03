@@ -30,6 +30,8 @@ class APIServiceFactory {
             return PerplexityHandler(config: config, session: session)
         case "gemini":
             return GeminiHandler(config: config, session: session)
+        case "deepseek":
+            return DeepseekHandler(config: config, session: session)
         default:
             fatalError("Unsupported API service: \(config.name)")
         }
