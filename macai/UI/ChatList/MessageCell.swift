@@ -13,7 +13,8 @@ struct MessageCell: View, Equatable {
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
-        lhs.searchText == rhs.searchText
+        lhs.searchText == rhs.searchText &&
+        lhs.chat.isPinned == rhs.chat.isPinned
     }
     
     @ObservedObject var chat: ChatEntity
@@ -71,6 +72,13 @@ struct MessageCell: View, Equatable {
                 }
                 .padding(8)
                 Spacer()
+                
+                if chat.isPinned {
+                    Image(systemName: "pin.fill")
+                        .foregroundColor(self.isActive ? .white : .gray)
+                        .font(.caption)
+                        .padding(.trailing, 8)
+                }
             }
             .frame(maxWidth: .infinity)
             .foregroundColor(self.isActive ? .white : .primary)

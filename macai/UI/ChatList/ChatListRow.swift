@@ -13,6 +13,7 @@ struct ChatListRow: View, Equatable {
         lhs.chat?.updatedDate == rhs.chat?.updatedDate &&
         lhs.chat?.name == rhs.chat?.name &&
         lhs.chat?.lastMessage?.body == rhs.chat?.lastMessage?.body &&
+        lhs.chat?.isPinned == rhs.chat?.isPinned &&
         lhs.searchText == rhs.searchText &&
         (lhs.selectedChat?.id == rhs.selectedChat?.id)
     }
@@ -63,6 +64,12 @@ struct ChatListRow: View, Equatable {
             searchText: searchText
         )
         .contextMenu {
+            Button(action: { 
+                togglePinChat(chat!) 
+            }) {
+                Label(chat!.isPinned ? "Unpin" : "Pin", systemImage: chat!.isPinned ? "pin.slash" : "pin")
+            }
+            
             Button(action: { renameChat(chat!) }) {
                 Label("Rename", systemImage: "pencil")
             }
@@ -149,6 +156,15 @@ struct ChatListRow: View, Equatable {
                     print("Error clearing chat: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+    
+    func togglePinChat(_ chat: ChatEntity) {
+        chat.isPinned.toggle()
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error toggling pin status: \(error.localizedDescription)")
         }
     }
 }
