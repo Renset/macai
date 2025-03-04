@@ -109,7 +109,7 @@ struct APIServiceDetailView: View {
                             .frame(width: 94, alignment: .leading)
 
                         Picker("", selection: $viewModel.selectedModel) {
-                            ForEach(viewModel.availableModels, id: \.self) { modelName in
+                            ForEach(viewModel.availableModels.sorted(), id: \.self) { modelName in
                                 Text(modelName).tag(modelName)
                             }
                             Text("Enter custom model").tag("custom")

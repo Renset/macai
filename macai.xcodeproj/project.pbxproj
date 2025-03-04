@@ -63,6 +63,7 @@
 		4AADD98C2C924FBA00242D20 /* APIServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADD98B2C924FB400242D20 /* APIServiceManager.swift */; };
 		4AADF71F2C9CE788001B7A26 /* ClaudeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */; };
 		4AB4B08D2D75099E00CA41B6 /* DeepseekHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB4B08C2D75099E00CA41B6 /* DeepseekHandler.swift */; };
+		4AB4B0912D778B1D00CA41B6 /* OpenRouterHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB4B0902D778B1D00CA41B6 /* OpenRouterHandler.swift */; };
 		4ABB86792CFBDBD3004EC7B1 /* HighlightedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */; };
 		4ABB867B2CFC79ED004EC7B1 /* ErrorBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */; };
 		4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6529F86B5900661B2D /* MessageParser.swift */; };
@@ -165,6 +166,7 @@
 		4AADD98B2C924FB400242D20 /* APIServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceManager.swift; sourceTree = "<group>"; };
 		4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeHandler.swift; sourceTree = "<group>"; };
 		4AB4B08C2D75099E00CA41B6 /* DeepseekHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepseekHandler.swift; sourceTree = "<group>"; };
+		4AB4B0902D778B1D00CA41B6 /* OpenRouterHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterHandler.swift; sourceTree = "<group>"; };
 		4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedText.swift; sourceTree = "<group>"; };
 		4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBubbleView.swift; sourceTree = "<group>"; };
 		4ABDBE6529F86B5900661B2D /* MessageParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageParser.swift; sourceTree = "<group>"; };
@@ -452,6 +454,7 @@
 		4AFEE71F2C472F29006F99FB /* APIHandlers */ = {
 			isa = PBXGroup;
 			children = (
+				4AB4B0902D778B1D00CA41B6 /* OpenRouterHandler.swift */,
 				4AB4B08C2D75099E00CA41B6 /* DeepseekHandler.swift */,
 				4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */,
 				4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */,
@@ -646,6 +649,7 @@
 				4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */,
 				4A254A6F2CEA6A2400F66935 /* CodeViewModel.swift in Sources */,
 				4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */,
+				4AB4B0912D778B1D00CA41B6 /* OpenRouterHandler.swift in Sources */,
 				4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */,
 				4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */,
 				4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */,

@@ -32,6 +32,8 @@ class APIServiceFactory {
             return GeminiHandler(config: config, session: session)
         case "deepseek":
             return DeepseekHandler(config: config, session: session)
+        case "openrouter":
+            return OpenRouterHandler(config: config, session: session)
         default:
             fatalError("Unsupported API service: \(config.name)")
         }

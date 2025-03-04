@@ -234,7 +234,7 @@ struct AppConstants {
             modelsFetching: false
         ),
         "deepseek": defaultApiConfiguration(
-            name: "Deepseek",
+            name: "DeepSeek",
             url: "https://api.deepseek.com/chat/completions",
             apiKeyRef: "https://api-docs.deepseek.com/",
             apiModelRef: "https://api-docs.deepseek.com/quick_start/pricing",
@@ -244,9 +244,20 @@ struct AppConstants {
                 "deepseek-reasoner"
             ]
         ),
+        "openrouter": defaultApiConfiguration(
+            name: "OpenRouter",
+            url: "https://openrouter.ai/api/v1/chat/completions",
+            apiKeyRef: "https://openrouter.ai/docs/api-reference/authentication#using-an-api-key",
+            apiModelRef: "https://openrouter.ai/docs/overview/models",
+            defaultModel: "deepseek/deepseek-r1:free",
+            models: [
+                "openai/gpt-4o",
+                "deepseek/deepseek-r1:free"
+            ]
+        ),
     ]
 
-    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek"]
+    static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter"]
     static let newChatNotification = Notification.Name("newChatNotification")
 }
 
