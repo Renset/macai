@@ -18,7 +18,10 @@ struct ChatListView: View {
 
     @FetchRequest(
         entity: ChatEntity.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \ChatEntity.isPinned, ascending: false),
+            NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)
+        ],
         animation: .default
     )
     private var chats: FetchedResults<ChatEntity>

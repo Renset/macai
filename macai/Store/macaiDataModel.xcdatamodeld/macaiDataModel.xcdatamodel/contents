@@ -20,6 +20,7 @@
         <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="gptModel" optional="YES" attributeType="String" defaultValueString="gpt-3.5-turbo"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO" preserveAfterDeletion="YES"/>
+        <attribute name="isPinned" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
