@@ -394,14 +394,3 @@ struct MeasureModifier: ViewModifier {
             }
     }
 }
-
-//struct ChatView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        let mockMessage1 = Message(id: 1, name: "User", body: "Hello, how are you?", timestamp: Date(), own: true)
-//        let mockMessage2 = Message(id: 2, name: "ChatGPT", body: "I'm doing well, thank you! How can I help you today?", timestamp: Date(), own: false)
-//
-//        let mockChat = Chat(id: UUID(), messagePreview: mockMessage2, messages: [mockMessage1, mockMessage2], newChat: false, newMessage: "Test new message")
-//
-//        ChatView(chat: .constant(mockChat), message: ".constant(mockChat.newMessage)")
-//    }
-//}

@@ -5,7 +5,6 @@
 //  Created by Renat Notfullin on 18.03.2023.
 //
 
-import AttributedText
 import Foundation
 import SwiftUI
 
@@ -32,6 +31,7 @@ struct ChatBubbleContent: Equatable {
             && lhs.isLatestMessage == rhs.isLatestMessage
     }
 }
+
 
 struct ChatBubbleView: View, Equatable {
     let content: ChatBubbleContent
@@ -67,13 +67,13 @@ struct ChatBubbleView: View, Equatable {
                         .frame(width: 80)
                     Spacer()
                 }
+
                 VStack(alignment: .leading) {
                     if content.waitingForResponse ?? false {
                         HStack {
                             Text("Thinking")
                                 .foregroundColor(.primary)
                                 .font(.system(size: 14))
-
                             Circle()
                                 .fill(Color.blue)
                                 .frame(width: 6, height: 6)
@@ -99,71 +99,16 @@ struct ChatBubbleView: View, Equatable {
                         )
                     }
                     else {
-                        let parser = MessageParser(colorScheme: colorScheme)
-                        let parsedElements = parser.parseMessageFromString(
-                            input: content.message
+                        MessageContentView(
+                            message: content.message,
+                            isStreaming: content.isStreaming,
+                            own: content.own,
+                            effectiveFontSize: effectiveFontSize,
+                            colorScheme: colorScheme
                         )
-                        ForEach(0..<parsedElements.count, id: \.self) { index in
-                            switch parsedElements[index] {
-                            case .thinking(let content, _):
-                                ThinkingProcessView(content: content)
-                                    .padding(.vertical, 4)
-                            case .text(let text):
-                                let attributedString: NSAttributedString = {
-                                    let options = AttributedString.MarkdownParsingOptions(
-                                        interpretedSyntax: .inlineOnlyPreservingWhitespace
-                                    )
-                                    let initialAttributedString =
-                                        (try? NSAttributedString(markdown: text, options: options))
-                                        ?? NSAttributedString(string: text)
-
-                                    let mutableAttributedString = NSMutableAttributedString(
-                                        attributedString: initialAttributedString
-                                    )
-                                    let fullRange = NSRange(location: 0, length: mutableAttributedString.length)
-                                    let systemFont = NSFont.systemFont(ofSize: effectiveFontSize)
-
-                                    mutableAttributedString.addAttribute(.font, value: systemFont, range: fullRange)
-                                    mutableAttributedString.addAttribute(
-                                        .foregroundColor,
-                                        value: content.own ? NSColor.textColor : NSColor.textColor,
-                                        range: fullRange
-                                    )
-
-                                    return mutableAttributedString
-                                }()
-
-                                if text.count > AppConstants.longStringCount {
-                                    AttributedText(attributedString)
-                                        .textSelection(.enabled)
-                                }
-                                else {
-                                    Text(.init(attributedString))
-                                        .textSelection(.enabled)
-                                }
-
-                            case .table(let header, let data):
-                                TableView(header: header, tableData: data)
-                                    .padding()
-                            case .code(let code, let lang, let indent):
-                                CodeView(code: code, lang: lang, isStreaming: content.isStreaming)
-                                    .padding(.bottom, 8)
-                                    .padding(.leading, CGFloat(indent) * 4)
-                            case .formula(let formula):
-                                if content.isStreaming {
-                                    Text(formula).textSelection(.enabled)
-                                }
-                                else {
-                                    AdaptiveMathView(equation: formula, fontSize: NSFont.systemFontSize + CGFloat(2))
-                                        .padding(.vertical, 16)
-                                }
-                            }
-                        }
                     }
                 }
-                .foregroundColor(
-                    Color(content.own ? incomingLabelColor : incomingLabelColor)
-                )
+                .foregroundColor(Color(content.own ? incomingLabelColor : incomingLabelColor))
                 .multilineTextAlignment(.leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -175,12 +120,13 @@ struct ChatBubbleView: View, Equatable {
                             : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
                 )
                 .cornerRadius(16)
+
                 if !content.own {
                     Spacer()
                 }
             }
 
-            if isHovered && content.errorMessage == nil && !(content.waitingForResponse ?? false) {
+            if content.errorMessage == nil && !(content.waitingForResponse ?? false) {
                 HStack {
                     if content.own {
                         Spacer()
@@ -195,12 +141,12 @@ struct ChatBubbleView: View, Equatable {
                 }
                 .frame(height: 12)
                 .transition(.opacity)
+                .opacity(isHovered ? 1 : 0)
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
             }
             else {
                 Color.clear.frame(height: 12)
             }
-
         }
         .padding(.vertical, 8)
         .onHover { isHovered in
@@ -248,57 +194,45 @@ struct ChatBubbleView: View, Equatable {
     private var toolbarContent: some View {
         HStack(spacing: 12) {
             if content.systemMessage {
-                Button(action: {
-                    onEdit?()
-                }) {
-                    Image(systemName: "pencil")
-                        .imageScale(.small)
-                        .frame(width: 10)
-                    Text("Edit")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(PlainButtonStyle())
-                .foregroundColor(.gray.opacity(0.7))
+                ToolbarButton(
+                    icon: "pencil",
+                    text: "Edit",
+                    action: {
+                        onEdit?()
+                    }
+                )
             }
 
             if content.isLatestMessage && !content.systemMessage {
-                Button(action: {
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("RetryMessage"),
-                        object: nil
-                    )
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .imageScale(.small)
-                        .frame(width: 10)
-                    Text("Retry")
-                        .font(.system(size: 12))
+                ToolbarButton(
+                    icon: "arrow.clockwise",
+                    text: "Retry",
+                    action: {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("RetryMessage"),
+                            object: nil
+                        )
+                    }
+                )
+            }
+
+            ToolbarButton(
+                icon: isCopied ? "checkmark" : "doc.on.doc",
+                text: "Copy",
+                action: {
+                    copyMessageToClipboard(content.message)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .foregroundColor(.gray.opacity(0.7))
-            }
+            )
 
-            Button(action: {
-                copyMessageToClipboard(content.message)
-            }) {
-                Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                    .animation(.easeInOut(duration: 0.2), value: isCopied)
-                    .imageScale(.small)
-                    .frame(width: 10)
-                Text("Copy")
-                    .font(.system(size: 12))
+            if !content.systemMessage {
+                ToolbarButton(
+                    icon: "trash",
+                    text: "",  // No text for delete button
+                    action: {
+                        showingDeleteConfirmation = true
+                    }
+                )
             }
-            .buttonStyle(PlainButtonStyle())
-            .foregroundColor(.gray.opacity(0.7))
-
-            Button(action: {
-                showingDeleteConfirmation = true
-            }) {
-                Image(systemName: "trash")
-                    .imageScale(.small)
-                    .foregroundColor(.gray.opacity(0.7))
-            }
-            .buttonStyle(PlainButtonStyle())
         }
     }
 }

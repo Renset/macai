@@ -35,6 +35,8 @@
 		4A399CC629BCF02500E98796 /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC529BCF02500E98796 /* ChatStore.swift */; };
 		4A471B862C29C56800C66926 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 4A471B852C29C56800C66926 /* SwiftMath */; };
 		4A471B882C29CD3D00C66926 /* AdaptiveMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */; };
+		4A4918782D9F3C54007EB4A2 /* MessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4918772D9F3C54007EB4A2 /* MessageContentView.swift */; };
+		4A49187A2D9F4186007EB4A2 /* ToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */; };
 		4A4F204B2D62650800D1F57F /* FiraCode-VF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
 		4A4F204C2D62651900D1F57F /* FiraCode-VF.ttf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
 		4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
@@ -143,6 +145,8 @@
 		4A399CC329BCE67800E98796 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		4A399CC529BCF02500E98796 /* ChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStore.swift; sourceTree = "<group>"; };
 		4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMathView.swift; sourceTree = "<group>"; };
+		4A4918772D9F3C54007EB4A2 /* MessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageContentView.swift; sourceTree = "<group>"; };
+		4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarButton.swift; sourceTree = "<group>"; };
 		4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "FiraCode-VF.ttf"; sourceTree = "<group>"; };
 		4A55DCA629C264BC00A3800C /* TableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableView.swift; sourceTree = "<group>"; };
 		4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
@@ -228,6 +232,7 @@
 		4A1614172D46C89F00A1EF8D /* BubbleView */ = {
 			isa = PBXGroup;
 			children = (
+				4A4918772D9F3C54007EB4A2 /* MessageContentView.swift */,
 				4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */,
 				4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */,
 				4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */,
@@ -248,6 +253,7 @@
 		4A164BB92C962E520060ECFE /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */,
 				4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */,
 				4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */,
 				4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */,
@@ -637,6 +643,7 @@
 				4A885C582CEA3F7B0018BBED /* ChatListRow.swift in Sources */,
 				4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */,
 				4ADCA45B2C9B74E8005664A6 /* APIServiceDetailViewModel.swift in Sources */,
+				4A4918782D9F3C54007EB4A2 /* MessageContentView.swift in Sources */,
 				4A1614152D46C86800A1EF8D /* PersonaSelectorView.swift in Sources */,
 				4A1614112D430AE300A1EF8D /* ThinkingProcessView.swift in Sources */,
 				4A885C562CEA3F6C0018BBED /* ChatListView.swift in Sources */,
@@ -658,6 +665,7 @@
 				4A1614132D46B9BA00A1EF8D /* SystemMessageBubbleView.swift in Sources */,
 				4AA6EF592C565F90003B6D41 /* APIServiceConfig.swift in Sources */,
 				4AADF71F2C9CE788001B7A26 /* ClaudeHandler.swift in Sources */,
+				4A49187A2D9F4186007EB4A2 /* ToolbarButton.swift in Sources */,
 				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
 				4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */,
 				4A775A042C1486F3004301D3 /* Extensions.swift in Sources */,
