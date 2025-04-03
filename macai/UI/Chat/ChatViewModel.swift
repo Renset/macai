@@ -60,6 +60,10 @@ class ChatViewModel: ObservableObject {
         }
     }
 
+    func cancelGeneration() {
+        messageManager.cancelGeneration()
+    }
+
     func generateChatNameIfNeeded() {
         messageManager.generateChatNameIfNeeded(chat: chat)
     }
