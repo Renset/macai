@@ -306,7 +306,7 @@ extension ChatView {
                 }
             }
         }
-        
+
         userIsScrolling = false
 
         if chat.apiService?.useStreamResponse ?? false {
