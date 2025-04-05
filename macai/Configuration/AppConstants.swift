@@ -259,6 +259,7 @@ struct AppConstants {
 
     static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter"]
     static let newChatNotification = Notification.Name("newChatNotification")
+    static let largeMessageSymbolsThreshold = 25000
 }
 
 func getCurrentFormattedDate() -> String {
