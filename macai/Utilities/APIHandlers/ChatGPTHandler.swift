@@ -177,36 +177,28 @@ class ChatGPTHandler: APIService {
             temperatureOverride = 1
         }
 
-        // Process messages to handle potential image content
         var processedMessages: [[String: Any]] = []
 
         for message in requestMessages {
             var processedMessage: [String: Any] = [:]
 
-            // Copy role from original message
             if let role = message["role"] {
                 processedMessage["role"] = role
             }
 
-            // Process content - handle image references
             if let content = message["content"] {
-                // Extract image UUIDs from XML-style tags
                 let pattern = "<image-uuid>(.*?)</image-uuid>"
 
                 if content.range(of: pattern, options: .regularExpression) != nil {
-                    // This is a message with image references
                     let textContent = content.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
                         .trimmingCharacters(in: .whitespacesAndNewlines)
 
-                    // Create a content array for messages with images
                     var contentArray: [[String: Any]] = []
 
-                    // Add text content if not empty
                     if !textContent.isEmpty {
                         contentArray.append(["type": "text", "text": textContent])
                     }
 
-                    // Extract image UUIDs and load images from CoreData
                     let regex = try? NSRegularExpression(pattern: pattern, options: [])
                     let nsString = content as NSString
                     let matches =
@@ -229,11 +221,9 @@ class ChatGPTHandler: APIService {
                         }
                     }
 
-                    // Set the content array in the processed message
                     processedMessage["content"] = contentArray
                 }
                 else {
-                    // Regular text message without images
                     processedMessage["content"] = content
                 }
             }
@@ -358,10 +348,8 @@ class ChatGPTHandler: APIService {
     }
 
     private func loadImageFromCoreData(uuid: UUID) -> Data? {
-        // Get the view context from the shared persistence controller
         let viewContext = PersistenceController.shared.container.viewContext
 
-        // Create a fetch request for ImageEntity
         let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
         fetchRequest.fetchLimit = 1

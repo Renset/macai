@@ -195,10 +195,8 @@ struct MessageParser {
         }
 
         func loadImageFromCoreData(uuid: UUID) -> NSImage? {
-            // Get the view context from the shared persistence controller
             let viewContext = PersistenceController.shared.container.viewContext
 
-            // Create a fetch request for ImageEntity
             let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
             fetchRequest.fetchLimit = 1
@@ -237,9 +235,7 @@ struct MessageParser {
             appendThinkingBlockIfNeeded()
         }
 
-        // Helper function to extract base64 image data from a data URL
         func extractBase64ImageData(from dataURL: String) -> Data? {
-            // Format: data:image/jpeg;base64,BASE64_DATA
             let components = dataURL.components(separatedBy: ",")
             guard components.count > 1, let base64String = components.last else { return nil }
             return Data(base64Encoded: base64String)
@@ -307,12 +303,10 @@ struct MessageParser {
                         elements.append(.image(image))
                     }
                     else {
-                        // If image can't be parsed, treat as regular text
                         textLines.append(line)
                     }
                 }
                 else {
-                    // Treat as regular text if not properly formatted
                     textLines.append(line)
                 }
 
@@ -322,7 +316,6 @@ struct MessageParser {
                     elements.append(.image(image))
                 }
                 else {
-                    // If image can't be loaded, treat as regular text
                     textLines.append(line)
                 }
 
