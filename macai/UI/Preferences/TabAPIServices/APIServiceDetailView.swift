@@ -247,7 +247,7 @@ struct APIServiceDetailView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .help(
-                                "If enabled, you can upload images to be processed by the AI. This feature is only available for certain API types that support image processing."
+                                "If enabled, you can upload images to be processed by the AI. This feature is only available for certain models that support image processing."
                             )
 
                             Spacer()

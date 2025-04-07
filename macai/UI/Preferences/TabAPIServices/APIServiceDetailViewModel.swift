@@ -67,6 +67,7 @@ class APIServiceDetailViewModel: ObservableObject {
         }
         else {
             url = AppConstants.apiUrlChatCompletions
+            imageUploadsAllowed = AppConstants.defaultApiConfigurations[type]?.imageUploadsSupported ?? false
         }
     }
 
@@ -189,6 +190,8 @@ class APIServiceDetailViewModel: ObservableObject {
         self.url = self.defaultApiConfiguration!.url
         self.model = self.defaultApiConfiguration!.defaultModel
         self.selectedModel = self.model
+        
+        self.imageUploadsAllowed = self.defaultApiConfiguration!.imageUploadsSupported
 
         fetchModelsForService()
     }
