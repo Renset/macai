@@ -415,7 +415,9 @@ extension ChatView {
                 for url in panel.urls {
                     let attachment = ImageAttachment(url: url, context: self.viewContext)
                     DispatchQueue.main.async {
-                        self.attachedImages.append(attachment)
+                        withAnimation {
+                            self.attachedImages.append(attachment)
+                        }
                     }
                 }
             }

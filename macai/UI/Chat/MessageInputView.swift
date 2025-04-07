@@ -47,7 +47,9 @@ struct MessageInputView: View {
                     ForEach(attachedImages) { attachment in
                         ImagePreviewView(attachment: attachment) { index in
                             if let index = attachedImages.firstIndex(where: { $0.id == attachment.id }) {
-                                attachedImages.remove(at: index)
+                                withAnimation {
+                                    attachedImages.remove(at: index)
+                                }
                             }
                         }
                     }
