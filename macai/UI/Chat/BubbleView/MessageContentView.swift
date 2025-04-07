@@ -8,6 +8,10 @@
 import AttributedText
 import SwiftUI
 
+struct IdentifiableImage: Identifiable {
+    let id = UUID()
+    let image: NSImage
+}
 struct MessageContentView: View {
     let message: String
     let isStreaming: Bool
@@ -17,18 +21,28 @@ struct MessageContentView: View {
 
     @State private var showFullMessage = false
     @State private var isParsingFullMessage = false
+    @State private var selectedImage: IdentifiableImage?
 
     private let largeMessageSymbolsThreshold = AppConstants.largeMessageSymbolsThreshold
 
     var body: some View {
         VStack(alignment: .leading) {
-            if message.count > largeMessageSymbolsThreshold && !showFullMessage {
+            // Check if message contains image data or JSON with image_url before applying truncation
+            if message.count > largeMessageSymbolsThreshold && !showFullMessage && !containsImageData(message) {
                 renderPartialContent()
             }
             else {
                 renderFullContent()
             }
         }
+    }
+
+    private func containsImageData(_ message: String) -> Bool {
+        // Check for base64-encoded content tags
+        if message.contains("<base64>") {
+            return true
+        }
+        return false
     }
 
     @ViewBuilder
@@ -111,6 +125,9 @@ struct MessageContentView: View {
                 AdaptiveMathView(equation: formula, fontSize: NSFont.systemFontSize + CGFloat(2))
                     .padding(.vertical, 16)
             }
+
+        case .image(let image):
+            renderImage(image)
         }
     }
 
@@ -158,4 +175,25 @@ struct MessageContentView: View {
                 NotificationCenter.default.post(name: NSNotification.Name("CodeBlockRendered"), object: nil)
             }
     }
+
+    @ViewBuilder
+    private func renderImage(_ image: NSImage) -> some View {
+        let maxWidth: CGFloat = 300
+        let aspectRatio = image.size.width / image.size.height
+        let displayHeight = maxWidth / aspectRatio
+
+        Image(nsImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(maxWidth: maxWidth, maxHeight: displayHeight)
+            .cornerRadius(8)
+            .onTapGesture {
+                selectedImage = IdentifiableImage(image: image)  // Wrap NSImage in IdentifiableImage
+            }
+            .sheet(item: $selectedImage) { identifiableImage in
+                ZoomableImageView(image: identifiableImage.image, imageAspectRatio: aspectRatio)
+
+            }
+    }
+
 }

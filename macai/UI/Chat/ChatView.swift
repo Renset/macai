@@ -7,6 +7,7 @@
 
 import CoreData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChatView: View {
     let viewContext: NSManagedObjectContext
@@ -23,6 +24,7 @@ struct ChatView: View {
     @State private var isStreaming: Bool = false
     @State private var isHovered = false
     @State private var currentStreamingMessage: String = ""
+    @State private var attachedImages: [ImageAttachment] = []
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @AppStorage("useChatGptForNames") var useChatGptForNames: Bool = false
     @AppStorage("useStream") var useStream: Bool = true
@@ -241,6 +243,8 @@ struct ChatView: View {
                 chat: chat,
                 newMessage: $newMessage,
                 isExpanded: $isBottomContainerExpanded,
+                attachedImages: $attachedImages,
+                imageUploadsAllowed: chat.apiService?.imageUploadsAllowed ?? false,
                 onSendMessage: {
                     if editSystemMessage {
                         chat.systemMessage = newMessage
@@ -251,6 +255,9 @@ struct ChatView: View {
                     else if newMessage != "" && newMessage != " " {
                         self.sendMessage()
                     }
+                },
+                onAddImage: {
+                    selectAndAddImages()
                 }
             )
 
@@ -294,11 +301,37 @@ extension ChatView {
 
         resetError()
 
-        let messageBody = newMessage
+        var messageContents: [MessageContent] = []
+        let messageText = newMessage
+
+        if !messageText.isEmpty {
+            messageContents.append(MessageContent(text: messageText))
+        }
+
+        for attachment in attachedImages {
+            if attachment.imageEntity == nil {
+                attachment.saveToEntity(context: viewContext)
+            }
+
+            messageContents.append(MessageContent(imageAttachment: attachment))
+        }
+
+        let messageBody: String
+        let hasImages = !attachedImages.isEmpty
+
+        if hasImages {
+            messageBody = messageContents.toString()
+        }
+        else {
+            messageBody = messageText
+        }
+
         let isFirstMessage = chat.messages.count == 0
 
         if !ignoreMessageInput {
             saveNewMessageInStore(with: messageBody)
+
+            attachedImages = []
 
             if isFirstMessage {
                 withAnimation {
@@ -352,18 +385,41 @@ extension ChatView {
     }
 
     private func saveNewMessageInStore(with messageBody: String) {
-        let sendingMessage = MessageEntity(context: viewContext)
-        sendingMessage.id = Int64(chat.messages.count + 1)
-        sendingMessage.name = ""
-        sendingMessage.body = messageBody
-        sendingMessage.timestamp = Date()
-        sendingMessage.own = true
-        sendingMessage.waitingForResponse = false
-        sendingMessage.chat = chat
+        let newMessageEntity = MessageEntity(context: viewContext)
+        newMessageEntity.id = Int64(chat.messages.count + 1)
+        newMessageEntity.body = messageBody
+        newMessageEntity.timestamp = Date()
+        newMessageEntity.own = true
+        newMessageEntity.chat = chat
 
-        chat.addToMessages(sendingMessage)
-        store.saveInCoreData()
+        chat.updatedDate = Date()
+        chat.addToMessages(newMessageEntity)
+        chat.objectWillChange.send()
+
         newMessage = ""
+    }
+
+    private func selectAndAddImages() {
+        guard chat.apiService?.imageUploadsAllowed == true else { return }
+
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.jpeg, .png, .heic, .heif, UTType(filenameExtension: "webp")].compactMap { $0 }
+        panel.title = "Select Images"
+        panel.message = "Choose images to upload"
+
+        panel.begin { response in
+            if response == .OK {
+                for url in panel.urls {
+                    let attachment = ImageAttachment(url: url, context: self.viewContext)
+                    DispatchQueue.main.async {
+                        self.attachedImages.append(attachment)
+                    }
+                }
+            }
+        }
     }
 
     private func handleResponseFinished() {

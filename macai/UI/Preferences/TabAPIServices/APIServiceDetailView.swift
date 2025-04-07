@@ -235,6 +235,25 @@ struct APIServiceDetailView: View {
                         Spacer()
                     }
                 }
+
+                if viewModel.supportsImageUploads {
+                    Toggle(isOn: $viewModel.imageUploadsAllowed) {
+                        HStack {
+                            Text("Allow image uploads")
+                            Button(action: {
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help(
+                                "If enabled, you can upload images to be processed by the AI. This feature is only available for certain models that support image processing."
+                            )
+
+                            Spacer()
+                        }
+                    }
+                }
             }
             .padding(.vertical, 8)
 
