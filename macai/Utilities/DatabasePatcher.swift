@@ -13,6 +13,7 @@ class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext) {
         addDefaultPersonasIfNeeded(context: context)
         patchPersonaOrdering(context: context)
+        patchImageUploadsForAPIServices(context: context)
         //resetPersonaOrdering(context: context)
     }
 
@@ -85,6 +86,33 @@ class DatabasePatcher {
         }
     }
 
+    static func patchImageUploadsForAPIServices(context: NSManagedObjectContext) {
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+            
+            for service in apiServices {
+                if let type = service.type, 
+                   let config = AppConstants.defaultApiConfigurations[type], 
+                   config.imageUploadsSupported && !service.imageUploadsAllowed {
+                    service.imageUploadsAllowed = true
+                    needsSave = true
+                    print("Enabled image uploads for API service: \(service.name ?? "Unnamed")")
+                }
+            }
+            
+            if needsSave {
+                try context.save()
+                print("Successfully patched image uploads for API services")
+            }
+        }
+        catch {
+            print("Error patching image uploads for API services: \(error)")
+        }
+    }
+    
     static func migrateExistingConfiguration(context: NSManagedObjectContext) {
         let apiServiceManager = APIServiceManager(viewContext: context)
         let defaults = UserDefaults.standard

@@ -1,3 +1,4 @@
+import CoreData
 //
 //  MessageParser.swift
 //  macai
@@ -18,6 +19,8 @@ struct MessageParser {
         case formulaBlock
         case formulaLine
         case thinking
+        case image
+        case imageUUID
     }
 
     func detectBlockType(line: String) -> BlockType {
@@ -38,12 +41,19 @@ struct MessageParser {
         else if trimmedLine.hasPrefix("\\]") {
             return .formulaLine
         }
+        else if trimmedLine.hasPrefix("<base64>") {
+            return .image
+        }
+        else if trimmedLine.hasPrefix("<image-uuid>") {
+            return .imageUUID
+        }
         else {
             return .text
         }
     }
 
     func parseMessageFromString(input: String) -> [MessageElements] {
+
         let lines = input.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
         var elements: [MessageElements] = []
         var currentHeader: [String] = []
@@ -162,6 +172,50 @@ struct MessageParser {
             }
         }
 
+        func extractBase64Content(_ line: String) -> String? {
+            let pattern = "<base64>(.*?)</base64>"
+            if let range = line.range(of: pattern, options: .regularExpression) {
+                let base64Content = String(line[range])
+                    .replacingOccurrences(of: "<base64>", with: "")
+                    .replacingOccurrences(of: "</base64>", with: "")
+                return base64Content
+            }
+            return nil
+        }
+
+        func extractImageUUID(_ line: String) -> UUID? {
+            let pattern = "<image-uuid>(.*?)</image-uuid>"
+            if let range = line.range(of: pattern, options: .regularExpression) {
+                let uuidString = String(line[range])
+                    .replacingOccurrences(of: "<image-uuid>", with: "")
+                    .replacingOccurrences(of: "</image-uuid>", with: "")
+                return UUID(uuidString: uuidString)
+            }
+            return nil
+        }
+
+        func loadImageFromCoreData(uuid: UUID) -> NSImage? {
+            // Get the view context from the shared persistence controller
+            let viewContext = PersistenceController.shared.container.viewContext
+
+            // Create a fetch request for ImageEntity
+            let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            do {
+                let results = try viewContext.fetch(fetchRequest)
+                if let imageEntity = results.first, let imageData = imageEntity.image {
+                    return NSImage(data: imageData)
+                }
+            }
+            catch {
+                print("Error fetching image from CoreData: \(error)")
+            }
+
+            return nil
+        }
+
         var thinkingLines: [String] = []
         var isThinkingBlockOpened = false
 
@@ -181,6 +235,14 @@ struct MessageParser {
             appendCodeBlockIfNeeded()
             appendTableIfNeeded()
             appendThinkingBlockIfNeeded()
+        }
+
+        // Helper function to extract base64 image data from a data URL
+        func extractBase64ImageData(from dataURL: String) -> Data? {
+            // Format: data:image/jpeg;base64,BASE64_DATA
+            let components = dataURL.components(separatedBy: ",")
+            guard components.count > 1, let base64String = components.last else { return nil }
+            return Data(base64Encoded: base64String)
         }
 
         for line in lines {
@@ -234,6 +296,34 @@ struct MessageParser {
                     if !firstLine.isEmpty {
                         thinkingLines.append(firstLine)
                     }
+                }
+
+            case .image:
+                if let base64Content = extractBase64Content(line) {
+                    if let imageData = Data(base64Encoded: base64Content),
+                        let image = NSImage(data: imageData)
+                    {
+                        combineTextLinesIfNeeded()
+                        elements.append(.image(image))
+                    }
+                    else {
+                        // If image can't be parsed, treat as regular text
+                        textLines.append(line)
+                    }
+                }
+                else {
+                    // Treat as regular text if not properly formatted
+                    textLines.append(line)
+                }
+
+            case .imageUUID:
+                if let uuid = extractImageUUID(line), let image = loadImageFromCoreData(uuid: uuid) {
+                    combineTextLinesIfNeeded()
+                    elements.append(.image(image))
+                }
+                else {
+                    // If image can't be loaded, treat as regular text
+                    textLines.append(line)
                 }
 
             case .text:

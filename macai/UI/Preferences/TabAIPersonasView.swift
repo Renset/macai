@@ -7,6 +7,7 @@
 
 import CoreData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TabAIPersonasView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -216,7 +217,10 @@ struct PersonaDetailView: View {
                 Text("System message:")
                 MessageInputView(
                     text: $systemMessage,
+                    attachedImages: .constant([]),
+                    imageUploadsAllowed: false,
                     onEnter: {},
+                    onAddImage: {},
                     inputPlaceholderText: "Enter system message here",
                     cornerRadius: 4
                 )

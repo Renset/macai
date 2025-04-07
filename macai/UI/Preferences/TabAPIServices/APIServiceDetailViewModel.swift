@@ -21,6 +21,7 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var contextSizeUnlimited: Bool = false
     @Published var useStreamResponse: Bool = true
     @Published var generateChatNames: Bool = true
+    @Published var imageUploadsAllowed: Bool = false
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
     @Published var isCustomModel: Bool = false
@@ -49,6 +50,7 @@ class APIServiceDetailViewModel: ObservableObject {
             contextSize = Float(service.contextSize)
             useStreamResponse = service.useStreamResponse
             generateChatNames = service.generateChatNames
+            imageUploadsAllowed = service.imageUploadsAllowed
             defaultAiPersona = service.defaultPersona
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
             selectedModel = model
@@ -104,7 +106,9 @@ class APIServiceDetailViewModel: ObservableObject {
                     self.fetchedModels = models
                     self.isLoadingModels = false
 
-                    if !models.contains(where: { $0.id == self.selectedModel }) && !self.availableModels.contains(where: { $0 == self.selectedModel }) {
+                    if !models.contains(where: { $0.id == self.selectedModel })
+                        && !self.availableModels.contains(where: { $0 == self.selectedModel })
+                    {
                         self.selectedModel = "custom"
                         self.isCustomModel = true
                     }
@@ -138,6 +142,7 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.contextSize = Int16(contextSize)
         serviceToSave.useStreamResponse = useStreamResponse
         serviceToSave.generateChatNames = generateChatNames
+        serviceToSave.imageUploadsAllowed = imageUploadsAllowed
         serviceToSave.defaultPersona = defaultAiPersona
 
         if apiService == nil {
@@ -195,5 +200,9 @@ class APIServiceDetailViewModel: ObservableObject {
 
     func onUpdateModelsList() {
         fetchModelsForService()
+    }
+
+    var supportsImageUploads: Bool {
+        return AppConstants.defaultApiConfigurations[type]?.imageUploadsSupported ?? false
     }
 }

@@ -14,6 +14,7 @@ enum MessageElements {
     case code(code: String, lang: String, indent: Int)
     case formula(String)
     case thinking(String, isExpanded: Bool)
+    case image(NSImage)
 }
 
 struct ChatBubbleContent: Equatable {
@@ -31,7 +32,6 @@ struct ChatBubbleContent: Equatable {
             && lhs.isLatestMessage == rhs.isLatestMessage
     }
 }
-
 
 struct ChatBubbleView: View, Equatable {
     let content: ChatBubbleContent

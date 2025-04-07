@@ -9,20 +9,34 @@ import SwiftUI
 struct ChatBottomContainerView: View {
     @ObservedObject var chat: ChatEntity
     @Binding var newMessage: String
-    var onSendMessage: () -> Void
     @Binding var isExpanded: Bool
+    @Binding var attachedImages: [ImageAttachment]
+    var imageUploadsAllowed: Bool
+    var onSendMessage: () -> Void
+    var onExpandToggle: () -> Void
+    var onAddImage: () -> Void
     var onExpandedStateChange: ((Bool) -> Void)?  // Add this line
 
     init(
         chat: ChatEntity,
         newMessage: Binding<String>,
         isExpanded: Binding<Bool>,
-        onSendMessage: @escaping () -> Void
+        attachedImages: Binding<[ImageAttachment]> = .constant([]),
+        imageUploadsAllowed: Bool = false,
+        onSendMessage: @escaping () -> Void,
+        onExpandToggle: @escaping () -> Void = {},
+        onAddImage: @escaping () -> Void = {},
+        onExpandedStateChange: ((Bool) -> Void)? = nil
     ) {
         self.chat = chat
         self._newMessage = newMessage
-        self.onSendMessage = onSendMessage
         self._isExpanded = isExpanded
+        self._attachedImages = attachedImages
+        self.imageUploadsAllowed = imageUploadsAllowed
+        self.onSendMessage = onSendMessage
+        self.onExpandToggle = onExpandToggle
+        self.onAddImage = onAddImage
+        self.onExpandedStateChange = onExpandedStateChange
 
         if chat.messages.count == 0 {
             DispatchQueue.main.async {
@@ -64,8 +78,10 @@ struct ChatBottomContainerView: View {
                 HStack {
                     MessageInputView(
                         text: $newMessage,
+                        attachedImages: $attachedImages,
+                        imageUploadsAllowed: imageUploadsAllowed,
                         onEnter: onSendMessage,
-                        isFocused: .focused
+                        onAddImage: onAddImage
                     )
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .multilineTextAlignment(.leading)

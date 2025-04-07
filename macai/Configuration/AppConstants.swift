@@ -139,6 +139,7 @@ struct AppConstants {
         var maxTokens: Int? = nil
         var inherits: String? = nil
         var modelsFetching: Bool = true
+        var imageUploadsSupported: Bool = false
     }
 
     static let defaultApiConfigurations = [
@@ -157,7 +158,8 @@ struct AppConstants {
                 "gpt-4-turbo",
                 "gpt-4",
                 "gpt-3.5-turbo",
-            ]
+            ],
+            imageUploadsSupported: true
         ),
         "ollama": defaultApiConfiguration(
             name: "Ollama",
@@ -214,7 +216,8 @@ struct AppConstants {
                 "gemini-1.5-flash",
                 "gemini-1.5-flash-8b",
                 "gemini-1.5-pro",
-            ]
+            ],
+            imageUploadsSupported: true
         ),
         "perplexity": defaultApiConfiguration(
             name: "Perplexity",
@@ -241,7 +244,7 @@ struct AppConstants {
             defaultModel: "deepseek-chat",
             models: [
                 "deepseek-chat",
-                "deepseek-reasoner"
+                "deepseek-reasoner",
             ]
         ),
         "openrouter": defaultApiConfiguration(
@@ -252,7 +255,7 @@ struct AppConstants {
             defaultModel: "deepseek/deepseek-r1:free",
             models: [
                 "openai/gpt-4o",
-                "deepseek/deepseek-r1:free"
+                "deepseek/deepseek-r1:free",
             ]
         ),
     ]
@@ -260,6 +263,7 @@ struct AppConstants {
     static let apiTypes = ["chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter"]
     static let newChatNotification = Notification.Name("newChatNotification")
     static let largeMessageSymbolsThreshold = 25000
+    static let thumbnailSize: CGFloat = 300
 }
 
 func getCurrentFormattedDate() -> String {
