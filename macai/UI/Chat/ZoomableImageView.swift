@@ -118,7 +118,7 @@ struct ZoomableImageView: View {
         }
         .aspectRatio(imageAspectRatio, contentMode: .fill)
         .padding(0)
-        .frame(minWidth: imageAspectRatio > 1.5 ? 800 : nil)
+        .frame(minWidth: imageAspectRatio > 1.4 ? 800 : nil)
     }
 
     private func saveImage() {

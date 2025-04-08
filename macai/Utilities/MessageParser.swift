@@ -19,7 +19,6 @@ struct MessageParser {
         case formulaBlock
         case formulaLine
         case thinking
-        case image
         case imageUUID
     }
 
@@ -40,9 +39,6 @@ struct MessageParser {
         }
         else if trimmedLine.hasPrefix("\\]") {
             return .formulaLine
-        }
-        else if trimmedLine.hasPrefix("<base64>") {
-            return .image
         }
         else if trimmedLine.hasPrefix("<image-uuid>") {
             return .imageUUID
@@ -172,17 +168,6 @@ struct MessageParser {
             }
         }
 
-        func extractBase64Content(_ line: String) -> String? {
-            let pattern = "<base64>(.*?)</base64>"
-            if let range = line.range(of: pattern, options: .regularExpression) {
-                let base64Content = String(line[range])
-                    .replacingOccurrences(of: "<base64>", with: "")
-                    .replacingOccurrences(of: "</base64>", with: "")
-                return base64Content
-            }
-            return nil
-        }
-
         func extractImageUUID(_ line: String) -> UUID? {
             let pattern = "<image-uuid>(.*?)</image-uuid>"
             if let range = line.range(of: pattern, options: .regularExpression) {
@@ -233,12 +218,6 @@ struct MessageParser {
             appendCodeBlockIfNeeded()
             appendTableIfNeeded()
             appendThinkingBlockIfNeeded()
-        }
-
-        func extractBase64ImageData(from dataURL: String) -> Data? {
-            let components = dataURL.components(separatedBy: ",")
-            guard components.count > 1, let base64String = components.last else { return nil }
-            return Data(base64Encoded: base64String)
         }
 
         for line in lines {
@@ -292,22 +271,6 @@ struct MessageParser {
                     if !firstLine.isEmpty {
                         thinkingLines.append(firstLine)
                     }
-                }
-
-            case .image:
-                if let base64Content = extractBase64Content(line) {
-                    if let imageData = Data(base64Encoded: base64Content),
-                        let image = NSImage(data: imageData)
-                    {
-                        combineTextLinesIfNeeded()
-                        elements.append(.image(image))
-                    }
-                    else {
-                        textLines.append(line)
-                    }
-                }
-                else {
-                    textLines.append(line)
                 }
 
             case .imageUUID:

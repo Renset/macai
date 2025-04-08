@@ -41,7 +41,7 @@ struct MessageInputView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(attachedImages) { attachment in
@@ -54,10 +54,11 @@ struct MessageInputView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 0)
+                .padding(.bottom, 8)
             }
             .frame(height: attachedImages.isEmpty ? 0 : 100)
-
+            
             HStack(spacing: 8) {
                 if imageUploadsAllowed {
                     Button(action: onAddImage) {
@@ -111,7 +112,7 @@ struct MessageInputView: View {
                                     ? Color.green.opacity(0.8)
                                     : (isFocused == .focused ? lineColorOnFocus : lineColorOnBlur),
                                 lineWidth: isHoveringDropZone
-                                    ? 2.5 : (isFocused == .focused ? lineWidthOnFocus : lineWidthOnBlur)
+                                    ? 6 : (isFocused == .focused ? lineWidthOnFocus : lineWidthOnBlur)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                     )

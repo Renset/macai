@@ -38,8 +38,7 @@ struct MessageContentView: View {
     }
 
     private func containsImageData(_ message: String) -> Bool {
-        // Check for base64-encoded content tags
-        if message.contains("<base64>") {
+        if message.contains("<image-uuid>") {
             return true
         }
         return false
@@ -187,8 +186,9 @@ struct MessageContentView: View {
             .aspectRatio(contentMode: .fill)
             .frame(maxWidth: maxWidth, maxHeight: displayHeight)
             .cornerRadius(8)
+            .padding(.bottom, 3)
             .onTapGesture {
-                selectedImage = IdentifiableImage(image: image)  // Wrap NSImage in IdentifiableImage
+                selectedImage = IdentifiableImage(image: image)
             }
             .sheet(item: $selectedImage) { identifiableImage in
                 ZoomableImageView(image: identifiableImage.image, imageAspectRatio: aspectRatio)

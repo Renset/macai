@@ -231,6 +231,7 @@
 			children = (
 				4A1614142D46C86800A1EF8D /* PersonaSelectorView.swift */,
 				4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */,
+				4A27FF902DA1C43E0075D730 /* MessageInputView.swift */,
 			);
 			path = BottomContainer;
 			sourceTree = "<group>";
@@ -242,6 +243,8 @@
 				4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */,
 				4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */,
 				4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */,
+				4A55DCA629C264BC00A3800C /* TableView.swift */,
+				4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */,
 			);
 			path = BubbleView;
 			sourceTree = "<group>";
@@ -259,7 +262,6 @@
 		4A164BB92C962E520060ECFE /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				4A27FF8E2DA1C41B0075D730 /* ZoomableImageView.swift */,
 				4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */,
 				4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */,
 				4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */,
@@ -282,16 +284,14 @@
 		4A272A6729F5CB5300F93D0D /* Chat */ = {
 			isa = PBXGroup;
 			children = (
-				4A27FF902DA1C43E0075D730 /* MessageInputView.swift */,
 				4A1614172D46C89F00A1EF8D /* BubbleView */,
 				4A1614162D46C88900A1EF8D /* BottomContainer */,
 				4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */,
 				4A254A6B2CEA69DF00F66935 /* CodeView */,
 				4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */,
 				4A5F64B929C64F9D000403F7 /* ChatView.swift */,
-				4A55DCA629C264BC00A3800C /* TableView.swift */,
-				4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */,
 				4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */,
+				4A27FF8E2DA1C41B0075D730 /* ZoomableImageView.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
