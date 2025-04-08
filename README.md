@@ -23,7 +23,7 @@ Install macai cask with homebrew:
 Checkout main branch and open project in Xcode 14.3 or later
 
 ## Contributions
-Contributions are welcome. Take a look at [Issues page](https://github.com/Renset/macai/issues) to see already added features/bugs before creating new one. If you plan to fix bug or implement a feature, select any of the open _unassigned_ issues, assign to yourself and feel free to start working on it.
+Contributions are welcome. Take a look at [Issues page](https://github.com/Renset/macai/issues) to see already added features/bugs before creating new one. If you plan to fix bug or implement a feature, select any of the open _unassigned_ issues, and feel free to start working on it.
 
 You can also support project by funding. This support is very important for me and allows to focus on macai development.
 
