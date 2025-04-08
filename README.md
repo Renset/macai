@@ -67,7 +67,7 @@ You can also support project by funding. This support is very important for me a
 - Complete control over API configurations and keys
 
 ### User Experience
-- System-native light/dark theme support
+- System-native light/dark theme 
 - Per-chat customizable system instructions
 - Clean, native macOS interface
 - Minimal resource usage compared to Electron-based alternatives
@@ -77,10 +77,11 @@ To run macai with ChatGPT or Claude, you need to have an API token. API token is
 Here is how to get API token for all supported services:
 - OpenAI: https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key
 - Claude: https://docs.anthropic.com/en/api/getting-started
-- Google Gemini: https://ai.google.dev/gemini-api/docs/api-key
+- Google Gemini: https://ai.google.dev/gemini-api/docs/api-key (free models available 🔥)
 - xAI Grok: https://docs.x.ai/docs#models
+- OpenRouter: https://openrouter.ai/docs/api-reference/authentication#using-an-api-key (> 50 free models 🔥)
 
-If you are new to LLM and don't want to pay for the tokens, take a look at Ollama. It supports dozens of OpenSource LLM models that can run locally on Apple M1/M2/M3/M4 Macs.
+If you are new to LLM and don't want to pay for the tokens, take a look Ollama. It supports dozens of OpenSource LLM models that can run locally on Apple M1/M2/M3/M4 Macs.
 
 ## Run with [Ollama](https://ollama.com)
 Ollama is the open-source back-end for various LLM models. 
