@@ -6,22 +6,29 @@
 <a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
 <a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
-macai (macOS AI) is a simple yet powerful native macOS client made to interact with modern AI services (ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama and almost any OpenAI-compatible APIs). 
+macai (macOS AI) is a simple yet powerful native macOS AI chat client that supports most AI providers: ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama, OpenRouter, and almost any OpenAI-compatible APIs.
 
 <img width="1322" alt="macai window" src="https://github.com/user-attachments/assets/3a9677e4-0d75-4d19-9d5f-3d74b896fcf8">
 
 ## Downloads
-You can also support project on [Gumroad](https://renset.gumroad.com/l/macai).
+
+### Manual
+Download [latest universal binary](https://github.com/Renset/macai/releases), notarized by Apple.
 
 ### Homebrew
 Install macai cask with homebrew:
 `brew install --cask macai`
 
-### Manual
-Download [latest universal binary](https://github.com/Renset/macai/releases), notarized by Apple.
-
-## Build from source
+### Build from source
 Checkout main branch and open project in Xcode 14.3 or later
+
+## Contributions
+Contributions are welcome. Take a look at [Issues page](https://github.com/Renset/macai/issues) to see already added features/bugs before creating new one. If you plan to fix bug or implement a feature, select any of the open _unassigned_ issues, assign to yourself and feel free to start working on it.
+
+You can also support project by funding. This support is very important for me and allows to focus on macai development.
+
+<a href="https://www.buymeacoffee.com/renset1" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 
 ## Features
 
@@ -34,10 +41,12 @@ Checkout main branch and open project in Xcode 14.3 or later
   - Google Gemini
   - xAI Grok
   - Perplexity
+  - OpenRouter
   - Local LLMs via [Ollama](https://ollama.com)
-  - Any OpenAI-compatible API
+  - Any other OpenAI-compatible API
 
 ### Advanced Chat Features
+- Image uploads support for certain APIs and models
 - AI Personas with customizable:
   - System instructions
   - Temperature settings
@@ -89,9 +98,6 @@ macOS 13.0 and later (both Intel and Apple chips are supported)
 
 ## Project status
 Project is in the active development phase.
-
-## Contributions
-Contributions are welcome. Take a look at [Issues page](https://github.com/Renset/macai/issues) to see already added features/bugs before creating new one. If you plan to fix bug or implement a feature, select any of the open _unassigned_ issues, assign to yourself and feel free to start working on it.
 
 ## Screenshots
 
