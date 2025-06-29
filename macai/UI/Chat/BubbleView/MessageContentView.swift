@@ -153,10 +153,11 @@ struct MessageContentView: View {
                 range: fullRange
             )
 
+            // Handle headers
             let headerRegex = try! NSRegularExpression(pattern: "^(#{1,6})\\s+(.*)", options: .anchorsMatchLines)
-            let matches = headerRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
+            let headerMatches = headerRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
 
-            for match in matches.reversed() {
+            for match in headerMatches.reversed() {
                 let fullMatchRange = match.range(at: 0)
                 let prefixHashesRange = match.range(at: 1)
                 let contentTextRange = match.range(at: 2)
@@ -166,6 +167,26 @@ struct MessageContentView: View {
                 let font = NSFont.boldSystemFont(ofSize: fontSize)
 
                 mutableAttributedString.addAttribute(.font, value: font, range: contentTextRange)
+                
+                let prefixToDeleteRange = NSRange(location: fullMatchRange.location, length: contentTextRange.location - fullMatchRange.location)
+                mutableAttributedString.deleteCharacters(in: prefixToDeleteRange)
+            }
+            
+            // Handle quote blocks
+            let quoteRegex = try! NSRegularExpression(pattern: "^>\\s*(.*)", options: .anchorsMatchLines)
+            let quoteMatches = quoteRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
+            
+            for match in quoteMatches.reversed() {
+                let fullMatchRange = match.range(at: 0)
+                let contentTextRange = match.range(at: 1)
+                
+                let fontDescriptor = NSFont.systemFont(ofSize: effectiveFontSize).fontDescriptor
+                let italicDescriptor = fontDescriptor.withSymbolicTraits(.italic)
+                let italicFont = NSFont(descriptor: italicDescriptor, size: effectiveFontSize) ?? NSFont.systemFont(ofSize: effectiveFontSize)
+                mutableAttributedString.addAttribute(.font, value: italicFont, range: contentTextRange)
+                
+                let quoteColor = colorScheme == .dark ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor
+                mutableAttributedString.addAttribute(.foregroundColor, value: quoteColor, range: contentTextRange)
                 
                 let prefixToDeleteRange = NSRange(location: fullMatchRange.location, length: contentTextRange.location - fullMatchRange.location)
                 mutableAttributedString.deleteCharacters(in: prefixToDeleteRange)
