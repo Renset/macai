@@ -152,6 +152,25 @@ struct MessageContentView: View {
                 value: own ? NSColor.textColor : NSColor.textColor,
                 range: fullRange
             )
+
+            let headerRegex = try! NSRegularExpression(pattern: "^(#{1,6})\\s+(.*)", options: .anchorsMatchLines)
+            let matches = headerRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
+
+            for match in matches.reversed() {
+                let fullMatchRange = match.range(at: 0)
+                let prefixHashesRange = match.range(at: 1)
+                let contentTextRange = match.range(at: 2)
+
+                let level = prefixHashesRange.length
+                let fontSize = max(effectiveFontSize + 10 - pow(CGFloat(level), 1.5), 6)
+                let font = NSFont.boldSystemFont(ofSize: fontSize)
+
+                mutableAttributedString.addAttribute(.font, value: font, range: contentTextRange)
+                
+                let prefixToDeleteRange = NSRange(location: fullMatchRange.location, length: contentTextRange.location - fullMatchRange.location)
+                mutableAttributedString.deleteCharacters(in: prefixToDeleteRange)
+            }
+
             return mutableAttributedString
         }()
 
