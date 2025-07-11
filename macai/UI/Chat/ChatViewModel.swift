@@ -11,8 +11,14 @@ import SwiftUI
 
 class ChatViewModel: ObservableObject {
     @Published var messages: NSOrderedSet
+    @Published var visibleMessages: [MessageEntity] = []
+    @Published var isLoadingMoreMessages = false
+    
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
+    private let initialMessageCount = 5
+    private let loadMoreBatchSize = 10
+    private var currentLoadedCount = 0
 
     private var _messageManager: MessageManager?
     private var messageManager: MessageManager {
@@ -33,6 +39,7 @@ class ChatViewModel: ObservableObject {
         self.chat = chat
         self.messages = chat.messages
         self.viewContext = viewContext
+        loadInitialMessages()
     }
 
     func sendMessage(_ message: String, contextSize: Int, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -66,10 +73,65 @@ class ChatViewModel: ObservableObject {
 
     func reloadMessages() {
         messages = self.messages
+        refreshVisibleMessages()
     }
 
     var sortedMessages: [MessageEntity] {
         return self.chat.messagesArray
+    }
+    
+    private func loadInitialMessages() {
+        let allMessages = self.chat.messagesArray
+        let totalCount = allMessages.count
+        
+        if totalCount <= initialMessageCount {
+            visibleMessages = allMessages
+            currentLoadedCount = totalCount
+        } else {
+            // Load the latest N messages
+            let startIndex = totalCount - initialMessageCount
+            visibleMessages = Array(allMessages[startIndex...])
+            currentLoadedCount = initialMessageCount
+        }
+    }
+    
+    func loadMoreMessages() {
+        guard !isLoadingMoreMessages else { return }
+        
+        let allMessages = self.chat.messagesArray
+        let totalCount = allMessages.count
+        let remainingCount = totalCount - currentLoadedCount
+        
+        guard remainingCount > 0 else { return }
+        
+        isLoadingMoreMessages = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            
+            let messagesToLoad = min(self.loadMoreBatchSize, remainingCount)
+            let newStartIndex = totalCount - self.currentLoadedCount - messagesToLoad
+            let newEndIndex = totalCount - self.currentLoadedCount
+            
+            let newMessages = Array(allMessages[newStartIndex..<newEndIndex])
+            
+            self.visibleMessages = newMessages + self.visibleMessages
+            self.currentLoadedCount += messagesToLoad
+            self.isLoadingMoreMessages = false
+        }
+    }
+    
+    func refreshVisibleMessages() {
+        let allMessages = self.chat.messagesArray
+        let totalCount = allMessages.count
+        
+        if totalCount <= currentLoadedCount {
+            visibleMessages = allMessages
+            currentLoadedCount = totalCount
+        } else {
+            let startIndex = totalCount - currentLoadedCount
+            visibleMessages = Array(allMessages[startIndex...])
+        }
     }
 
     private func createMessageManager() -> MessageManager {

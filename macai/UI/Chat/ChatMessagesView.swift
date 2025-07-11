@@ -17,13 +17,46 @@ struct ChatMessagesView: View {
     @State private var scrollDebounceWorkItem: DispatchWorkItem?
     @State private var codeBlocksRendered = false
     @State private var pendingCodeBlocks = 0
+    @State private var isManuallyScrolling = false
+    @State private var hasTriggeredLoadMore = false
     
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     
     var body: some View {
         ScrollView {
             ScrollViewReader { scrollView in
-                VStack {
+                LazyVStack(spacing: 0, pinnedViews: []) {
+                    if chatViewModel.isLoadingMoreMessages {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Loading older messages...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                        .id("loading_indicator")
+                    }
+                    
+                    // Load more trigger (invisible)
+                    if chatViewModel.visibleMessages.count < chat.messagesArray.count && !hasTriggeredLoadMore {
+                        Color.clear
+                            .frame(height: 1)
+                            .onAppear {
+                                if !chatViewModel.isLoadingMoreMessages {
+                                    hasTriggeredLoadMore = true
+                                    chatViewModel.loadMoreMessages()
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        hasTriggeredLoadMore = false
+                                    }
+                                }
+                            }
+                            .id("load_more_trigger")
+                    }
+                    
                     SystemMessageBubbleView(
                         message: chat.systemMessage,
                         color: chat.persona?.color,
@@ -33,7 +66,7 @@ struct ChatMessagesView: View {
                     .id("system_message")
 
                     if chat.messages.count > 0 {
-                        ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
+                        ForEach(chatViewModel.visibleMessages, id: \.self) { messageEntity in
                             let bubbleContent = ChatBubbleContent(
                                 message: messageEntity.body,
                                 own: messageEntity.own,
@@ -41,7 +74,7 @@ struct ChatMessagesView: View {
                                 errorMessage: nil,
                                 systemMessage: false,
                                 isStreaming: isStreaming,
-                                isLatestMessage: messageEntity.id == chatViewModel.sortedMessages.last?.id
+                                isLatestMessage: messageEntity.id == chatViewModel.visibleMessages.last?.id
                             )
                             ChatBubbleView(content: bubbleContent, message: messageEntity)
                                 .id(messageEntity.id)
@@ -79,11 +112,11 @@ struct ChatMessagesView: View {
                 }
                 .padding(24)
                 .onAppear {
-                    pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
+                    pendingCodeBlocks = chatViewModel.visibleMessages.reduce(0) { count, message in
                         count + (message.body.components(separatedBy: "```").count - 1) / 2
                     }
 
-                    if let lastMessage = chatViewModel.sortedMessages.last {
+                    if let lastMessage = chatViewModel.visibleMessages.last {
                         scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                     }
 
@@ -95,17 +128,26 @@ struct ChatMessagesView: View {
                     switch event.direction {
                     case .up:
                         userIsScrolling = true
-                    case .none, .down, .left, .right:
+                        isManuallyScrolling = true
+                        
+                        // Reset manual scrolling flag after a delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            isManuallyScrolling = false
+                        }
+                    case .down:
+                        // User scrolling down, allow auto-scroll to resume
+                        isManuallyScrolling = false
+                    case .none, .left, .right:
                         break
                     }
                 }
-                .onChange(of: chatViewModel.sortedMessages.last?.body) { _ in
-                    if isStreaming && !userIsScrolling {
+                .onChange(of: chatViewModel.visibleMessages.last?.body) { _ in
+                    if isStreaming && !userIsScrolling && !isManuallyScrolling {
                         scrollDebounceWorkItem?.cancel()
 
                         let workItem = DispatchWorkItem {
-                            if let lastMessage = chatViewModel.sortedMessages.last {
-                                withAnimation(.easeOut(duration: 1)) {
+                            if let lastMessage = chatViewModel.visibleMessages.last {
+                                withAnimation(.easeOut(duration: 0.1)) {
                                     scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                                 }
                             }
@@ -117,15 +159,17 @@ struct ChatMessagesView: View {
                 }
                 .onReceive([chat.messages.count].publisher) { newCount in
                     DispatchQueue.main.async {
-                        if chat.waitingForResponse || currentError != nil {
-                            withAnimation {
-                                scrollView.scrollTo(-1)
+                        if !userIsScrolling && !isManuallyScrolling {
+                            if chat.waitingForResponse || currentError != nil {
+                                withAnimation {
+                                    scrollView.scrollTo(-1)
+                                }
                             }
-                        }
-                        else if newCount > 0 {
-                            let sortedMessages = chatViewModel.sortedMessages
-                            if let lastMessage = sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                            else if newCount > 0 {
+                                let visibleMessages = chatViewModel.visibleMessages
+                                if let lastMessage = visibleMessages.last {
+                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
                     }
@@ -135,7 +179,7 @@ struct ChatMessagesView: View {
                         pendingCodeBlocks -= 1
                         if pendingCodeBlocks == 0 {
                             codeBlocksRendered = true
-                            if let lastMessage = chatViewModel.sortedMessages.last {
+                            if !isManuallyScrolling, let lastMessage = chatViewModel.visibleMessages.last {
                                 scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                             }
                         }
