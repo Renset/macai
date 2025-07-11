@@ -24,6 +24,20 @@ struct MessageContentView: View {
     @State private var selectedImage: IdentifiableImage?
 
     private let largeMessageSymbolsThreshold = AppConstants.largeMessageSymbolsThreshold
+    
+    private static let parsedElementsCache: NSCache<NSString, NSArray> = {
+        let cache = NSCache<NSString, NSArray>()
+        cache.countLimit = 500
+        cache.totalCostLimit = 100 * 1024 * 1024
+        return cache
+    }()
+    
+    private static let attributedStringCache: NSCache<NSString, NSAttributedString> = {
+        let cache = NSCache<NSString, NSAttributedString>()
+        cache.countLimit = 500
+        cache.totalCostLimit = 100 * 1024 * 1024
+        return cache
+    }()
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -43,12 +57,47 @@ struct MessageContentView: View {
         }
         return false
     }
+    
+    private func getCachedElements(for message: String, colorScheme: ColorScheme) -> [MessageElements]? {
+        let cacheKey = "\(message.hashValue)_\(colorScheme == .dark ? "dark" : "light")"
+        if let cachedArray = Self.parsedElementsCache.object(forKey: NSString(string: cacheKey)) {
+            return cachedArray as? [MessageElements]
+        }
+        return nil
+    }
+    
+    private func setCachedElements(_ elements: [MessageElements], for message: String, colorScheme: ColorScheme) {
+        let cacheKey = "\(message.hashValue)_\(colorScheme == .dark ? "dark" : "light")"
+        Self.parsedElementsCache.setObject(elements as NSArray, forKey: NSString(string: cacheKey))
+    }
+    
+    private func parseMessage(_ message: String) -> [MessageElements] {
+        if let cachedElements = getCachedElements(for: message, colorScheme: colorScheme) {
+            return cachedElements
+        }
+        
+        let parser = MessageParser(colorScheme: colorScheme)
+        let parsedElements = parser.parseMessageFromString(input: message)
+        setCachedElements(parsedElements, for: message, colorScheme: colorScheme)
+        
+        return parsedElements
+    }
+    
+
+    private func getCachedAttributedString(for text: String, fontSize: Double, colorScheme: ColorScheme, own: Bool) -> NSAttributedString? {
+        let cacheKey = "\(text.hashValue)_\(fontSize)_\(colorScheme == .dark ? "dark" : "light")_\(own ? "own" : "other")"
+        return Self.attributedStringCache.object(forKey: NSString(string: cacheKey))
+    }
+    
+    private func setCachedAttributedString(_ attributedString: NSAttributedString, for text: String, fontSize: Double, colorScheme: ColorScheme, own: Bool) {
+        let cacheKey = "\(text.hashValue)_\(fontSize)_\(colorScheme == .dark ? "dark" : "light")_\(own ? "own" : "other")"
+        Self.attributedStringCache.setObject(attributedString, forKey: NSString(string: cacheKey))
+    }
 
     @ViewBuilder
     private func renderPartialContent() -> some View {
         let truncatedMessage = String(message.prefix(largeMessageSymbolsThreshold))
-        let parser = MessageParser(colorScheme: colorScheme)
-        let parsedElements = parser.parseMessageFromString(input: truncatedMessage)
+        let parsedElements = parseMessage(truncatedMessage)
 
         VStack(alignment: .leading, spacing: 8) {
             ForEach(parsedElements.indices, id: \.self) { index in
@@ -60,8 +109,7 @@ struct MessageContentView: View {
                     isParsingFullMessage = true
                     // Parse the full message in background: very long messages may take long time to parse (and even cause app crash)
                     DispatchQueue.global(qos: .userInitiated).async {
-                        let parser = MessageParser(colorScheme: colorScheme)
-                        _ = parser.parseMessageFromString(input: message)
+                        _ = parseMessage(message)
 
                         DispatchQueue.main.async {
                             showFullMessage = true
@@ -91,8 +139,7 @@ struct MessageContentView: View {
 
     @ViewBuilder
     private func renderFullContent() -> some View {
-        let parser = MessageParser(colorScheme: colorScheme)
-        let parsedElements = parser.parseMessageFromString(input: message)
+        let parsedElements = parseMessage(message)
 
         ForEach(parsedElements.indices, id: \.self) { index in
             renderElement(parsedElements[index])
@@ -133,6 +180,10 @@ struct MessageContentView: View {
     @ViewBuilder
     private func renderText(_ text: String) -> some View {
         let attributedString: NSAttributedString = {
+            if let cachedAttributedString = getCachedAttributedString(for: text, fontSize: effectiveFontSize, colorScheme: colorScheme, own: own) {
+                return cachedAttributedString
+            }
+            
             let options = AttributedString.MarkdownParsingOptions(
                 interpretedSyntax: .inlineOnlyPreservingWhitespace
             )
@@ -191,6 +242,8 @@ struct MessageContentView: View {
                 let prefixToDeleteRange = NSRange(location: fullMatchRange.location, length: contentTextRange.location - fullMatchRange.location)
                 mutableAttributedString.deleteCharacters(in: prefixToDeleteRange)
             }
+            
+            setCachedAttributedString(mutableAttributedString, for: text, fontSize: effectiveFontSize, colorScheme: colorScheme, own: own)
 
             return mutableAttributedString
         }()
