@@ -63,17 +63,19 @@ struct ChatListView: View {
             searchField
                 .padding(.bottom, 8)
 
-            List {
-                ForEach(filteredChats, id: \.objectID) { chat in
-                    ChatListRow(
-                        chat: chat,
-                        selectedChat: $selectedChat,
-                        viewContext: viewContext,
-                        searchText: searchText
-                    )
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    ForEach(filteredChats, id: \.objectID) { chat in
+                        ChatListRow(
+                            chat: chat,
+                            selectedChat: $selectedChat,
+                            viewContext: viewContext,
+                            searchText: searchText
+                        )
+                    }
                 }
+                .padding(.horizontal)
             }
-            .listStyle(.sidebar)
         }
         .background(
             Button("") {

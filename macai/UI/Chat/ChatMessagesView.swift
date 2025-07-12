@@ -22,6 +22,8 @@ struct ChatMessagesView: View {
     
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     
+
+    
     var body: some View {
         ScrollView {
             ScrollViewReader { scrollView in
@@ -109,6 +111,10 @@ struct ChatMessagesView: View {
                         ChatBubbleView(content: bubbleContent)
                             .id(-2)
                     }
+                    
+                    Color.clear
+                        .frame(height: 5)
+                        .id("bottom_anchor")
                 }
                 .padding(24)
                 .onAppear {
@@ -116,8 +122,8 @@ struct ChatMessagesView: View {
                         count + (message.body.components(separatedBy: "```").count - 1) / 2
                     }
 
-                    if let lastMessage = chatViewModel.visibleMessages.last {
-                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                    DispatchQueue.main.asyncAfter(deadline: .now()) {
+                        scrollView.scrollTo("bottom_anchor", anchor: .bottom)
                     }
 
                     if pendingCodeBlocks == 0 {
@@ -146,10 +152,8 @@ struct ChatMessagesView: View {
                         scrollDebounceWorkItem?.cancel()
 
                         let workItem = DispatchWorkItem {
-                            if let lastMessage = chatViewModel.visibleMessages.last {
-                                withAnimation(.easeOut(duration: 0.1)) {
-                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                                }
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                scrollView.scrollTo("bottom_anchor", anchor: .bottom)
                             }
                         }
 
@@ -157,34 +161,30 @@ struct ChatMessagesView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
                     }
                 }
-                .onReceive([chat.messages.count].publisher) { newCount in
-                    DispatchQueue.main.async {
-                        if !userIsScrolling && !isManuallyScrolling {
-                            if chat.waitingForResponse || currentError != nil {
-                                withAnimation {
-                                    scrollView.scrollTo(-1)
-                                }
-                            }
-                            else if newCount > 0 {
-                                let visibleMessages = chatViewModel.visibleMessages
-                                if let lastMessage = visibleMessages.last {
-                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                                }
-                            }
-                        }
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) { _ in
-                    if pendingCodeBlocks > 0 {
-                        pendingCodeBlocks -= 1
-                        if pendingCodeBlocks == 0 {
-                            codeBlocksRendered = true
-                            if !isManuallyScrolling, let lastMessage = chatViewModel.visibleMessages.last {
-                                scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
+                // .onReceive([chat.messages.count].publisher) { newCount in
+                //     DispatchQueue.main.async {
+                //         if !userIsScrolling && !isManuallyScrolling {
+                //             if chat.waitingForResponse || currentError != nil || newCount > 0 {
+                //                 withAnimation(.easeOut(duration: 0.2)) {
+                //                     scrollView.scrollTo("bottom_anchor", anchor: .bottom)
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
+                // .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) { _ in
+                //     if pendingCodeBlocks > 0 {
+                //         pendingCodeBlocks -= 1
+                //         if pendingCodeBlocks == 0 {
+                //             codeBlocksRendered = true
+                //             if !isManuallyScrolling {
+                //                 withAnimation(.easeOut(duration: 0.2)) {
+                //                     scrollView.scrollTo("bottom_anchor", anchor: .bottom)
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
             }
             .id("chatContainer")
         }

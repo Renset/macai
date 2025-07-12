@@ -16,7 +16,7 @@ class ChatViewModel: ObservableObject {
     
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
-    private let initialMessageCount = 5
+    private let targetSymbolCount = 1000
     private let loadMoreBatchSize = 10
     private var currentLoadedCount = 0
 
@@ -84,14 +84,16 @@ class ChatViewModel: ObservableObject {
         let allMessages = self.chat.messagesArray
         let totalCount = allMessages.count
         
-        if totalCount <= initialMessageCount {
+        let dynamicMessageCount = calculateDynamicMessageCount(from: allMessages)
+        
+        if totalCount <= dynamicMessageCount {
             visibleMessages = allMessages
             currentLoadedCount = totalCount
         } else {
             // Load the latest N messages
-            let startIndex = totalCount - initialMessageCount
+            let startIndex = totalCount - dynamicMessageCount
             visibleMessages = Array(allMessages[startIndex...])
-            currentLoadedCount = initialMessageCount
+            currentLoadedCount = dynamicMessageCount
         }
     }
     
@@ -125,13 +127,43 @@ class ChatViewModel: ObservableObject {
         let allMessages = self.chat.messagesArray
         let totalCount = allMessages.count
         
-        if totalCount <= currentLoadedCount {
+        let dynamicMessageCount = calculateDynamicMessageCount(from: allMessages)
+        let newLoadedCount = min(dynamicMessageCount, totalCount)
+        
+        if totalCount <= newLoadedCount {
             visibleMessages = allMessages
             currentLoadedCount = totalCount
         } else {
-            let startIndex = totalCount - currentLoadedCount
+            let startIndex = totalCount - newLoadedCount
             visibleMessages = Array(allMessages[startIndex...])
+            currentLoadedCount = newLoadedCount
         }
+    }
+    
+    private func calculateDynamicMessageCount(from allMessages: [MessageEntity]) -> Int {
+        guard !allMessages.isEmpty else { return 1 }
+        
+        var totalSymbols = 0
+        var messageCount = 0
+        
+        for message in allMessages.reversed() {
+            let messageSymbols = message.body.count
+            
+            if messageCount == 0 {
+                totalSymbols += messageSymbols
+                messageCount += 1
+                continue
+            }
+            
+            if totalSymbols + messageSymbols > targetSymbolCount {
+                break
+            }
+            
+            totalSymbols += messageSymbols
+            messageCount += 1
+        }
+        
+        return max(messageCount, 1)
     }
 
     private func createMessageManager() -> MessageManager {

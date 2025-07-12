@@ -182,6 +182,8 @@ class ChatLogicHandler: ObservableObject {
         chat.addToMessages(newMessageEntity)
         chat.objectWillChange.send()
         
+        chatViewModel.refreshVisibleMessages()
+        
         store.saveInCoreData()
     }
     
