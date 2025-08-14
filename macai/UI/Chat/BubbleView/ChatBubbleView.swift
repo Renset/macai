@@ -38,6 +38,7 @@ struct ChatBubbleView: View, Equatable {
     var message: MessageEntity?
     var color: String?
     var onEdit: (() -> Void)?
+    @Binding var searchText: String
 
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
@@ -104,7 +105,8 @@ struct ChatBubbleView: View, Equatable {
                             isStreaming: content.isStreaming,
                             own: content.own,
                             effectiveFontSize: effectiveFontSize,
-                            colorScheme: colorScheme
+                            colorScheme: colorScheme,
+                            searchText: $searchText
                         )
                     }
                 }
@@ -114,7 +116,7 @@ struct ChatBubbleView: View, Equatable {
                 .padding(.vertical, 8)
                 .background(
                     content.systemMessage
-                        ? (Color(hex: color ?? "#CCCCCC") ?? .gray).opacity(0.6)
+                        ? (Color(NSColor.systemGray) ?? .gray).opacity(0.6)
                         : colorScheme == .dark
                             ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
                             : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)

@@ -18,6 +18,7 @@ struct MessageContentView: View {
     let own: Bool
     let effectiveFontSize: Double
     let colorScheme: ColorScheme
+    @Binding var searchText: String
 
     @State private var showFullMessage = false
     @State private var isParsingFullMessage = false
@@ -192,14 +193,30 @@ struct MessageContentView: View {
                 mutableAttributedString.deleteCharacters(in: prefixToDeleteRange)
             }
 
+            // Apply search highlighting if searchText is not empty
+            if !searchText.isEmpty {
+                let lowerText = mutableAttributedString.string.lowercased()
+                let lowerSearch = searchText.lowercased()
+                var location = 0
+                while location < mutableAttributedString.length {
+                    let searchRange = NSRange(location: location, length: mutableAttributedString.length - location)
+                    let foundRange = (lowerText as NSString).range(of: lowerSearch, range: searchRange)
+                    if foundRange.location != NSNotFound {
+                        mutableAttributedString.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.3), range: foundRange)
+                        location = foundRange.location + foundRange.length
+                    } else {
+                        break
+                    }
+                }
+            }
+
             return mutableAttributedString
         }()
 
         if text.count > AppConstants.longStringCount {
             AttributedText(attributedString)
                 .textSelection(.enabled)
-        }
-        else {
+        } else {
             Text(.init(attributedString))
                 .textSelection(.enabled)
         }

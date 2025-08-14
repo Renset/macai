@@ -10,12 +10,12 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ChatView: View {
-    // MARK: - Properties
     let viewContext: NSManagedObjectContext
     @State var chat: ChatEntity
+    @Binding var searchText: String
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     
-    // View state
+    // UI State
     @State private var messageField = ""
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
@@ -33,9 +33,10 @@ struct ChatView: View {
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     
     // MARK: - Initialization
-    init(viewContext: NSManagedObjectContext, chat: ChatEntity) {
+    init(viewContext: NSManagedObjectContext, chat: ChatEntity, searchText: Binding<String>) {
         self.viewContext = viewContext
         self._chat = State(initialValue: chat)
+        self._searchText = searchText
 
         // Initialize view models
         let viewModel = ChatViewModel(chat: chat, viewContext: viewContext)
@@ -57,7 +58,8 @@ struct ChatView: View {
                 chatViewModel: chatViewModel,
                 isStreaming: $logicHandler.isStreaming,
                 currentError: $logicHandler.currentError,
-                userIsScrolling: $logicHandler.userIsScrolling
+                userIsScrolling: $logicHandler.userIsScrolling,
+                searchText: $searchText
             )
             .modifier(MeasureModifier(renderTime: $renderTime))
             

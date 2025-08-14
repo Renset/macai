@@ -5,6 +5,8 @@
 //  Created by Renat on 17.11.2024.
 //
 
+import CoreData
+import Foundation
 import SwiftUI
 
 struct ChatListRow: View, Equatable {
@@ -14,27 +16,23 @@ struct ChatListRow: View, Equatable {
         lhs.chat?.name == rhs.chat?.name &&
         lhs.chat?.lastMessage?.body == rhs.chat?.lastMessage?.body &&
         lhs.chat?.isPinned == rhs.chat?.isPinned &&
-        lhs.searchText == rhs.searchText &&
         (lhs.selectedChat?.id == rhs.selectedChat?.id)
     }
     let chat: ChatEntity?
     let chatID: UUID  // Store the ID separately
     @Binding var selectedChat: ChatEntity?
     let viewContext: NSManagedObjectContext
-    var searchText: String = ""
     @StateObject private var chatViewModel: ChatViewModel
 
     init(
         chat: ChatEntity?,
         selectedChat: Binding<ChatEntity?>,
-        viewContext: NSManagedObjectContext,
-        searchText: String = ""
+        viewContext: NSManagedObjectContext
     ) {
         self.chat = chat
         self.chatID = chat?.id ?? UUID()
         self._selectedChat = selectedChat
         self.viewContext = viewContext
-        self.searchText = searchText
         self._chatViewModel = StateObject(wrappedValue: ChatViewModel(chat: chat!, viewContext: viewContext))
     }
 
@@ -60,8 +58,7 @@ struct ChatListRow: View, Equatable {
             timestamp: chat?.lastMessage?.timestamp ?? Date(),
             message: chat?.lastMessage?.body ?? "",
             isActive: isActive,
-            viewContext: viewContext,
-            searchText: searchText
+            viewContext: viewContext
         )
         .contextMenu {
             Button(action: { 

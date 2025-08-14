@@ -13,7 +13,6 @@ struct MessageCell: View, Equatable {
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
-        lhs.searchText == rhs.searchText &&
         lhs.chat.isPinned == rhs.chat.isPinned
     }
     
@@ -25,7 +24,7 @@ struct MessageCell: View, Equatable {
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
 
-    var searchText: String = ""
+
     
     private var filteredMessage: String {
         if !message.starts(with: "<think>") {
@@ -47,7 +46,7 @@ struct MessageCell: View, Equatable {
             HStack {
                 VStack(alignment: .leading) {
                     if let personaName = chat.persona?.name {
-                        HighlightedText(personaName, highlight: searchText)
+                        Text(personaName)
                             .font(.caption)
                             .lineLimit(1)
                     }
@@ -58,14 +57,14 @@ struct MessageCell: View, Equatable {
                     }
 
                     if chat.name != "" {
-                        HighlightedText(chat.name, highlight: searchText)
+                        Text(chat.name)
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
 
                     if filteredMessage != "" {
-                        HighlightedText(filteredMessage, highlight: searchText)
+                        Text(filteredMessage)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }

@@ -14,6 +14,7 @@ struct ChatMessagesView: View {
     @Binding var isStreaming: Bool
     @Binding var currentError: ErrorMessage?
     @Binding var userIsScrolling: Bool
+    @Binding var searchText: String
     @State private var scrollDebounceWorkItem: DispatchWorkItem?
     @State private var codeBlocksRendered = false
     @State private var pendingCodeBlocks = 0
@@ -28,7 +29,8 @@ struct ChatMessagesView: View {
                         message: chat.systemMessage,
                         color: chat.persona?.color,
                         newMessage: .constant(""),
-                        editSystemMessage: .constant(false)
+                        editSystemMessage: .constant(false),
+                        searchText: $searchText
                     )
                     .id("system_message")
 
@@ -43,7 +45,7 @@ struct ChatMessagesView: View {
                                 isStreaming: isStreaming,
                                 isLatestMessage: messageEntity.id == chatViewModel.sortedMessages.last?.id
                             )
-                            ChatBubbleView(content: bubbleContent, message: messageEntity)
+                            ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText)
                                 .id(messageEntity.id)
                         }
                     }
@@ -59,7 +61,7 @@ struct ChatMessagesView: View {
                             isLatestMessage: false
                         )
 
-                        ChatBubbleView(content: bubbleContent)
+                        ChatBubbleView(content: bubbleContent, searchText: $searchText)
                             .id(-1)
                     }
                     else if let error = currentError {
@@ -73,7 +75,7 @@ struct ChatMessagesView: View {
                             isLatestMessage: true
                         )
 
-                        ChatBubbleView(content: bubbleContent)
+                        ChatBubbleView(content: bubbleContent, searchText: $searchText)
                             .id(-2)
                     }
                 }

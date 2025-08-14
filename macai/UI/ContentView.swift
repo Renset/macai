@@ -38,6 +38,7 @@ struct ContentView: View {
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
     @State private var columnVisibility = NavigationSplitViewVisibility.all
+    @State private var searchText = ""
 
     var body: some View {
         NavigationSplitView {
@@ -50,9 +51,10 @@ struct ContentView: View {
         } detail: {
             HSplitView {
                 if selectedChat != nil {
-                    ChatView(viewContext: viewContext, chat: selectedChat!)
+                    ChatView(viewContext: viewContext, chat: selectedChat!, searchText: $searchText)
                         .frame(minWidth: 400)
                         .id(openedChatId)
+                        .searchable(text: $searchText, placement: .toolbar, prompt: "Search in chat…")
                 }
                 else {
                     WelcomeScreen(
