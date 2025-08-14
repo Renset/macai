@@ -12,11 +12,12 @@ import AppKit
 
 struct TableHeaderView: View {
     let header: [String]
+    @Binding var searchText: String
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(header.indices, id: \.self) { index in
-                Text(header[index])
+                HighlightedText(header[index], highlight: searchText)
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 8)
@@ -35,11 +36,12 @@ struct TableHeaderView: View {
 struct TableRowView: View {
     let rowData: [String]
     let rowIndex: Int
+    @Binding var searchText: String
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(0..<rowData.count, id: \.self) { columnIndex in
-                Text(rowData[columnIndex])
+                HighlightedText(rowData[columnIndex], highlight: searchText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -57,6 +59,7 @@ struct TableRowView: View {
 struct TableView: View {
     let header: [String]
     let tableData: [[String]]
+    @Binding var searchText: String
     @State private var isCopied = false
     @State private var isCopiedJSON = false
     
@@ -139,14 +142,14 @@ struct TableView: View {
             VStack(spacing: 0) {
                 
                 // Display the table header
-                TableHeaderView(header: header)
+                TableHeaderView(header: header, searchText: $searchText)
                 
                 // Add a horizontal line under the table header
                 Divider()
                 
                 // Display the table body
                 ForEach(0..<tableData.count, id: \.self) { rowIndex in
-                    TableRowView(rowData: tableData[rowIndex], rowIndex: rowIndex)
+                    TableRowView(rowData: tableData[rowIndex], rowIndex: rowIndex, searchText: $searchText)
                     
                     // Add a horizontal line between rows
                     if rowIndex < tableData.count - 1 {

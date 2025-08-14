@@ -14,6 +14,7 @@ struct CodeView: View {
     let code: String
     let lang: String
     var isStreaming: Bool
+    @Binding var searchText: String
     @StateObject private var viewModel: CodeViewModel
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject private var previewStateManager: PreviewStateManager
@@ -22,10 +23,11 @@ struct CodeView: View {
     @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     
-    init(code: String, lang: String, isStreaming: Bool = false) {
+    init(code: String, lang: String, isStreaming: Bool = false, searchText: Binding<String>) {
         self.code = code
         self.lang = lang
         self.isStreaming = isStreaming
+        self._searchText = searchText
         _viewModel = StateObject(
             wrappedValue: CodeViewModel(
                 code: code,
@@ -39,7 +41,9 @@ struct CodeView: View {
         VStack {
             headerView
             if let highlighted = highlightedCode {
-                AttributedText(highlighted)
+                
+                let finalAttributedString = searchText == "" ? highlighted : applySearchHighlighting(to: highlighted)
+                AttributedText(finalAttributedString)
                     .textSelection(.enabled)
                     .padding([.horizontal, .bottom], 12)
             }
@@ -143,9 +147,31 @@ struct CodeView: View {
             highlightedCode = viewModel.highlightedCode
         }
     }
+    
+    private func applySearchHighlighting(to attributedString: NSAttributedString) -> NSAttributedString {
+        guard !searchText.isEmpty else { return attributedString }
+        
+        let mutableAttributedString = NSMutableAttributedString(attributedString: attributedString)
+        let lowerText = mutableAttributedString.string.lowercased()
+        let lowerSearch = searchText.lowercased()
+        var location = 0
+        
+        while location < mutableAttributedString.length {
+            let searchRange = NSRange(location: location, length: mutableAttributedString.length - location)
+            let foundRange = (lowerText as NSString).range(of: lowerSearch, range: searchRange)
+            if foundRange.location != NSNotFound {
+                mutableAttributedString.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.3), range: foundRange)
+                location = foundRange.location + foundRange.length
+            } else {
+                break
+            }
+        }
+        
+        return mutableAttributedString
+    }
 }
 
 #Preview {
-    CodeView(code: "<h1>Hello World</h1>", lang: "html")
+    CodeView(code: "<h1>Hello World</h1>", lang: "html", searchText: .constant(""))
         .environmentObject(PreviewStateManager())
 }

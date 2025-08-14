@@ -111,7 +111,7 @@ struct MessageContentView: View {
             renderText(text)
 
         case .table(let header, let data):
-            TableView(header: header, tableData: data)
+            TableView(header: header, tableData: data, searchText: $searchText)
                 .padding()
 
         case .code(let code, let lang, let indent):
@@ -218,13 +218,13 @@ struct MessageContentView: View {
                 .textSelection(.enabled)
         } else {
             Text(.init(attributedString))
-                .textSelection(.enabled)
-        }
+            .textSelection(.enabled)
+    }
     }
 
     @ViewBuilder
     private func renderCode(code: String, lang: String, indent: Int, isStreaming: Bool) -> some View {
-        CodeView(code: code, lang: lang, isStreaming: isStreaming)
+        CodeView(code: code, lang: lang, isStreaming: isStreaming, searchText: $searchText)
             .padding(.bottom, 8)
             .padding(.leading, CGFloat(indent) * 4)
             .onAppear {
