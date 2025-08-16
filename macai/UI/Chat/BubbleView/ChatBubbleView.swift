@@ -116,7 +116,7 @@ struct ChatBubbleView: View, Equatable {
                 .padding(.vertical, 8)
                 .background(
                     content.systemMessage
-                        ? (Color(NSColor.systemGray) ?? .gray).opacity(0.6)
+                        ? (color != nil ? (Color(hex: color!) ?? Color(NSColor.systemGray)) : Color(NSColor.systemGray)).opacity(0.6)
                         : colorScheme == .dark
                             ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
                             : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
