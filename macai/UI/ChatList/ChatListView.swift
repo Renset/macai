@@ -24,12 +24,38 @@ struct ChatListView: View {
     private var chats: FetchedResults<ChatEntity>
 
     @Binding var selectedChat: ChatEntity?
+    @Binding var searchText: String
 
 
+
+    private var filteredChats: [ChatEntity] {
+        if searchText.isEmpty {
+            return Array(chats)
+        } else {
+            return chats.filter { chat in
+                if chat.name.localizedCaseInsensitiveContains(searchText) {
+                    return true
+                }
+                
+                if let personaName = chat.persona?.name,
+                   personaName.localizedCaseInsensitiveContains(searchText) {
+                    return true
+                }
+                
+                for message in chat.messagesArray {
+                    if message.body.localizedCaseInsensitiveContains(searchText) {
+                        return true
+                    }
+                }
+                
+                return false
+            }
+        }
+    }
 
     var body: some View {
         List {
-            ForEach(Array(chats), id: \.objectID) { chat in
+            ForEach(filteredChats, id: \.objectID) { chat in
                 ChatListRow(
                     chat: chat,
                     selectedChat: $selectedChat,

@@ -42,7 +42,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            ChatListView(selectedChat: $selectedChat)
+            ChatListView(selectedChat: $selectedChat, searchText: $searchText)
                 .navigationSplitViewColumnWidth(
                     min: 180,
                     ideal: 220,
