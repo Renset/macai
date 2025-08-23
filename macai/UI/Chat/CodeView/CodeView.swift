@@ -14,7 +14,9 @@ struct CodeView: View {
     let code: String
     let lang: String
     var isStreaming: Bool
+    var message: MessageEntity?
     @Binding var searchText: String
+    var currentSearchOccurrence: SearchOccurrence?
     @StateObject private var viewModel: CodeViewModel
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject private var previewStateManager: PreviewStateManager
@@ -23,11 +25,13 @@ struct CodeView: View {
     @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     
-    init(code: String, lang: String, isStreaming: Bool = false, searchText: Binding<String>) {
+    init(code: String, lang: String, isStreaming: Bool = false, message: MessageEntity?, searchText: Binding<String>, currentSearchOccurrence: SearchOccurrence?) {
         self.code = code
         self.lang = lang
         self.isStreaming = isStreaming
+        self.message = message
         self._searchText = searchText
+        self.currentSearchOccurrence = currentSearchOccurrence
         _viewModel = StateObject(
             wrappedValue: CodeViewModel(
                 code: code,
@@ -149,22 +153,19 @@ struct CodeView: View {
     }
     
     private func applySearchHighlighting(to attributedString: NSAttributedString) -> NSAttributedString {
-        guard !searchText.isEmpty else { return attributedString }
+        guard !searchText.isEmpty, let messageId = message?.objectID else { return attributedString }
         
         let mutableAttributedString = NSMutableAttributedString(attributedString: attributedString)
-        let lowerText = mutableAttributedString.string.lowercased()
-        let lowerSearch = searchText.lowercased()
-        var location = 0
-        
-        while location < mutableAttributedString.length {
-            let searchRange = NSRange(location: location, length: mutableAttributedString.length - location)
-            let foundRange = (lowerText as NSString).range(of: lowerSearch, range: searchRange)
-            if foundRange.location != NSNotFound {
-                mutableAttributedString.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.3), range: foundRange)
-                location = foundRange.location + foundRange.length
-            } else {
-                break
-            }
+        let body = mutableAttributedString.string
+        var searchStartIndex = body.startIndex
+
+        while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
+            let nsRange = NSRange(range, in: body)
+            let occurrence = SearchOccurrence(messageID: messageId, range: nsRange)
+            let isCurrent = occurrence == self.currentSearchOccurrence
+            let color = isCurrent ? NSColor.systemYellow : NSColor.systemGray.withAlphaComponent(0.3)
+            mutableAttributedString.addAttribute(.backgroundColor, value: color, range: nsRange)
+            searchStartIndex = range.upperBound
         }
         
         return mutableAttributedString
@@ -172,6 +173,6 @@ struct CodeView: View {
 }
 
 #Preview {
-    CodeView(code: "<h1>Hello World</h1>", lang: "html", searchText: .constant(""))
+    CodeView(code: "<h1>Hello World</h1>", lang: "html", message: nil, searchText: .constant(""), currentSearchOccurrence: nil)
         .environmentObject(PreviewStateManager())
 }

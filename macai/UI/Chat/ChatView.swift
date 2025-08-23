@@ -119,6 +119,41 @@ struct ChatView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
             logicHandler.ignoreError()
         }
+        .toolbar {
+            if !searchText.isEmpty && !chatViewModel.searchOccurrences.isEmpty {
+                SearchNavigationView(chatViewModel: chatViewModel)
+            }
+        }
+        .onChange(of: searchText) { newSearchText in
+            chatViewModel.updateSearchOccurrences(searchText: newSearchText)
+        }
+    }
+}
+
+struct SearchNavigationView: View {
+    @ObservedObject var chatViewModel: ChatViewModel
+
+    var body: some View {
+        HStack {
+            if let currentIndex = chatViewModel.currentSearchIndex {
+                Text("\(currentIndex + 1) of \(chatViewModel.searchOccurrences.count)")
+                    .font(.system(size: 12))
+            }
+
+            Button(action: {
+                chatViewModel.goToPreviousOccurrence()
+            }) {
+                Image(systemName: "chevron.up")
+            }
+            .disabled(chatViewModel.searchOccurrences.isEmpty)
+
+            Button(action: {
+                chatViewModel.goToNextOccurrence()
+            }) {
+                Image(systemName: "chevron.down")
+            }
+            .disabled(chatViewModel.searchOccurrences.isEmpty)
+        }
     }
 }
 

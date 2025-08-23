@@ -179,3 +179,9 @@ extension PersistenceController {
         return result
     }()
 }
+
+extension Range where Bound == String.Index {
+    func toNSRange(in string: String) -> NSRange? {
+        return NSRange(self, in: string)
+    }
+}

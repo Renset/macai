@@ -13,12 +13,14 @@ struct IdentifiableImage: Identifiable {
     let image: NSImage
 }
 struct MessageContentView: View {
-    let message: String
+    var message: MessageEntity?
+    let content: String
     let isStreaming: Bool
     let own: Bool
     let effectiveFontSize: Double
     let colorScheme: ColorScheme
     @Binding var searchText: String
+    var currentSearchOccurrence: SearchOccurrence?
 
     @State private var showFullMessage = false
     @State private var isParsingFullMessage = false
@@ -29,7 +31,7 @@ struct MessageContentView: View {
     var body: some View {
         VStack(alignment: .leading) {
             // Check if message contains image data or JSON with image_url before applying truncation
-            if message.count > largeMessageSymbolsThreshold && !showFullMessage && !containsImageData(message) {
+            if content.count > largeMessageSymbolsThreshold && !showFullMessage && !containsImageData(content) {
                 renderPartialContent()
             }
             else {
@@ -47,12 +49,13 @@ struct MessageContentView: View {
 
     @ViewBuilder
     private func renderPartialContent() -> some View {
-        let truncatedMessage = String(message.prefix(largeMessageSymbolsThreshold))
+        let truncatedMessage = String(content.prefix(largeMessageSymbolsThreshold))
         let parser = MessageParser(colorScheme: colorScheme)
         let parsedElements = parser.parseMessageFromString(input: truncatedMessage)
 
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(parsedElements.indices, id: \.self) { index in
+            ForEach(parsedElements.indices, id: \.self) {
+                index in
                 renderElement(parsedElements[index])
             }
 
@@ -62,7 +65,7 @@ struct MessageContentView: View {
                     // Parse the full message in background: very long messages may take long time to parse (and even cause app crash)
                     DispatchQueue.global(qos: .userInitiated).async {
                         let parser = MessageParser(colorScheme: colorScheme)
-                        _ = parser.parseMessageFromString(input: message)
+                        _ = parser.parseMessageFromString(input: content)
 
                         DispatchQueue.main.async {
                             showFullMessage = true
@@ -93,9 +96,10 @@ struct MessageContentView: View {
     @ViewBuilder
     private func renderFullContent() -> some View {
         let parser = MessageParser(colorScheme: colorScheme)
-        let parsedElements = parser.parseMessageFromString(input: message)
+        let parsedElements = parser.parseMessageFromString(input: content)
 
-        ForEach(parsedElements.indices, id: \.self) { index in
+        ForEach(parsedElements.indices, id: \.self) {
+            index in
             renderElement(parsedElements[index])
         }
     }
@@ -174,7 +178,7 @@ struct MessageContentView: View {
             }
             
             // Handle quote blocks
-            let quoteRegex = try! NSRegularExpression(pattern: "^>\\s*(.*)", options: .anchorsMatchLines)
+            let quoteRegex = try! NSRegularExpression(pattern: ">\\s*(.*)", options: .anchorsMatchLines)
             let quoteMatches = quoteRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
             
             for match in quoteMatches.reversed() {
@@ -194,19 +198,16 @@ struct MessageContentView: View {
             }
 
             // Apply search highlighting if searchText is not empty
-            if !searchText.isEmpty {
-                let lowerText = mutableAttributedString.string.lowercased()
-                let lowerSearch = searchText.lowercased()
-                var location = 0
-                while location < mutableAttributedString.length {
-                    let searchRange = NSRange(location: location, length: mutableAttributedString.length - location)
-                    let foundRange = (lowerText as NSString).range(of: lowerSearch, range: searchRange)
-                    if foundRange.location != NSNotFound {
-                        mutableAttributedString.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.3), range: foundRange)
-                        location = foundRange.location + foundRange.length
-                    } else {
-                        break
-                    }
+            if !searchText.isEmpty, let messageId = message?.objectID {
+                let body = mutableAttributedString.string
+                var searchStartIndex = body.startIndex
+                while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
+                    let nsRange = NSRange(range, in: body)
+                    let occurrence = SearchOccurrence(messageID: messageId, range: nsRange)
+                    let isCurrent = occurrence == self.currentSearchOccurrence
+                    let color = isCurrent ? NSColor.systemYellow : NSColor.systemGray.withAlphaComponent(0.3)
+                    mutableAttributedString.addAttribute(.backgroundColor, value: color, range: nsRange)
+                    searchStartIndex = range.upperBound
                 }
             }
 
@@ -224,7 +225,7 @@ struct MessageContentView: View {
 
     @ViewBuilder
     private func renderCode(code: String, lang: String, indent: Int, isStreaming: Bool) -> some View {
-        CodeView(code: code, lang: lang, isStreaming: isStreaming, searchText: $searchText)
+        CodeView(code: code, lang: lang, isStreaming: isStreaming, message: message, searchText: $searchText, currentSearchOccurrence: currentSearchOccurrence)
             .padding(.bottom, 8)
             .padding(.leading, CGFloat(indent) * 4)
             .onAppear {
@@ -254,3 +255,4 @@ struct MessageContentView: View {
     }
 
 }
+

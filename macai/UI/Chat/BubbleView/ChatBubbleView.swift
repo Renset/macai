@@ -39,6 +39,7 @@ struct ChatBubbleView: View, Equatable {
     var color: String?
     var onEdit: (() -> Void)?
     @Binding var searchText: String
+    var currentSearchOccurrence: SearchOccurrence?
 
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
@@ -57,7 +58,7 @@ struct ChatBubbleView: View, Equatable {
     }
 
     static func == (lhs: ChatBubbleView, rhs: ChatBubbleView) -> Bool {
-        lhs.content == rhs.content
+        lhs.content == rhs.content && lhs.currentSearchOccurrence == rhs.currentSearchOccurrence
     }
 
     var body: some View {
@@ -101,12 +102,14 @@ struct ChatBubbleView: View, Equatable {
                     }
                     else {
                         MessageContentView(
-                            message: content.message,
+                            message: message,
+                            content: content.message,
                             isStreaming: content.isStreaming,
                             own: content.own,
                             effectiveFontSize: effectiveFontSize,
                             colorScheme: colorScheme,
-                            searchText: $searchText
+                            searchText: $searchText,
+                            currentSearchOccurrence: currentSearchOccurrence
                         )
                     }
                 }

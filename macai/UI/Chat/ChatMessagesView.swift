@@ -35,7 +35,7 @@ struct ChatMessagesView: View {
                     .id("system_message")
 
                     if chat.messages.count > 0 {
-                        ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
+                        ForEach(chatViewModel.sortedMessages, id: \.objectID) { messageEntity in
                             let bubbleContent = ChatBubbleContent(
                                 message: messageEntity.body,
                                 own: messageEntity.own,
@@ -45,8 +45,8 @@ struct ChatMessagesView: View {
                                 isStreaming: isStreaming,
                                 isLatestMessage: messageEntity.id == chatViewModel.sortedMessages.last?.id
                             )
-                            ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText)
-                                .id(messageEntity.id)
+                            ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText, currentSearchOccurrence: chatViewModel.currentSearchOccurrence)
+                                .id(messageEntity.objectID)
                         }
                     }
 
@@ -140,6 +140,13 @@ struct ChatMessagesView: View {
                             if let lastMessage = chatViewModel.sortedMessages.last {
                                 scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                             }
+                        }
+                    }
+                }
+                .onChange(of: chatViewModel.currentSearchOccurrence) { newOccurrence in
+                    if let occurrence = newOccurrence {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            scrollView.scrollTo(occurrence.messageID, anchor: .center)
                         }
                     }
                 }

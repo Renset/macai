@@ -9,7 +9,26 @@ import Combine
 import Foundation
 import SwiftUI
 
+struct SearchOccurrence: Equatable {
+    let messageID: NSManagedObjectID
+    let range: NSRange
+
+    static func == (lhs: SearchOccurrence, rhs: SearchOccurrence) -> Bool {
+        return lhs.messageID == rhs.messageID && NSEqualRanges(lhs.range, rhs.range)
+    }
+}
+
 class ChatViewModel: ObservableObject {
+    // MARK: - Search State
+    @Published var searchOccurrences: [SearchOccurrence] = []
+    @Published var currentSearchIndex: Int? = nil
+
+    var currentSearchOccurrence: SearchOccurrence? {
+        if let index = currentSearchIndex, searchOccurrences.indices.contains(index) {
+            return searchOccurrences[index]
+        }
+        return nil
+    }
     @Published var messages: NSOrderedSet
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
@@ -118,5 +137,36 @@ class ChatViewModel: ObservableObject {
     
     func regenerateChatName() {
         messageManager.generateChatNameIfNeeded(chat: chat, force: true)
+    }
+
+    // MARK: - Search Logic
+    func updateSearchOccurrences(searchText: String) {
+        var occurrences: [SearchOccurrence] = []
+        if !searchText.isEmpty {
+            for message in sortedMessages {
+                let body = message.body
+                var searchStartIndex = body.startIndex
+                while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
+                    let nsRange = NSRange(range, in: body)
+                    let occurrence = SearchOccurrence(messageID: message.objectID, range: nsRange)
+                    occurrences.append(occurrence)
+                    searchStartIndex = range.upperBound
+                }
+            }
+        }
+        searchOccurrences = occurrences
+        currentSearchIndex = occurrences.isEmpty ? nil : 0
+    }
+
+    func goToNextOccurrence() {
+        guard let currentIndex = currentSearchIndex, !searchOccurrences.isEmpty else { return }
+        let nextIndex = currentIndex + 1
+        currentSearchIndex = nextIndex >= searchOccurrences.count ? 0 : nextIndex
+    }
+
+    func goToPreviousOccurrence() {
+        guard let currentIndex = currentSearchIndex, !searchOccurrences.isEmpty else { return }
+        let prevIndex = currentIndex - 1
+        currentSearchIndex = prevIndex < 0 ? searchOccurrences.count - 1 : prevIndex
     }
 }
