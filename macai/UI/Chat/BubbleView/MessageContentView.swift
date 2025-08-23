@@ -56,7 +56,7 @@ struct MessageContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(parsedElements.indices, id: \.self) {
                 index in
-                renderElement(parsedElements[index])
+                renderElement(parsedElements[index], elementIndex: index)
             }
 
             HStack(spacing: 8) {
@@ -100,26 +100,26 @@ struct MessageContentView: View {
 
         ForEach(parsedElements.indices, id: \.self) {
             index in
-            renderElement(parsedElements[index])
+            renderElement(parsedElements[index], elementIndex: index)
         }
     }
 
     @ViewBuilder
-    private func renderElement(_ element: MessageElements) -> some View {
+    private func renderElement(_ element: MessageElements, elementIndex: Int) -> some View {
         switch element {
         case .thinking(let content, _):
             ThinkingProcessView(content: content)
                 .padding(.vertical, 4)
 
         case .text(let text):
-            renderText(text)
+            renderText(text, elementIndex: elementIndex)
 
         case .table(let header, let data):
-            TableView(header: header, tableData: data, searchText: $searchText)
+            TableView(header: header, tableData: data, searchText: $searchText, message: message, currentSearchOccurrence: currentSearchOccurrence, elementIndex: elementIndex)
                 .padding()
 
         case .code(let code, let lang, let indent):
-            renderCode(code: code, lang: lang, indent: indent, isStreaming: isStreaming)
+            renderCode(code: code, lang: lang, indent: indent, isStreaming: isStreaming, elementIndex: elementIndex)
 
         case .formula(let formula):
             if isStreaming {
@@ -136,7 +136,7 @@ struct MessageContentView: View {
     }
 
     @ViewBuilder
-    private func renderText(_ text: String) -> some View {
+    private func renderText(_ text: String, elementIndex: Int = 0) -> some View {
         let attributedString: NSAttributedString = {
             let options = AttributedString.MarkdownParsingOptions(
                 interpretedSyntax: .inlineOnlyPreservingWhitespace
@@ -159,7 +159,7 @@ struct MessageContentView: View {
             )
 
             // Handle headers
-            let headerRegex = try! NSRegularExpression(pattern: "^(#{1,6})\\s+(.*)", options: .anchorsMatchLines)
+            guard let headerRegex = try? NSRegularExpression(pattern: "^(#{1,6})\\s+(.*)", options: .anchorsMatchLines) else { return mutableAttributedString }
             let headerMatches = headerRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
 
             for match in headerMatches.reversed() {
@@ -178,7 +178,7 @@ struct MessageContentView: View {
             }
             
             // Handle quote blocks
-            let quoteRegex = try! NSRegularExpression(pattern: ">\\s*(.*)", options: .anchorsMatchLines)
+            guard let quoteRegex = try? NSRegularExpression(pattern: ">\\s*(.*)", options: .anchorsMatchLines) else { return mutableAttributedString }
             let quoteMatches = quoteRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
             
             for match in quoteMatches.reversed() {
@@ -200,14 +200,20 @@ struct MessageContentView: View {
             // Apply search highlighting if searchText is not empty
             if !searchText.isEmpty, let messageId = message?.objectID {
                 let body = mutableAttributedString.string
+                let originalBody = content // Use original content for range comparison
                 var searchStartIndex = body.startIndex
-                while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
+                var originalSearchStartIndex = originalBody.startIndex
+                
+                while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex),
+                      let originalRange = originalBody.range(of: searchText, options: .caseInsensitive, range: originalSearchStartIndex..<originalBody.endIndex) {
                     let nsRange = NSRange(range, in: body)
-                    let occurrence = SearchOccurrence(messageID: messageId, range: nsRange)
+                    let originalNSRange = NSRange(originalRange, in: originalBody)
+                    let occurrence = SearchOccurrence(messageID: messageId, range: originalNSRange, elementIndex: elementIndex, elementType: "text")
                     let isCurrent = occurrence == self.currentSearchOccurrence
                     let color = isCurrent ? NSColor.systemYellow : NSColor.systemGray.withAlphaComponent(0.3)
                     mutableAttributedString.addAttribute(.backgroundColor, value: color, range: nsRange)
                     searchStartIndex = range.upperBound
+                    originalSearchStartIndex = originalRange.upperBound
                 }
             }
 
@@ -219,13 +225,13 @@ struct MessageContentView: View {
                 .textSelection(.enabled)
         } else {
             Text(.init(attributedString))
-            .textSelection(.enabled)
-    }
+                .textSelection(.enabled)
+        }
     }
 
     @ViewBuilder
-    private func renderCode(code: String, lang: String, indent: Int, isStreaming: Bool) -> some View {
-        CodeView(code: code, lang: lang, isStreaming: isStreaming, message: message, searchText: $searchText, currentSearchOccurrence: currentSearchOccurrence)
+    private func renderCode(code: String, lang: String, indent: Int, isStreaming: Bool, elementIndex: Int) -> some View {
+        CodeView(code: code, lang: lang, isStreaming: isStreaming, message: message, searchText: $searchText, currentSearchOccurrence: currentSearchOccurrence, elementIndex: elementIndex)
             .padding(.bottom, 8)
             .padding(.leading, CGFloat(indent) * 4)
             .onAppear {

@@ -12,9 +12,14 @@ import SwiftUI
 struct SearchOccurrence: Equatable {
     let messageID: NSManagedObjectID
     let range: NSRange
+    let elementIndex: Int // Index of the MessageElement containing this occurrence
+    let elementType: String // Type of element ("text", "code", "table", etc.)
 
     static func == (lhs: SearchOccurrence, rhs: SearchOccurrence) -> Bool {
-        return lhs.messageID == rhs.messageID && NSEqualRanges(lhs.range, rhs.range)
+        return lhs.messageID == rhs.messageID && 
+               NSEqualRanges(lhs.range, rhs.range) &&
+               lhs.elementIndex == rhs.elementIndex &&
+               lhs.elementType == rhs.elementType
     }
 }
 
@@ -143,19 +148,52 @@ class ChatViewModel: ObservableObject {
     func updateSearchOccurrences(searchText: String) {
         var occurrences: [SearchOccurrence] = []
         if !searchText.isEmpty {
+            let parser = MessageParser(colorScheme: .light) // Color scheme doesn't matter for parsing
+            
             for message in sortedMessages {
-                let body = message.body
-                var searchStartIndex = body.startIndex
-                while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
-                    let nsRange = NSRange(range, in: body)
-                    let occurrence = SearchOccurrence(messageID: message.objectID, range: nsRange)
-                    occurrences.append(occurrence)
-                    searchStartIndex = range.upperBound
+                let parsedElements = parser.parseMessageFromString(input: message.body)
+                
+                for (elementIndex, element) in parsedElements.enumerated() {
+                    let (content, elementType) = extractContentAndType(from: element)
+                    
+                    var searchStartIndex = content.startIndex
+                    while let range = content.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<content.endIndex) {
+                        let nsRange = NSRange(range, in: content)
+                        let occurrence = SearchOccurrence(
+                            messageID: message.objectID,
+                            range: nsRange,
+                            elementIndex: elementIndex,
+                            elementType: elementType
+                        )
+                        occurrences.append(occurrence)
+                        searchStartIndex = range.upperBound
+                    }
                 }
             }
         }
         searchOccurrences = occurrences
         currentSearchIndex = occurrences.isEmpty ? nil : 0
+    }
+    
+    private func extractContentAndType(from element: MessageElements) -> (String, String) {
+        switch element {
+        case .text(let content):
+            return (content, "text")
+        case .code(let code, _, _):
+            return (code, "code")
+        case .table(let header, let data):
+            // Combine header and data for search
+            let headerText = header.joined(separator: " ")
+            let dataText = data.map { $0.joined(separator: " ") }.joined(separator: " ")
+            let combinedText = headerText + " " + dataText
+            return (combinedText, "table")
+        case .formula(let content):
+            return (content, "formula")
+        case .thinking(let content, _):
+            return (content, "thinking")
+        case .image(_):
+            return ("", "image") // Images don't have searchable text content
+        }
     }
 
     func goToNextOccurrence() {

@@ -25,13 +25,16 @@ struct CodeView: View {
     @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     
-    init(code: String, lang: String, isStreaming: Bool = false, message: MessageEntity?, searchText: Binding<String>, currentSearchOccurrence: SearchOccurrence?) {
+    let elementIndex: Int
+    
+    init(code: String, lang: String, isStreaming: Bool = false, message: MessageEntity?, searchText: Binding<String>, currentSearchOccurrence: SearchOccurrence?, elementIndex: Int) {
         self.code = code
         self.lang = lang
         self.isStreaming = isStreaming
         self.message = message
         self._searchText = searchText
         self.currentSearchOccurrence = currentSearchOccurrence
+        self.elementIndex = elementIndex
         _viewModel = StateObject(
             wrappedValue: CodeViewModel(
                 code: code,
@@ -161,7 +164,12 @@ struct CodeView: View {
 
         while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
             let nsRange = NSRange(range, in: body)
-            let occurrence = SearchOccurrence(messageID: messageId, range: nsRange)
+            let occurrence = SearchOccurrence(
+                messageID: messageId, 
+                range: nsRange, 
+                elementIndex: elementIndex, 
+                elementType: "code"
+            )
             let isCurrent = occurrence == self.currentSearchOccurrence
             let color = isCurrent ? NSColor.systemYellow : NSColor.systemGray.withAlphaComponent(0.3)
             mutableAttributedString.addAttribute(.backgroundColor, value: color, range: nsRange)
@@ -173,6 +181,6 @@ struct CodeView: View {
 }
 
 #Preview {
-    CodeView(code: "<h1>Hello World</h1>", lang: "html", message: nil, searchText: .constant(""), currentSearchOccurrence: nil)
+    CodeView(code: "<h1>Hello World</h1>", lang: "html", message: nil, searchText: .constant(""), currentSearchOccurrence: nil, elementIndex: 0)
         .environmentObject(PreviewStateManager())
 }
