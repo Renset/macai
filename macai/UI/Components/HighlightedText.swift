@@ -44,13 +44,13 @@ struct HighlightedText: View {
             let originalFoundRange = originalRange.range(of: highlight, options: [], range: originalSearchRange)
 
             if foundRange.location != NSNotFound && originalFoundRange.location != NSNotFound {
-                var highlightColor = color.withAlphaComponent(0.3)
+                var highlightColor = NSColor(Color(hex: AppConstants.defaultHighlightColor) ?? Color.gray).withAlphaComponent(0.3)
                 
                 // Check if this is the current occurrence
                 if let messageId = message?.objectID, let currentOccurrence = currentSearchOccurrence {
                     let occurrence = SearchOccurrence(messageID: messageId, range: foundRange, elementIndex: elementIndex, elementType: "table")
                     if occurrence == currentOccurrence {
-                        highlightColor = NSColor.systemYellow
+                        highlightColor = NSColor(Color(hex: AppConstants.currentHighlightColor) ?? Color.yellow)
                     }
                 }
                 

@@ -153,6 +153,7 @@ struct ChatMessagesView: View {
             }
             .id("chatContainer")
         }
+        .defaultScrollAnchor(.bottom)
         .padding(.bottom, 6)
         .overlay(alignment: .bottom) {
             LinearGradient(

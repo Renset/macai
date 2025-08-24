@@ -264,6 +264,10 @@ struct AppConstants {
     static let newChatNotification = Notification.Name("newChatNotification")
     static let largeMessageSymbolsThreshold = 25000
     static let thumbnailSize: CGFloat = 300
+    
+    // Search highlighting colors
+    static let defaultHighlightColor = "#FFFF00" // Yellow
+    static let currentHighlightColor = "#FFA500" // Orange
 }
 
 func getCurrentFormattedDate() -> String {

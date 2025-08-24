@@ -210,7 +210,9 @@ struct MessageContentView: View {
                     let originalNSRange = NSRange(originalRange, in: originalBody)
                     let occurrence = SearchOccurrence(messageID: messageId, range: originalNSRange, elementIndex: elementIndex, elementType: "text")
                     let isCurrent = occurrence == self.currentSearchOccurrence
-                    let color = isCurrent ? NSColor.systemYellow : NSColor.systemGray.withAlphaComponent(0.3)
+                    let color = isCurrent 
+                         ? NSColor(Color(hex: AppConstants.currentHighlightColor) ?? Color.yellow) 
+                         : NSColor(Color(hex: AppConstants.defaultHighlightColor) ?? Color.gray).withAlphaComponent(0.3)
                     mutableAttributedString.addAttribute(.backgroundColor, value: color, range: nsRange)
                     searchStartIndex = range.upperBound
                     originalSearchStartIndex = originalRange.upperBound
