@@ -178,7 +178,7 @@ struct MessageContentView: View {
             }
             
             // Handle quote blocks
-            guard let quoteRegex = try? NSRegularExpression(pattern: ">\\s*(.*)", options: .anchorsMatchLines) else { return mutableAttributedString }
+            guard let quoteRegex = try? NSRegularExpression(pattern: "^\\s*>\\s*(.*)", options: .anchorsMatchLines) else { return mutableAttributedString }
             let quoteMatches = quoteRegex.matches(in: mutableAttributedString.string, options: [], range: NSRange(location: 0, length: mutableAttributedString.string.utf16.count))
             
             for match in quoteMatches.reversed() {
