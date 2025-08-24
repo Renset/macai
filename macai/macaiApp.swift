@@ -111,6 +111,14 @@ struct macaiApp: App {
             }
 
             CommandMenu("Chat") {
+                Button("Find in Chat") {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ActivateSearch"),
+                        object: nil
+                    )
+                }
+                .keyboardShortcut("f", modifiers: .command)
+
                 Button("Retry Last Message") {
                     NotificationCenter.default.post(
                         name: NSNotification.Name("RetryMessage"),

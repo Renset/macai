@@ -95,7 +95,7 @@ Run macai with Ollama is easy-peasy:
 6. Test and enjoy!
 
 ## System requirements
-macOS 13.0 and later (both Intel and Apple chips are supported)
+macOS 14.0 and later (both Intel and Apple chips are supported)
 
 ## Project status
 Project is in the active development phase.

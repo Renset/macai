@@ -1,6 +1,7 @@
 //
 //  ChatView.swift
 //  macai
+
 //
 //  Created by Renat Notfullin on 18.03.2023.
 //
@@ -118,6 +119,16 @@ struct ChatView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
             logicHandler.ignoreError()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FindNext"))) { _ in
+            if !searchText.isEmpty {
+                chatViewModel.goToNextOccurrence()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FindPrevious"))) { _ in
+            if !searchText.isEmpty {
+                chatViewModel.goToPreviousOccurrence()
+            }
         }
         .toolbar {
             if !searchText.isEmpty && !chatViewModel.searchOccurrences.isEmpty {
