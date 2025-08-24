@@ -16,23 +16,27 @@ struct ChatListRow: View, Equatable {
         lhs.chat?.name == rhs.chat?.name &&
         lhs.chat?.lastMessage?.body == rhs.chat?.lastMessage?.body &&
         lhs.chat?.isPinned == rhs.chat?.isPinned &&
-        (lhs.selectedChat?.id == rhs.selectedChat?.id)
+        (lhs.selectedChat?.id == rhs.selectedChat?.id) &&
+        lhs.searchText == rhs.searchText
     }
     let chat: ChatEntity?
     let chatID: UUID  // Store the ID separately
     @Binding var selectedChat: ChatEntity?
     let viewContext: NSManagedObjectContext
+    let searchText: String
     @StateObject private var chatViewModel: ChatViewModel
 
     init(
         chat: ChatEntity?,
         selectedChat: Binding<ChatEntity?>,
-        viewContext: NSManagedObjectContext
+        viewContext: NSManagedObjectContext,
+        searchText: String
     ) {
         self.chat = chat
         self.chatID = chat?.id ?? UUID()
         self._selectedChat = selectedChat
         self.viewContext = viewContext
+        self.searchText = searchText
         self._chatViewModel = StateObject(wrappedValue: ChatViewModel(chat: chat!, viewContext: viewContext))
     }
 
@@ -58,7 +62,8 @@ struct ChatListRow: View, Equatable {
             timestamp: chat?.lastMessage?.timestamp ?? Date(),
             message: chat?.lastMessage?.body ?? "",
             isActive: isActive,
-            viewContext: viewContext
+            viewContext: viewContext,
+            searchText: searchText
         )
         .contextMenu {
             Button(action: { 

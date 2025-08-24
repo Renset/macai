@@ -12,6 +12,8 @@ struct ChatListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var scrollOffset: CGFloat = 0
     @State private var previousOffset: CGFloat = 0
+    @State private var debouncedSearchText: String = ""
+    @State private var debounceTimer: Timer?
 
     @FetchRequest(
         entity: ChatEntity.entity(),
@@ -29,21 +31,21 @@ struct ChatListView: View {
 
 
     private var filteredChats: [ChatEntity] {
-        if searchText.isEmpty {
+        if debouncedSearchText.isEmpty {
             return Array(chats)
         } else {
             return chats.filter { chat in
-                if chat.name.localizedCaseInsensitiveContains(searchText) {
+                if chat.name.localizedCaseInsensitiveContains(debouncedSearchText) {
                     return true
                 }
                 
                 if let personaName = chat.persona?.name,
-                   personaName.localizedCaseInsensitiveContains(searchText) {
+                   personaName.localizedCaseInsensitiveContains(debouncedSearchText) {
                     return true
                 }
                 
                 for message in chat.messagesArray {
-                    if message.body.localizedCaseInsensitiveContains(searchText) {
+                    if message.body.localizedCaseInsensitiveContains(debouncedSearchText) {
                         return true
                     }
                 }
@@ -59,10 +61,24 @@ struct ChatListView: View {
                 ChatListRow(
                     chat: chat,
                     selectedChat: $selectedChat,
-                    viewContext: viewContext
+                    viewContext: viewContext,
+                    searchText: debouncedSearchText
                 )
             }
         }
         .listStyle(.sidebar)
+        .onChange(of: searchText) { newValue in
+            debounceTimer?.invalidate()
+            
+            debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
+                debouncedSearchText = newValue
+            }
+        }
+        .onAppear {
+            debouncedSearchText = searchText
+        }
+        .onDisappear {
+            debounceTimer?.invalidate()
+        }
     }
 }

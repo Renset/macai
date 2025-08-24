@@ -13,14 +13,16 @@ struct MessageCell: View, Equatable {
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
-        lhs.chat.isPinned == rhs.chat.isPinned
+        lhs.chat.isPinned == rhs.chat.isPinned &&
+        lhs.searchText == rhs.searchText
     }
-    
+
     @ObservedObject var chat: ChatEntity
     @State var timestamp: Date
     var message: String
     @Binding var isActive: Bool
     let viewContext: NSManagedObjectContext
+    let searchText: String
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
 
@@ -46,25 +48,25 @@ struct MessageCell: View, Equatable {
             HStack {
                 VStack(alignment: .leading) {
                     if let personaName = chat.persona?.name {
-                        Text(personaName)
+                        HighlightedText(personaName, highlight: searchText)
                             .font(.caption)
                             .lineLimit(1)
                     }
                     else {
-                        Text("No assistant selected")
+                        HighlightedText("No assistant selected", highlight: searchText)
                             .font(.caption)
                             .lineLimit(1)
                     }
 
                     if chat.name != "" {
-                        Text(chat.name)
+                        HighlightedText(chat.name, highlight: searchText)
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
 
                     if filteredMessage != "" {
-                        Text(filteredMessage)
+                        HighlightedText(filteredMessage, highlight: searchText)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
@@ -107,7 +109,8 @@ struct MessageCell_Previews: PreviewProvider {
                 timestamp: Date(),
                 message: "Hello, how are you?",
                 isActive: .constant(false),
-                viewContext: PersistenceController.preview.container.viewContext
+                viewContext: PersistenceController.preview.container.viewContext,
+                searchText: ""
             )
 
             MessageCell(
@@ -115,7 +118,8 @@ struct MessageCell_Previews: PreviewProvider {
                 timestamp: Date(),
                 message: "This is a selected chat preview",
                 isActive: .constant(true),
-                viewContext: PersistenceController.preview.container.viewContext
+                viewContext: PersistenceController.preview.container.viewContext,
+                searchText: ""
             )
 
             MessageCell(
@@ -124,7 +128,8 @@ struct MessageCell_Previews: PreviewProvider {
                 message:
                     "This is a very long message that should be truncated when displayed in the preview cell of our chat application",
                 isActive: .constant(false),
-                viewContext: PersistenceController.preview.container.viewContext
+                viewContext: PersistenceController.preview.container.viewContext,
+                searchText: ""
             )
         }
         .previewLayout(.fixed(width: 300, height: 100))
