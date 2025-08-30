@@ -19,7 +19,7 @@ struct TableHeaderView: View {
     let elementIndex: Int
 
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             ForEach(header.indices, id: \.self) { index in
                 HighlightedText(
                     header[index],
@@ -27,7 +27,9 @@ struct TableHeaderView: View {
                     message: message,
                     currentSearchOccurrence: currentSearchOccurrence,
                     originalContent: originalContent,
-                    elementIndex: elementIndex
+                    elementIndex: elementIndex,
+                    elementType: "table",
+                    cellPosition: index
                 )
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -61,7 +63,9 @@ struct TableRowView: View {
                     message: message,
                     currentSearchOccurrence: currentSearchOccurrence,
                     originalContent: originalContent,
-                    elementIndex: elementIndex
+                    elementIndex: elementIndex,
+                    elementType: "table",
+                    cellPosition: (rowIndex + 1) * 1000 + columnIndex
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 8)
@@ -166,7 +170,6 @@ struct TableView: View {
             .padding(.bottom, 2)
             VStack(spacing: 0) {
                 
-                // Display the table header
                 TableHeaderView(
                     header: header,
                     searchText: $searchText,

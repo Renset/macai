@@ -48,25 +48,25 @@ struct MessageCell: View, Equatable {
             HStack {
                 VStack(alignment: .leading) {
                     if let personaName = chat.persona?.name {
-                        HighlightedText(personaName, highlight: searchText)
+                        HighlightedText(personaName, highlight: searchText, elementType: "chatlist")
                             .font(.caption)
                             .lineLimit(1)
                     }
                     else {
-                        HighlightedText("No assistant selected", highlight: searchText)
+                        HighlightedText("No assistant selected", highlight: searchText, elementType: "chatlist")
                             .font(.caption)
                             .lineLimit(1)
                     }
 
                     if chat.name != "" {
-                        HighlightedText(chat.name, highlight: searchText)
+                        HighlightedText(chat.name, highlight: searchText, elementType: "chatlist")
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
 
                     if filteredMessage != "" {
-                        HighlightedText(filteredMessage, highlight: searchText)
+                        HighlightedText(filteredMessage, highlight: searchText, elementType: "chatlist")
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }

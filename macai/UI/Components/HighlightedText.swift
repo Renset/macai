@@ -15,8 +15,10 @@ struct HighlightedText: View {
     let currentSearchOccurrence: SearchOccurrence?
     let originalContent: String
     let elementIndex: Int
+    let elementType: String
+    let cellPosition: Int
 
-    init(_ text: String, highlight: String, color: Color = .yellow, message: MessageEntity? = nil, currentSearchOccurrence: SearchOccurrence? = nil, originalContent: String? = nil, elementIndex: Int = 0) {
+    init(_ text: String, highlight: String, color: Color = .yellow, message: MessageEntity? = nil, currentSearchOccurrence: SearchOccurrence? = nil, originalContent: String? = nil, elementIndex: Int = 0, elementType: String = "text", cellPosition: Int = 0) {
         self.text = text
         self.highlight = highlight.lowercased()
         self.color = color
@@ -24,6 +26,8 @@ struct HighlightedText: View {
         self.currentSearchOccurrence = currentSearchOccurrence
         self.originalContent = originalContent ?? text
         self.elementIndex = elementIndex
+        self.elementType = elementType
+        self.cellPosition = cellPosition
     }
 
     var body: some View {
@@ -48,7 +52,8 @@ struct HighlightedText: View {
                 
                 // Check if this is the current occurrence
                 if let messageId = message?.objectID, let currentOccurrence = currentSearchOccurrence {
-                    let occurrence = SearchOccurrence(messageID: messageId, range: foundRange, elementIndex: elementIndex, elementType: "table")
+                    let adjustedRange = elementType == "table" ? NSRange(location: foundRange.location + cellPosition * 10000, length: foundRange.length) : foundRange
+                    let occurrence = SearchOccurrence(messageID: messageId, range: adjustedRange, elementIndex: elementIndex, elementType: elementType)
                     if occurrence == currentOccurrence {
                         highlightColor = NSColor(Color(hex: AppConstants.currentHighlightColor) ?? Color.yellow)
                     }

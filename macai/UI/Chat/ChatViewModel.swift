@@ -154,19 +154,59 @@ class ChatViewModel: ObservableObject {
                 let parsedElements = parser.parseMessageFromString(input: message.body)
                 
                 for (elementIndex, element) in parsedElements.enumerated() {
-                    let (content, elementType) = extractContentAndType(from: element)
-                    
-                    var searchStartIndex = content.startIndex
-                    while let range = content.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<content.endIndex) {
-                        let nsRange = NSRange(range, in: content)
-                        let occurrence = SearchOccurrence(
-                            messageID: message.objectID,
-                            range: nsRange,
-                            elementIndex: elementIndex,
-                            elementType: elementType
-                        )
-                        occurrences.append(occurrence)
-                        searchStartIndex = range.upperBound
+                    if case .table(let header, let data) = element {
+                        // Handle table elements specially to match HighlightedText behavior
+                        // Search in header cells
+                        for (columnIndex, headerCell) in header.enumerated() {
+                            var searchStartIndex = headerCell.startIndex
+                            while let range = headerCell.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<headerCell.endIndex) {
+                                let nsRange = NSRange(range, in: headerCell)
+                                let adjustedRange = NSRange(location: nsRange.location + columnIndex * 10000, length: nsRange.length)
+                                let occurrence = SearchOccurrence(
+                                    messageID: message.objectID,
+                                    range: adjustedRange,
+                                    elementIndex: elementIndex,
+                                    elementType: "table"
+                                )
+                                occurrences.append(occurrence)
+                                searchStartIndex = range.upperBound
+                            }
+                        }
+                        
+                        // Search in data cells
+                        for (rowIndex, row) in data.enumerated() {
+                            for (columnIndex, cell) in row.enumerated() {
+                                var searchStartIndex = cell.startIndex
+                                while let range = cell.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<cell.endIndex) {
+                                    let nsRange = NSRange(range, in: cell)
+                                    let cellPosition = (rowIndex + 1) * 1000 + columnIndex // FIXME: bit tricky, but this is needed to properly handle search occurrences in tables
+                                    let adjustedRange = NSRange(location: nsRange.location + cellPosition * 10000, length: nsRange.length)
+                                    let occurrence = SearchOccurrence(
+                                        messageID: message.objectID,
+                                        range: adjustedRange,
+                                        elementIndex: elementIndex,
+                                        elementType: "table"
+                                    )
+                                    occurrences.append(occurrence)
+                                    searchStartIndex = range.upperBound
+                                }
+                            }
+                        }
+                    } else {
+                        let (content, elementType) = extractContentAndType(from: element)
+                        
+                        var searchStartIndex = content.startIndex
+                        while let range = content.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<content.endIndex) {
+                            let nsRange = NSRange(range, in: content)
+                            let occurrence = SearchOccurrence(
+                                messageID: message.objectID,
+                                range: nsRange,
+                                elementIndex: elementIndex,
+                                elementType: elementType
+                            )
+                            occurrences.append(occurrence)
+                            searchStartIndex = range.upperBound
+                        }
                     }
                 }
             }
