@@ -137,10 +137,20 @@ struct ChatBubbleView: View, Equatable {
                         Spacer()
                         toolbarContent
                             .padding(.trailing, 6)
+                            .onHover { hovering in
+                                if hovering {
+                                    self.isHovered = true
+                                }
+                            }
                     }
                     else {
                         toolbarContent
                             .padding(.leading, 12)
+                            .onHover { hovering in
+                                if hovering {
+                                    self.isHovered = true
+                                }
+                            }
                         Spacer()
                     }
                 }
@@ -154,6 +164,11 @@ struct ChatBubbleView: View, Equatable {
             }
         }
         .padding(.vertical, 8)
+        .background(
+            Rectangle()
+                .fill(Color.clear)
+                .contentShape(Rectangle())
+        )
         .onHover { isHovered in
             self.isHovered = isHovered
         }
