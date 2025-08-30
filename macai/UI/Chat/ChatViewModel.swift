@@ -58,6 +58,7 @@ class ChatViewModel: ObservableObject {
     }
 
     private var cancellables = Set<AnyCancellable>()
+    private var searchDebounceTimer: Timer?
 
     init(chat: ChatEntity, viewContext: NSManagedObjectContext) {
         self.chat = chat
@@ -152,6 +153,20 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - Search Logic
     func updateSearchOccurrences(searchText: String) {
+        searchDebounceTimer?.invalidate()
+        
+        if searchText.isEmpty {
+            searchOccurrences = []
+            currentSearchIndex = nil
+            return
+        }
+        
+        searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: AppConstants.searchDebounceTime, repeats: false) { [weak self] _ in
+            self?.performSearch(searchText: searchText)
+        }
+    }
+    
+    private func performSearch(searchText: String) {
         var occurrences: [SearchOccurrence] = []
         if !searchText.isEmpty {
             let parser = MessageParser(colorScheme: .light) // Color scheme doesn't matter for parsing
@@ -165,7 +180,9 @@ class ChatViewModel: ObservableObject {
                         // Search in header cells
                         for (columnIndex, headerCell) in header.enumerated() {
                             var searchStartIndex = headerCell.startIndex
+                            
                             while let range = headerCell.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<headerCell.endIndex) {
+                                
                                 let nsRange = NSRange(range, in: headerCell)
                                 let adjustedRange = NSRange(location: nsRange.location + columnIndex * 10000, length: nsRange.length)
                                 let occurrence = SearchOccurrence(
@@ -175,7 +192,16 @@ class ChatViewModel: ObservableObject {
                                     elementType: "table"
                                 )
                                 occurrences.append(occurrence)
-                                searchStartIndex = range.upperBound
+                                
+                                if range.upperBound <= searchStartIndex {
+                                    searchStartIndex = headerCell.index(after: searchStartIndex)
+                                } else {
+                                    searchStartIndex = range.upperBound
+                                }
+                                
+                                if searchStartIndex >= headerCell.endIndex {
+                                    break
+                                }
                             }
                         }
                         
@@ -183,7 +209,9 @@ class ChatViewModel: ObservableObject {
                         for (rowIndex, row) in data.enumerated() {
                             for (columnIndex, cell) in row.enumerated() {
                                 var searchStartIndex = cell.startIndex
+                                
                                 while let range = cell.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<cell.endIndex) {
+                                    
                                     let nsRange = NSRange(range, in: cell)
                                     let cellPosition = (rowIndex + 1) * 1000 + columnIndex // FIXME: bit tricky, but this is needed to properly handle search occurrences in tables
                                     let adjustedRange = NSRange(location: nsRange.location + cellPosition * 10000, length: nsRange.length)
@@ -194,7 +222,16 @@ class ChatViewModel: ObservableObject {
                                         elementType: "table"
                                     )
                                     occurrences.append(occurrence)
-                                    searchStartIndex = range.upperBound
+                                    
+                                    if range.upperBound <= searchStartIndex {
+                                        searchStartIndex = cell.index(after: searchStartIndex)
+                                    } else {
+                                        searchStartIndex = range.upperBound
+                                    }
+                                    
+                                    if searchStartIndex >= cell.endIndex {
+                                        break
+                                    }
                                 }
                             }
                         }
@@ -202,7 +239,9 @@ class ChatViewModel: ObservableObject {
                         let (content, elementType) = extractContentAndType(from: element)
                         
                         var searchStartIndex = content.startIndex
+                        
                         while let range = content.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<content.endIndex) {
+                            
                             let nsRange = NSRange(range, in: content)
                             let occurrence = SearchOccurrence(
                                 messageID: message.objectID,
@@ -211,14 +250,26 @@ class ChatViewModel: ObservableObject {
                                 elementType: elementType
                             )
                             occurrences.append(occurrence)
-                            searchStartIndex = range.upperBound
+                            
+                            if range.upperBound <= searchStartIndex {
+                                searchStartIndex = content.index(after: searchStartIndex)
+                            } else {
+                                searchStartIndex = range.upperBound
+                            }
+                            
+                            if searchStartIndex >= content.endIndex {
+                                break
+                            }
                         }
                     }
                 }
             }
         }
-        searchOccurrences = occurrences
-        currentSearchIndex = occurrences.isEmpty ? nil : 0
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.searchOccurrences = occurrences
+            self?.currentSearchIndex = occurrences.isEmpty ? nil : 0
+        }
     }
     
     private func extractContentAndType(from element: MessageElements) -> (String, String) {

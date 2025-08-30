@@ -264,6 +264,8 @@ struct AppConstants {
     static let newChatNotification = Notification.Name("newChatNotification")
     static let largeMessageSymbolsThreshold = 25000
     static let thumbnailSize: CGFloat = 300
+    static let maxHighlightableTextLength = 100000
+    static let searchDebounceTime: TimeInterval = 0.3
     
     // Search highlighting colors
     static let defaultHighlightColor = "#FFFF00" // Yellow

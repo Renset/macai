@@ -34,6 +34,10 @@ struct HighlightedText: View {
         guard !highlight.isEmpty else {
             return Text(text).eraseToAnyView()
         }
+        
+        guard text.count < AppConstants.maxHighlightableTextLength && !text.contains("data:image") && !text.contains("base64") else {
+            return Text(text).eraseToAnyView()
+        }
 
         let attributedString = NSMutableAttributedString(string: text)
         let range = NSString(string: text.lowercased())
@@ -60,6 +64,7 @@ struct HighlightedText: View {
                 }
                 
                 attributedString.addAttribute(.backgroundColor, value: highlightColor, range: foundRange)
+                
                 location = foundRange.location + foundRange.length
                 originalLocation = originalFoundRange.location + originalFoundRange.length
             }
