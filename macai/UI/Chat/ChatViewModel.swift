@@ -21,6 +21,12 @@ struct SearchOccurrence: Equatable {
                lhs.elementIndex == rhs.elementIndex &&
                lhs.elementType == rhs.elementType
     }
+    
+    // Generate unique scroll target ID for this occurrence
+    var scrollTargetID: String {
+        let messageIDString = messageID.uriRepresentation().absoluteString
+        return "\(messageIDString)_\(elementIndex)_\(range.location)_\(range.length)"
+    }
 }
 
 class ChatViewModel: ObservableObject {

@@ -101,7 +101,16 @@ struct MessageContentView: View {
         ForEach(parsedElements.indices, id: \.self) {
             index in
             renderElement(parsedElements[index], elementIndex: index)
+                .id(generateElementID(elementIndex: index))
         }
+    }
+    
+    private func generateElementID(elementIndex: Int) -> String {
+        guard let messageID = message?.objectID else {
+            return "element_\(elementIndex)"
+        }
+        let messageIDString = messageID.uriRepresentation().absoluteString
+        return "\(messageIDString)_element_\(elementIndex)"
     }
 
     @ViewBuilder

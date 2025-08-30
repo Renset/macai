@@ -146,7 +146,10 @@ struct ChatMessagesView: View {
                 .onChange(of: chatViewModel.currentSearchOccurrence) { newOccurrence in
                     if let occurrence = newOccurrence {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            scrollView.scrollTo(occurrence.messageID, anchor: .center)
+                            // Generate element ID for the occurrence
+                            let messageIDString = occurrence.messageID.uriRepresentation().absoluteString
+                            let elementID = "\(messageIDString)_element_\(occurrence.elementIndex)"
+                            scrollView.scrollTo(elementID, anchor: .center)
                         }
                     }
                 }
