@@ -51,19 +51,25 @@ struct ChatListView: View {
                 }
                 
                 return false
+            }.sorted { first, second in
+                if first.isPinned != second.isPinned {
+                    return first.isPinned && !second.isPinned
+                }
+                return first.updatedDate > second.updatedDate
             }
         }
     }
 
     var body: some View {
         List {
-            ForEach(filteredChats, id: \.objectID) { chat in
+            ForEach(filteredChats, id: \.id) { chat in
                 ChatListRow(
                     chat: chat,
                     selectedChat: $selectedChat,
                     viewContext: viewContext,
                     searchText: debouncedSearchText
                 )
+                .id(chat.id)
             }
         }
         .listStyle(.sidebar)

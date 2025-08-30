@@ -43,7 +43,7 @@ struct ChatListRow: View, Equatable {
     var isActive: Binding<Bool> {
         Binding<Bool>(
             get: {
-                selectedChat?.id == chatID
+                selectedChat == chat
             },
             set: { newValue in
                 if newValue {

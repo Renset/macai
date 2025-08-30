@@ -31,15 +31,15 @@ struct TableHeaderView: View {
                 )
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.2))
+                    .padding(.vertical, 6)
                 if index < header.count - 1 {
                     Divider()
                 }
             }
         }
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.15))
     }
 }
 

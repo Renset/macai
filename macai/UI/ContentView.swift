@@ -18,8 +18,7 @@ struct ContentView: View {
 
     @FetchRequest(
         entity: ChatEntity.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
-        animation: .default
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)]
     )
     private var chats: FetchedResults<ChatEntity>
 
@@ -234,10 +233,7 @@ struct ContentView: View {
 
         do {
             try viewContext.save()
-            DispatchQueue.main.async {
-                self.selectedChat?.objectWillChange.send()
-                self.selectedChat = newChat
-            }
+            selectedChat = newChat
         }
         catch {
             print("Error saving new chat: \(error.localizedDescription)")
