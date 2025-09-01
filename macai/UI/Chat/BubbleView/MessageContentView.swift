@@ -209,7 +209,7 @@ struct MessageContentView: View {
             // Apply search highlighting if searchText is not empty
             if !searchText.isEmpty, let messageId = message?.objectID {
                 let body = mutableAttributedString.string
-                let originalBody = content // Use original content for range comparison
+                let originalBody = text
                 var searchStartIndex = body.startIndex
                 var originalSearchStartIndex = originalBody.startIndex
                 
