@@ -18,6 +18,7 @@ struct ChatMessagesView: View {
     @State private var scrollDebounceWorkItem: DispatchWorkItem?
     @State private var codeBlocksRendered = false
     @State private var pendingCodeBlocks = 0
+    @State private var isInitialLoad = true
     
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     
@@ -84,9 +85,11 @@ struct ChatMessagesView: View {
                     pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
                         count + (message.body.components(separatedBy: "```").count - 1) / 2
                     }
+                    isInitialLoad = true
 
                     if pendingCodeBlocks == 0 {
                         codeBlocksRendered = true
+                        isInitialLoad = false
                     }
                 }
                 .onSwipe { event in
@@ -120,10 +123,18 @@ struct ChatMessagesView: View {
                                 scrollView.scrollTo(-1)
                             }
                         }
-                        else if newCount > 0 {
-                            let sortedMessages = chatViewModel.sortedMessages
-                            if let lastMessage = sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NonStreamingMessageCompleted"))) { notification in
+                    if let notificationChat = notification.object as? ChatEntity, notificationChat == chat {
+                        DispatchQueue.main.async {
+                            if !isStreaming && !userIsScrolling {
+                                let sortedMessages = chatViewModel.sortedMessages
+                                if let lastMessage = sortedMessages.last {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
+                                    }
+                                }
                             }
                         }
                     }
@@ -133,8 +144,13 @@ struct ChatMessagesView: View {
                         pendingCodeBlocks -= 1
                         if pendingCodeBlocks == 0 {
                             codeBlocksRendered = true
-                            if let lastMessage = chatViewModel.sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
+                            if isInitialLoad {
+                                isInitialLoad = false
+                                if let lastMessage = chatViewModel.sortedMessages.last {
+                                    DispatchQueue.main.async {
+                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
+                                    }
+                                }
                             }
                         }
                     }
