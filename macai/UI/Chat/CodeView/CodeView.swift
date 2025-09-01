@@ -14,6 +14,9 @@ struct CodeView: View {
     let code: String
     let lang: String
     var isStreaming: Bool
+    var message: MessageEntity?
+    @Binding var searchText: String
+    var currentSearchOccurrence: SearchOccurrence?
     @StateObject private var viewModel: CodeViewModel
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject private var previewStateManager: PreviewStateManager
@@ -22,10 +25,16 @@ struct CodeView: View {
     @AppStorage("chatFontSize") private var chatFontSize: Double = 14.0
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     
-    init(code: String, lang: String, isStreaming: Bool = false) {
+    let elementIndex: Int
+    
+    init(code: String, lang: String, isStreaming: Bool = false, message: MessageEntity?, searchText: Binding<String>, currentSearchOccurrence: SearchOccurrence?, elementIndex: Int) {
         self.code = code
         self.lang = lang
         self.isStreaming = isStreaming
+        self.message = message
+        self._searchText = searchText
+        self.currentSearchOccurrence = currentSearchOccurrence
+        self.elementIndex = elementIndex
         _viewModel = StateObject(
             wrappedValue: CodeViewModel(
                 code: code,
@@ -39,7 +48,9 @@ struct CodeView: View {
         VStack {
             headerView
             if let highlighted = highlightedCode {
-                AttributedText(highlighted)
+                
+                let finalAttributedString = searchText == "" ? highlighted : applySearchHighlighting(to: highlighted)
+                AttributedText(finalAttributedString)
                     .textSelection(.enabled)
                     .padding([.horizontal, .bottom], 12)
             }
@@ -143,9 +154,35 @@ struct CodeView: View {
             highlightedCode = viewModel.highlightedCode
         }
     }
+    
+    private func applySearchHighlighting(to attributedString: NSAttributedString) -> NSAttributedString {
+        guard !searchText.isEmpty, let messageId = message?.objectID else { return attributedString }
+        
+        let mutableAttributedString = NSMutableAttributedString(attributedString: attributedString)
+        let body = mutableAttributedString.string
+        var searchStartIndex = body.startIndex
+
+        while let range = body.range(of: searchText, options: .caseInsensitive, range: searchStartIndex..<body.endIndex) {
+            let nsRange = NSRange(range, in: body)
+            let occurrence = SearchOccurrence(
+                messageID: messageId, 
+                range: nsRange, 
+                elementIndex: elementIndex, 
+                elementType: "code"
+            )
+            let isCurrent = occurrence == self.currentSearchOccurrence
+            let color = isCurrent 
+                    ? NSColor(Color(hex: AppConstants.currentHighlightColor) ?? Color.yellow) 
+                    : NSColor(Color(hex: AppConstants.defaultHighlightColor) ?? Color.gray).withAlphaComponent(0.3)
+            mutableAttributedString.addAttribute(.backgroundColor, value: color, range: nsRange)
+            searchStartIndex = range.upperBound
+        }
+        
+        return mutableAttributedString
+    }
 }
 
 #Preview {
-    CodeView(code: "<h1>Hello World</h1>", lang: "html")
+    CodeView(code: "<h1>Hello World</h1>", lang: "html", message: nil, searchText: .constant(""), currentSearchOccurrence: nil, elementIndex: 0)
         .environmentObject(PreviewStateManager())
 }

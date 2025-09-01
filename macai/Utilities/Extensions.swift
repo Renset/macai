@@ -9,6 +9,7 @@ import CommonCrypto
 import CoreData
 import Foundation
 import SwiftUI
+import AppKit
 
 extension Data {
     public func sha256() -> String {
@@ -178,4 +179,10 @@ extension PersistenceController {
         try? viewContext.save()
         return result
     }()
+}
+
+extension Range where Bound == String.Index {
+    func toNSRange(in string: String) -> NSRange? {
+        return NSRange(self, in: string)
+    }
 }

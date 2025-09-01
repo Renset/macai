@@ -38,6 +38,8 @@ struct ChatBubbleView: View, Equatable {
     var message: MessageEntity?
     var color: String?
     var onEdit: (() -> Void)?
+    @Binding var searchText: String
+    var currentSearchOccurrence: SearchOccurrence?
 
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) private var viewContext
@@ -56,7 +58,7 @@ struct ChatBubbleView: View, Equatable {
     }
 
     static func == (lhs: ChatBubbleView, rhs: ChatBubbleView) -> Bool {
-        lhs.content == rhs.content
+        lhs.content == rhs.content && lhs.currentSearchOccurrence == rhs.currentSearchOccurrence
     }
 
     var body: some View {
@@ -100,11 +102,14 @@ struct ChatBubbleView: View, Equatable {
                     }
                     else {
                         MessageContentView(
-                            message: content.message,
+                            message: message,
+                            content: content.message,
                             isStreaming: content.isStreaming,
                             own: content.own,
                             effectiveFontSize: effectiveFontSize,
-                            colorScheme: colorScheme
+                            colorScheme: colorScheme,
+                            searchText: $searchText,
+                            currentSearchOccurrence: currentSearchOccurrence
                         )
                     }
                 }
@@ -114,7 +119,7 @@ struct ChatBubbleView: View, Equatable {
                 .padding(.vertical, 8)
                 .background(
                     content.systemMessage
-                        ? (Color(hex: color ?? "#CCCCCC") ?? .gray).opacity(0.6)
+                        ? (color != nil ? (Color(hex: color!) ?? Color(NSColor.systemGray)) : Color(NSColor.systemGray)).opacity(0.6)
                         : colorScheme == .dark
                             ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
                             : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
@@ -132,10 +137,20 @@ struct ChatBubbleView: View, Equatable {
                         Spacer()
                         toolbarContent
                             .padding(.trailing, 6)
+                            .onHover { hovering in
+                                if hovering {
+                                    self.isHovered = true
+                                }
+                            }
                     }
                     else {
                         toolbarContent
                             .padding(.leading, 12)
+                            .onHover { hovering in
+                                if hovering {
+                                    self.isHovered = true
+                                }
+                            }
                         Spacer()
                     }
                 }
@@ -149,6 +164,11 @@ struct ChatBubbleView: View, Equatable {
             }
         }
         .padding(.vertical, 8)
+        .background(
+            Rectangle()
+                .fill(Color.clear)
+                .contentShape(Rectangle())
+        )
         .onHover { isHovered in
             self.isHovered = isHovered
         }

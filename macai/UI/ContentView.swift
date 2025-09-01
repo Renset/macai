@@ -18,8 +18,7 @@ struct ContentView: View {
 
     @FetchRequest(
         entity: ChatEntity.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)],
-        animation: .default
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChatEntity.updatedDate, ascending: false)]
     )
     private var chats: FetchedResults<ChatEntity>
 
@@ -38,10 +37,12 @@ struct ContentView: View {
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
     @State private var columnVisibility = NavigationSplitViewVisibility.all
+    @State private var searchText = ""
+    @State private var isSearchPresented = false
 
     var body: some View {
         NavigationSplitView {
-            ChatListView(selectedChat: $selectedChat)
+            ChatListView(selectedChat: $selectedChat, searchText: $searchText)
                 .navigationSplitViewColumnWidth(
                     min: 180,
                     ideal: 220,
@@ -50,7 +51,7 @@ struct ContentView: View {
         } detail: {
             HSplitView {
                 if selectedChat != nil {
-                    ChatView(viewContext: viewContext, chat: selectedChat!)
+                    ChatView(viewContext: viewContext, chat: selectedChat!, searchText: $searchText)
                         .frame(minWidth: 400)
                         .id(openedChatId)
                 }
@@ -66,6 +67,36 @@ struct ContentView: View {
 
                 if previewStateManager.isPreviewVisible {
                     PreviewPane(stateManager: previewStateManager)
+                }
+            }
+            .searchable(text: $searchText, isPresented: $isSearchPresented, placement: .toolbar, prompt: "Search in chat…")
+            .onSubmit(of: .search) {
+                // Handle Enter key in search field - go to next occurrence
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("FindNext"),
+                    object: nil
+                )
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ActivateSearch"))) { _ in
+                // Remove focus from any text fields
+                NSApp.keyWindow?.makeFirstResponder(nil)
+                isSearchPresented = true
+            }
+            .onAppear {
+                // Add global key monitor for Shift+Enter when search is active
+                NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                    if event.keyCode == 36 && event.modifierFlags.contains(.shift) && isSearchPresented && !searchText.isEmpty {
+                        // Check if search field is focused by checking if any search-related view is first responder
+                        if let firstResponder = NSApp.keyWindow?.firstResponder as? NSView,
+                           String(describing: type(of: firstResponder)).contains("Search") {
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("FindPrevious"),
+                                object: nil
+                            )
+                            return nil
+                        }
+                    }
+                    return event
                 }
             }
         }
@@ -125,6 +156,12 @@ struct ContentView: View {
                     }
                 }
 
+                Button(action: {
+                    isSearchPresented.toggle()
+                }) {
+                    Image(systemName: "magnifyingglass")
+                }
+                
                 Button(action: {
                     newChat()
                 }) {
@@ -196,10 +233,7 @@ struct ContentView: View {
 
         do {
             try viewContext.save()
-            DispatchQueue.main.async {
-                self.selectedChat?.objectWillChange.send()
-                self.selectedChat = newChat
-            }
+            selectedChat = newChat
         }
         catch {
             print("Error saving new chat: \(error.localizedDescription)")

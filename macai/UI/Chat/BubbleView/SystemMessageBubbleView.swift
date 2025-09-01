@@ -5,6 +5,7 @@ struct SystemMessageBubbleView: View {
     let color: String?
     @Binding var newMessage: String
     @Binding var editSystemMessage: Bool
+    @Binding var searchText: String
     
     var body: some View {
         ChatBubbleView(
@@ -21,7 +22,8 @@ struct SystemMessageBubbleView: View {
             onEdit: {
                 newMessage = message
                 editSystemMessage = true
-            }
+            },
+            searchText: $searchText
         )
     }
 }

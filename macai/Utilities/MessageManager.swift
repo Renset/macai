@@ -43,6 +43,11 @@ class MessageManager: ObservableObject {
                 addMessageToChat(chat: chat, message: messageBody)
                 addNewMessageToRequestMessages(chat: chat, content: messageBody, role: AppConstants.defaultRole)
                 self.viewContext.saveWithRetry(attempts: 1)
+                
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("NonStreamingMessageCompleted"), object: chat)
+                }
+                
                 completion(.success(()))
 
             case .failure(let error):

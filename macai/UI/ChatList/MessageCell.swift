@@ -13,19 +13,20 @@ struct MessageCell: View, Equatable {
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
-        lhs.searchText == rhs.searchText &&
-        lhs.chat.isPinned == rhs.chat.isPinned
+        lhs.chat.isPinned == rhs.chat.isPinned &&
+        lhs.searchText == rhs.searchText
     }
-    
+
     @ObservedObject var chat: ChatEntity
     @State var timestamp: Date
     var message: String
     @Binding var isActive: Bool
     let viewContext: NSManagedObjectContext
+    let searchText: String
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
 
-    var searchText: String = ""
+
     
     private var filteredMessage: String {
         if !message.starts(with: "<think>") {
@@ -47,25 +48,25 @@ struct MessageCell: View, Equatable {
             HStack {
                 VStack(alignment: .leading) {
                     if let personaName = chat.persona?.name {
-                        HighlightedText(personaName, highlight: searchText)
+                        HighlightedText(personaName, highlight: searchText, elementType: "chatlist")
                             .font(.caption)
                             .lineLimit(1)
                     }
                     else {
-                        Text("No assistant selected")
+                        HighlightedText("No assistant selected", highlight: searchText, elementType: "chatlist")
                             .font(.caption)
                             .lineLimit(1)
                     }
 
                     if chat.name != "" {
-                        HighlightedText(chat.name, highlight: searchText)
+                        HighlightedText(chat.name, highlight: searchText, elementType: "chatlist")
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
 
                     if filteredMessage != "" {
-                        HighlightedText(filteredMessage, highlight: searchText)
+                        HighlightedText(filteredMessage, highlight: searchText, elementType: "chatlist")
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
@@ -108,7 +109,8 @@ struct MessageCell_Previews: PreviewProvider {
                 timestamp: Date(),
                 message: "Hello, how are you?",
                 isActive: .constant(false),
-                viewContext: PersistenceController.preview.container.viewContext
+                viewContext: PersistenceController.preview.container.viewContext,
+                searchText: ""
             )
 
             MessageCell(
@@ -116,7 +118,8 @@ struct MessageCell_Previews: PreviewProvider {
                 timestamp: Date(),
                 message: "This is a selected chat preview",
                 isActive: .constant(true),
-                viewContext: PersistenceController.preview.container.viewContext
+                viewContext: PersistenceController.preview.container.viewContext,
+                searchText: ""
             )
 
             MessageCell(
@@ -125,7 +128,8 @@ struct MessageCell_Previews: PreviewProvider {
                 message:
                     "This is a very long message that should be truncated when displayed in the preview cell of our chat application",
                 isActive: .constant(false),
-                viewContext: PersistenceController.preview.container.viewContext
+                viewContext: PersistenceController.preview.container.viewContext,
+                searchText: ""
             )
         }
         .previewLayout(.fixed(width: 300, height: 100))

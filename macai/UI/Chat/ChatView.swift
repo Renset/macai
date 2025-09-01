@@ -1,6 +1,7 @@
 //
 //  ChatView.swift
 //  macai
+
 //
 //  Created by Renat Notfullin on 18.03.2023.
 //
@@ -10,12 +11,12 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ChatView: View {
-    // MARK: - Properties
     let viewContext: NSManagedObjectContext
     @State var chat: ChatEntity
+    @Binding var searchText: String
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     
-    // View state
+    // UI State
     @State private var messageField = ""
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
@@ -33,9 +34,10 @@ struct ChatView: View {
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     
     // MARK: - Initialization
-    init(viewContext: NSManagedObjectContext, chat: ChatEntity) {
+    init(viewContext: NSManagedObjectContext, chat: ChatEntity, searchText: Binding<String>) {
         self.viewContext = viewContext
         self._chat = State(initialValue: chat)
+        self._searchText = searchText
 
         // Initialize view models
         let viewModel = ChatViewModel(chat: chat, viewContext: viewContext)
@@ -57,7 +59,8 @@ struct ChatView: View {
                 chatViewModel: chatViewModel,
                 isStreaming: $logicHandler.isStreaming,
                 currentError: $logicHandler.currentError,
-                userIsScrolling: $logicHandler.userIsScrolling
+                userIsScrolling: $logicHandler.userIsScrolling,
+                searchText: $searchText
             )
             .modifier(MeasureModifier(renderTime: $renderTime))
             
@@ -116,6 +119,51 @@ struct ChatView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
             logicHandler.ignoreError()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FindNext"))) { _ in
+            if !searchText.isEmpty {
+                chatViewModel.goToNextOccurrence()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FindPrevious"))) { _ in
+            if !searchText.isEmpty {
+                chatViewModel.goToPreviousOccurrence()
+            }
+        }
+        .toolbar {
+            if !searchText.isEmpty && !chatViewModel.searchOccurrences.isEmpty {
+                SearchNavigationView(chatViewModel: chatViewModel)
+            }
+        }
+        .onChange(of: searchText) { newSearchText in
+            chatViewModel.updateSearchOccurrences(searchText: newSearchText)
+        }
+    }
+}
+
+struct SearchNavigationView: View {
+    @ObservedObject var chatViewModel: ChatViewModel
+
+    var body: some View {
+        HStack {
+            if let currentIndex = chatViewModel.currentSearchIndex {
+                Text("\(currentIndex + 1) of \(chatViewModel.searchOccurrences.count)")
+                    .font(.system(size: 12))
+            }
+
+            Button(action: {
+                chatViewModel.goToPreviousOccurrence()
+            }) {
+                Image(systemName: "chevron.up")
+            }
+            .disabled(chatViewModel.searchOccurrences.isEmpty)
+
+            Button(action: {
+                chatViewModel.goToNextOccurrence()
+            }) {
+                Image(systemName: "chevron.down")
+            }
+            .disabled(chatViewModel.searchOccurrences.isEmpty)
         }
     }
 }

@@ -14,9 +14,11 @@ struct ChatMessagesView: View {
     @Binding var isStreaming: Bool
     @Binding var currentError: ErrorMessage?
     @Binding var userIsScrolling: Bool
+    @Binding var searchText: String
     @State private var scrollDebounceWorkItem: DispatchWorkItem?
     @State private var codeBlocksRendered = false
     @State private var pendingCodeBlocks = 0
+    @State private var isInitialLoad = true
     
     var backgroundColor = Color(NSColor.controlBackgroundColor)
     
@@ -28,12 +30,13 @@ struct ChatMessagesView: View {
                         message: chat.systemMessage,
                         color: chat.persona?.color,
                         newMessage: .constant(""),
-                        editSystemMessage: .constant(false)
+                        editSystemMessage: .constant(false),
+                        searchText: $searchText
                     )
                     .id("system_message")
 
                     if chat.messages.count > 0 {
-                        ForEach(chatViewModel.sortedMessages, id: \.self) { messageEntity in
+                        ForEach(chatViewModel.sortedMessages, id: \.objectID) { messageEntity in
                             let bubbleContent = ChatBubbleContent(
                                 message: messageEntity.body,
                                 own: messageEntity.own,
@@ -43,8 +46,8 @@ struct ChatMessagesView: View {
                                 isStreaming: isStreaming,
                                 isLatestMessage: messageEntity.id == chatViewModel.sortedMessages.last?.id
                             )
-                            ChatBubbleView(content: bubbleContent, message: messageEntity)
-                                .id(messageEntity.id)
+                            ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText, currentSearchOccurrence: chatViewModel.currentSearchOccurrence)
+                                .id(messageEntity.objectID)
                         }
                     }
 
@@ -59,7 +62,7 @@ struct ChatMessagesView: View {
                             isLatestMessage: false
                         )
 
-                        ChatBubbleView(content: bubbleContent)
+                        ChatBubbleView(content: bubbleContent, searchText: $searchText)
                             .id(-1)
                     }
                     else if let error = currentError {
@@ -73,7 +76,7 @@ struct ChatMessagesView: View {
                             isLatestMessage: true
                         )
 
-                        ChatBubbleView(content: bubbleContent)
+                        ChatBubbleView(content: bubbleContent, searchText: $searchText)
                             .id(-2)
                     }
                 }
@@ -82,13 +85,11 @@ struct ChatMessagesView: View {
                     pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
                         count + (message.body.components(separatedBy: "```").count - 1) / 2
                     }
-
-                    if let lastMessage = chatViewModel.sortedMessages.last {
-                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
+                    isInitialLoad = true
 
                     if pendingCodeBlocks == 0 {
                         codeBlocksRendered = true
+                        isInitialLoad = false
                     }
                 }
                 .onSwipe { event in
@@ -99,14 +100,14 @@ struct ChatMessagesView: View {
                         break
                     }
                 }
-                .onChange(of: chatViewModel.sortedMessages.last?.body) { _ in
+                .onChange(of: chat.lastMessage?.body) { _ in
                     if isStreaming && !userIsScrolling {
                         scrollDebounceWorkItem?.cancel()
 
                         let workItem = DispatchWorkItem {
                             if let lastMessage = chatViewModel.sortedMessages.last {
                                 withAnimation(.easeOut(duration: 1)) {
-                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                    scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
                                 }
                             }
                         }
@@ -122,10 +123,18 @@ struct ChatMessagesView: View {
                                 scrollView.scrollTo(-1)
                             }
                         }
-                        else if newCount > 0 {
-                            let sortedMessages = chatViewModel.sortedMessages
-                            if let lastMessage = sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NonStreamingMessageCompleted"))) { notification in
+                    if let notificationChat = notification.object as? ChatEntity, notificationChat == chat {
+                        DispatchQueue.main.async {
+                            if !isStreaming && !userIsScrolling {
+                                let sortedMessages = chatViewModel.sortedMessages
+                                if let lastMessage = sortedMessages.last {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
+                                    }
+                                }
                             }
                         }
                     }
@@ -135,15 +144,31 @@ struct ChatMessagesView: View {
                         pendingCodeBlocks -= 1
                         if pendingCodeBlocks == 0 {
                             codeBlocksRendered = true
-                            if let lastMessage = chatViewModel.sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                            if isInitialLoad {
+                                isInitialLoad = false
+                                if let lastMessage = chatViewModel.sortedMessages.last {
+                                    DispatchQueue.main.async {
+                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
+                                    }
+                                }
                             }
+                        }
+                    }
+                }
+                .onChange(of: chatViewModel.currentSearchOccurrence) { newOccurrence in
+                    if let occurrence = newOccurrence {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            // Generate element ID for the occurrence
+                            let messageIDString = occurrence.messageID.uriRepresentation().absoluteString
+                            let elementID = "\(messageIDString)_element_\(occurrence.elementIndex)"
+                            scrollView.scrollTo(elementID, anchor: .center)
                         }
                     }
                 }
             }
             .id("chatContainer")
         }
+        .defaultScrollAnchor(.bottom)
         .padding(.bottom, 6)
         .overlay(alignment: .bottom) {
             LinearGradient(
