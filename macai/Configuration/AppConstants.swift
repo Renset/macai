@@ -267,9 +267,8 @@ struct AppConstants {
     static let maxHighlightableTextLength = 100000
     static let searchDebounceTime: TimeInterval = 0.3
     
-    // Search highlighting colors
-    static let defaultHighlightColor = "#FFFF00" // Yellow
-    static let currentHighlightColor = "#FFA500" // Orange
+    static let defaultHighlightColor = "#FFFF00"
+    static let currentHighlightColor = "#FFA500"
 }
 
 func getCurrentFormattedDate() -> String {
