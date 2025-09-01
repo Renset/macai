@@ -85,10 +85,6 @@ struct ChatMessagesView: View {
                         count + (message.body.components(separatedBy: "```").count - 1) / 2
                     }
 
-                    if let lastMessage = chatViewModel.sortedMessages.last {
-                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
-
                     if pendingCodeBlocks == 0 {
                         codeBlocksRendered = true
                     }
@@ -101,14 +97,14 @@ struct ChatMessagesView: View {
                         break
                     }
                 }
-                .onChange(of: chatViewModel.sortedMessages.last?.body) { _ in
+                .onChange(of: chat.lastMessage?.body) { _ in
                     if isStreaming && !userIsScrolling {
                         scrollDebounceWorkItem?.cancel()
 
                         let workItem = DispatchWorkItem {
                             if let lastMessage = chatViewModel.sortedMessages.last {
                                 withAnimation(.easeOut(duration: 1)) {
-                                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                    scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
                                 }
                             }
                         }
@@ -127,7 +123,7 @@ struct ChatMessagesView: View {
                         else if newCount > 0 {
                             let sortedMessages = chatViewModel.sortedMessages
                             if let lastMessage = sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
                             }
                         }
                     }
@@ -138,7 +134,7 @@ struct ChatMessagesView: View {
                         if pendingCodeBlocks == 0 {
                             codeBlocksRendered = true
                             if let lastMessage = chatViewModel.sortedMessages.last {
-                                scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                                scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
                             }
                         }
                     }
