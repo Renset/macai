@@ -49,7 +49,6 @@
 		4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
 		4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
 		4A55DCA729C264BC00A3800C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
-		4A5C395229D8765200BCB534 /* OmenTextField in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5C395129D8765200BCB534 /* OmenTextField */; };
 		4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */; };
 		4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B929C64F9D000403F7 /* ChatView.swift */; };
 		4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */; };
@@ -207,7 +206,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */,
-				4A5C395229D8765200BCB534 /* OmenTextField in Frameworks */,
 				4A2842492C87014800E5C920 /* KeychainAccess in Frameworks */,
 				4A471B862C29C56800C66926 /* SwiftMath in Frameworks */,
 				4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */,
@@ -513,7 +511,6 @@
 				4A51EC6129C32AF700973D83 /* Highlightr */,
 				4A51EC6429C32B0B00973D83 /* AttributedText */,
 				4A7E1BDA29C910F900E57DC2 /* Sparkle */,
-				4A5C395129D8765200BCB534 /* OmenTextField */,
 				4A471B852C29C56800C66926 /* SwiftMath */,
 				4A2842482C87014800E5C920 /* KeychainAccess */,
 			);
@@ -593,7 +590,6 @@
 				4A51EC6029C32AF600973D83 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */,
 				4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */,
-				4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */,
 				4A471B842C29C56800C66926 /* XCRemoteSwiftPackageReference "SwiftMath" */,
 				4A2842472C87014800E5C920 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 			);
@@ -1108,14 +1104,6 @@
 				minimumVersion = 1.0.0;
 			};
 		};
-		4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Renset/OmenTextField";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -1146,11 +1134,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */;
 			productName = AttributedText;
-		};
-		4A5C395129D8765200BCB534 /* OmenTextField */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */;
-			productName = OmenTextField;
 		};
 		4A7E1BDA29C910F900E57DC2 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
