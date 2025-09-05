@@ -237,6 +237,7 @@ struct MessageContentView: View {
         } else {
             Text(.init(attributedString))
                 .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
