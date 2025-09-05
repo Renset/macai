@@ -50,7 +50,7 @@ class OllamaHandler: APIService {
                 case .success(let responseData):
                     if let responseData = responseData {
                         guard let (messageContent, _) = self.parseJSONResponse(data: responseData) else {
-                            completion(.failure(.decodingFailed("Failed to parse Claude response")))
+                            completion(.failure(.decodingFailed("Failed to parse Ollama response")))
                             return
                         }
                         completion(.success(messageContent))

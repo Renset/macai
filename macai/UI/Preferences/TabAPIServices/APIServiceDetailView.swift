@@ -56,7 +56,9 @@ struct APIServiceDetailView: View {
                                 ForEach(types, id: \.self) {
                                     Text(AppConstants.defaultApiConfigurations[$0]?.name ?? $0)
                                 }
-                            }.onChange(of: viewModel.type) { newValue in
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .onChange(of: viewModel.type) { newValue in
                                 viewModel.onChangeApiType(newValue)
                             }
                         }
@@ -79,10 +81,10 @@ struct APIServiceDetailView: View {
 
                     if (viewModel.defaultApiConfiguration?.apiKeyRef ?? "") != "" {
                         HStack {
-                            Text("API Token:")
+                            Text("API Key:")
                                 .frame(width: 100, alignment: .leading)
 
-                            TextField("Paste your token here", text: $viewModel.apiKey)
+                            TextField("Paste your key here", text: $viewModel.apiKey)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .focused($isFocused)
                                 .blur(radius: !viewModel.apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
@@ -94,7 +96,7 @@ struct APIServiceDetailView: View {
                         HStack {
                             Spacer()
                             Link(
-                                "How to get API Token",
+                                "How to get API Key",
                                 destination: URL(
                                     string: viewModel.defaultApiConfiguration!.apiKeyRef
                                 )!

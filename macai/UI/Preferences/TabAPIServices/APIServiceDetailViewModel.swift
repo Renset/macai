@@ -54,7 +54,6 @@ class APIServiceDetailViewModel: ObservableObject {
             defaultAiPersona = service.defaultPersona
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
             selectedModel = model
-            isCustomModel = ((defaultApiConfiguration!.models.contains(model)) == false)
 
             if let serviceIDString = service.id?.uuidString {
                 do {
@@ -83,7 +82,9 @@ class APIServiceDetailViewModel: ObservableObject {
     }
 
     private func fetchModelsForService() {
-        guard type.lowercased() == "ollama" || !apiKey.isEmpty else {
+        let shouldFetch = (apiService != nil) || type.lowercased() == "ollama" || !apiKey.isEmpty
+        
+        guard shouldFetch else {
             fetchedModels = []
             return
         }
@@ -106,13 +107,7 @@ class APIServiceDetailViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     self.fetchedModels = models
                     self.isLoadingModels = false
-
-                    if !models.contains(where: { $0.id == self.selectedModel })
-                        && !self.availableModels.contains(where: { $0 == self.selectedModel })
-                    {
-                        self.selectedModel = "custom"
-                        self.isCustomModel = true
-                    }
+                    self.updateModelSelection()
                 }
             }
             catch {
@@ -120,8 +115,20 @@ class APIServiceDetailViewModel: ObservableObject {
                     self.modelFetchError = error.localizedDescription
                     self.isLoadingModels = false
                     self.fetchedModels = []
+                    self.updateModelSelection()
                 }
             }
+        }
+    }
+    
+    private func updateModelSelection() {
+        let modelExists = self.availableModels.contains(self.selectedModel)
+        
+        if !modelExists && !self.selectedModel.isEmpty {
+            self.isCustomModel = true
+            self.selectedModel = "custom"
+        } else if modelExists {
+            self.isCustomModel = false
         }
     }
 
