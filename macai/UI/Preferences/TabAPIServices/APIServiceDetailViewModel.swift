@@ -8,6 +8,7 @@
 import Combine
 import SwiftUI
 
+@MainActor
 class APIServiceDetailViewModel: ObservableObject {
     private let viewContext: NSManagedObjectContext
     var apiService: APIServiceEntity?
@@ -82,13 +83,6 @@ class APIServiceDetailViewModel: ObservableObject {
     }
 
     private func fetchModelsForService() {
-        let shouldFetch = (apiService != nil) || type.lowercased() == "ollama" || !apiKey.isEmpty
-        
-        guard shouldFetch else {
-            fetchedModels = []
-            return
-        }
-
         isLoadingModels = true
         modelFetchError = nil
 
@@ -104,19 +98,15 @@ class APIServiceDetailViewModel: ObservableObject {
         Task {
             do {
                 let models = try await apiService.fetchModels()
-                DispatchQueue.main.async {
-                    self.fetchedModels = models
-                    self.isLoadingModels = false
-                    self.updateModelSelection()
-                }
+                self.fetchedModels = models
+                self.isLoadingModels = false
+                self.updateModelSelection()
             }
             catch {
-                DispatchQueue.main.async {
-                    self.modelFetchError = error.localizedDescription
-                    self.isLoadingModels = false
-                    self.fetchedModels = []
-                    self.updateModelSelection()
-                }
+                self.modelFetchError = error.localizedDescription
+                self.isLoadingModels = false
+                self.fetchedModels = []
+                self.updateModelSelection()
             }
         }
     }
