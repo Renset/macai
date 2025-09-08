@@ -133,7 +133,7 @@ class DeepseekHandler: ChatGPTHandler {
 
                     for try await line in stream.lines {
                         if line.data(using: .utf8) != nil && isNotSSEComment(line) {
-                            let prefix = "data: "
+                            let prefix = "data:"
                             var index = line.startIndex
                             if line.starts(with: prefix) {
                                 index = line.index(line.startIndex, offsetBy: prefix.count)
