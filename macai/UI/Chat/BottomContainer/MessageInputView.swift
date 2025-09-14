@@ -5,7 +5,6 @@
 //  Created by Renat on 2024-07-15
 //
 
-import OmenTextField
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -16,15 +15,14 @@ struct MessageInputView: View {
     var onEnter: () -> Void
     var onAddImage: () -> Void
 
-    @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
-    @State var isFocused: Focus?
-    @State var dynamicHeight: CGFloat = 16
+    @FocusState private var isTextEditorFocused: Bool
+    @State var dynamicHeight: CGFloat = 40 // Increase initial height
     @State var inputPlaceholderText = "Type your prompt here"
     @State var cornerRadius = 20.0
     @State private var isHoveringDropZone = false
 
     private let maxInputHeight = 160.0
-    private let initialInputSize = 16.0
+    private let initialInputSize = 40.0
     private let inputPadding = 8.0
     private let lineWidthOnBlur = 2.0
     private let lineWidthOnFocus = 3.0
@@ -35,11 +33,7 @@ struct MessageInputView: View {
     private var effectiveFontSize: Double {
         chatFontSize
     }
-
-    enum Focus {
-        case focused, notFocused
-    }
-
+    
     var body: some View {
         VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -69,7 +63,7 @@ struct MessageInputView: View {
                     .buttonStyle(PlainButtonStyle())
                     .help("Add image")
                 }
-
+                
                 ZStack {
                     Text(text == "" ? inputPlaceholderText : text)
                         .font(.system(size: effectiveFontSize))
@@ -87,39 +81,45 @@ struct MessageInputView: View {
                         )
                         .padding(inputPadding)
                         .hidden()
-
-                    ScrollView {
-                        VStack {
-                            OmenTextField(
-                                inputPlaceholderText,
-                                text: $text,
-                                isFocused: $isFocused.equalTo(.focused),
-                                returnKeyType: frontReturnKeyType,
-                                fontSize: effectiveFontSize,
-                                onCommit: {
-                                    onEnter()
-                                }
-                            )
+                    
+                    ZStack(alignment: .topLeading) {
+                        if text.isEmpty {
+                            Text(inputPlaceholderText)
+                                .font(.system(size: effectiveFontSize))
+                                .foregroundColor(.secondary)
+                                .allowsHitTesting(false)
                         }
+                        
+                        TextEditor(text: $text)
+                            .font(.system(size: effectiveFontSize))
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .focused($isTextEditorFocused)
+                            .textFieldStyle(.plain)
+                            .onChange(of: text) { _ in
+                                DispatchQueue.main.async {
+                                }
+                            }
                     }
                     .padding(inputPadding)
-                    .frame(height: dynamicHeight)
+                    .frame(height: max(dynamicHeight, 40))
                     .background(Color.clear)
-                    .background(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .stroke(
-                                isHoveringDropZone
-                                    ? Color.green.opacity(0.8)
-                                    : (isFocused == .focused ? lineColorOnFocus : lineColorOnBlur),
-                                lineWidth: isHoveringDropZone
-                                    ? 6 : (isFocused == .focused ? lineWidthOnFocus : lineWidthOnBlur)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                    )
-                    .onTapGesture {
-                        isFocused = .focused
-                    }
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(
+                            isHoveringDropZone
+                            ? Color.green.opacity(0.8)
+                            : (isTextEditorFocused ? lineColorOnFocus : lineColorOnBlur),
+                            lineWidth: isHoveringDropZone
+                            ? 6 : (isTextEditorFocused ? lineWidthOnFocus : lineWidthOnBlur)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                )
+                .onTapGesture {
+                    isTextEditorFocused = true
+                }
+                
             }
         }
         .onDrop(of: [.image, .fileURL], isTargeted: $isHoveringDropZone) { providers in
@@ -128,19 +128,19 @@ struct MessageInputView: View {
         }
         .onAppear {
             DispatchQueue.main.async {
-                isFocused = .focused
+                isTextEditorFocused = true
             }
         }
     }
-
+    
     private func calculateDynamicHeight(using height: CGFloat? = nil) -> CGFloat {
         let newHeight = height ?? dynamicHeight
         return min(max(newHeight, initialInputSize), maxInputHeight) + inputPadding * 2
     }
-
+    
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         var didHandleDrop = false
-
+        
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                 provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { (data, error) in
@@ -158,8 +158,8 @@ struct MessageInputView: View {
             else if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (data, error) in
                     if let urlData = data as? Data,
-                        let url = URL(dataRepresentation: urlData, relativeTo: nil),
-                        isValidImageFile(url: url)
+                       let url = URL(dataRepresentation: urlData, relativeTo: nil),
+                       isValidImageFile(url: url)
                     {
                         DispatchQueue.main.async {
                             let attachment = ImageAttachment(url: url)
@@ -172,10 +172,10 @@ struct MessageInputView: View {
                 }
             }
         }
-
+        
         return didHandleDrop
     }
-
+    
     private func isValidImageFile(url: URL) -> Bool {
         let validExtensions = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
         return validExtensions.contains(url.pathExtension.lowercased())
@@ -185,7 +185,7 @@ struct MessageInputView: View {
 struct ImagePreviewView: View {
     @ObservedObject var attachment: ImageAttachment
     var onRemove: (Int) -> Void
-
+    
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if attachment.isLoading {
@@ -205,7 +205,7 @@ struct ImagePreviewView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(Color.gray.opacity(0.5), lineWidth: 1)
                     )
-
+                
                 Button(action: {
                     onRemove(0)
                 }) {
