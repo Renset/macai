@@ -28,6 +28,11 @@ struct AppConstants {
     static let defaultPersonaTemperature: Float = 0.7
     static let defaultTemperatureForChatNameGeneration: Float = 0.6
     static let defaultTemperatureForChat: Float = 0.7
+    static let geminiLegacyAPIURL = "https://generativelanguage.googleapis.com/v1beta/chat/completions"
+    static let geminiCurrentAPIURL = "https://generativelanguage.googleapis.com/v1beta/models"
+    static let geminiURLMigrationCompletedKey = "GeminiURLMigrationCompleted"
+    static let geminiURLMigrationSkippedKey = "GeminiURLMigrationSkipped"
+    static let geminiMigrationPendingNotificationKey = "GeminiURLMigrationPendingMessage"
     static let openAiReasoningModels: [String] = [
         "o1", "o1-preview", "o1-mini", "o3-mini", "o3-mini-high", "o3-mini-2025-01-31", "o1-preview-2024-09-12",
         "o1-mini-2024-09-12", "o1-2024-12-17",
@@ -140,6 +145,8 @@ struct AppConstants {
         var inherits: String? = nil
         var modelsFetching: Bool = true
         var imageUploadsSupported: Bool = false
+        var imageGenerationSupported: Bool = false
+        var autoEnableImageGenerationModels: [String] = []
     }
 
     static let defaultApiConfigurations = [
@@ -207,7 +214,7 @@ struct AppConstants {
         ),
         "gemini": defaultApiConfiguration(
             name: "Google Gemini",
-            url: "https://generativelanguage.googleapis.com/v1beta/chat/completions",
+            url: "https://generativelanguage.googleapis.com/v1beta/models",
             apiKeyRef: "https://aistudio.google.com/app/apikey",
             apiModelRef: "https://ai.google.dev/gemini-api/docs/models/gemini#model-variations",
             defaultModel: "gemini-1.5-flash",
@@ -217,7 +224,9 @@ struct AppConstants {
                 "gemini-1.5-flash-8b",
                 "gemini-1.5-pro",
             ],
-            imageUploadsSupported: true
+            imageUploadsSupported: true,
+            imageGenerationSupported: true,
+            autoEnableImageGenerationModels: ["gemini-2.5-flash-image-preview"]
         ),
         "perplexity": defaultApiConfiguration(
             name: "Perplexity",

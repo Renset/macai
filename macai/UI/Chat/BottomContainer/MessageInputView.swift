@@ -13,14 +13,16 @@ struct MessageInputView: View {
     @Binding var text: String
     @Binding var attachedImages: [ImageAttachment]
     var imageUploadsAllowed: Bool
+    var imageGenerationSupported: Bool
+    @Binding var isImageGenerationEnabled: Bool
     var onEnter: () -> Void
     var onAddImage: () -> Void
 
     @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
     @State var isFocused: Focus?
     @State var dynamicHeight: CGFloat = 16
-    @State var inputPlaceholderText = "Type your prompt here"
-    @State var cornerRadius = 20.0
+    private let inputPlaceholderText: String
+    private let cornerRadius: Double
     @State private var isHoveringDropZone = false
 
     private let maxInputHeight = 160.0
@@ -36,8 +38,37 @@ struct MessageInputView: View {
         chatFontSize
     }
 
+    private var effectivePlaceholderText: String {
+        if imageGenerationSupported, isImageGenerationEnabled {
+            return "Describe the image you want to generate"
+        }
+        return inputPlaceholderText
+    }
+
     enum Focus {
         case focused, notFocused
+    }
+
+    init(
+        text: Binding<String>,
+        attachedImages: Binding<[ImageAttachment]>,
+        imageUploadsAllowed: Bool,
+        imageGenerationSupported: Bool,
+        isImageGenerationEnabled: Binding<Bool>,
+        onEnter: @escaping () -> Void,
+        onAddImage: @escaping () -> Void,
+        inputPlaceholderText: String = "Type your prompt here",
+        cornerRadius: Double = 20.0
+    ) {
+        self._text = text
+        self._attachedImages = attachedImages
+        self.imageUploadsAllowed = imageUploadsAllowed
+        self.imageGenerationSupported = imageGenerationSupported
+        self._isImageGenerationEnabled = isImageGenerationEnabled
+        self.onEnter = onEnter
+        self.onAddImage = onAddImage
+        self.inputPlaceholderText = inputPlaceholderText
+        self.cornerRadius = cornerRadius
     }
 
     var body: some View {
@@ -69,9 +100,26 @@ struct MessageInputView: View {
                     .buttonStyle(PlainButtonStyle())
                     .help("Add image")
                 }
+                
+                if imageGenerationSupported {
+                    Button(action: {
+                        isImageGenerationEnabled.toggle()
+                    }) {
+                        Image(systemName: "paintbrush.pointed")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(isImageGenerationEnabled ? .accentColor : .secondary)
+                            .padding(6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 32)
+                                    .fill(isImageGenerationEnabled ? Color.accentColor.opacity(0.15) : Color.clear)
+                            )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("Toggle image generation mode")
+                }
 
                 ZStack {
-                    Text(text == "" ? inputPlaceholderText : text)
+                    Text(text == "" ? effectivePlaceholderText : text)
                         .font(.system(size: effectiveFontSize))
                         .lineLimit(10)
                         .background(
@@ -91,7 +139,7 @@ struct MessageInputView: View {
                     ScrollView {
                         VStack {
                             OmenTextField(
-                                inputPlaceholderText,
+                                effectivePlaceholderText,
                                 text: $text,
                                 isFocused: $isFocused.equalTo(.focused),
                                 returnKeyType: frontReturnKeyType,

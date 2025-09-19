@@ -256,6 +256,25 @@ struct APIServiceDetailView: View {
                         }
                     }
                 }
+
+                if viewModel.supportsImageGeneration {
+                    Toggle(isOn: $viewModel.imageGenerationAllowed) {
+                        HStack {
+                            Text("Allow image generation")
+                            Button(action: {
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help(
+                                "If enabled, you can generate images via this API Service when composing messages."
+                            )
+
+                            Spacer()
+                        }
+                    }
+                }
             }
             .padding(.vertical, 8)
 

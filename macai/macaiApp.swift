@@ -81,6 +81,12 @@ struct macaiApp: App {
             forName: RequestMessagesTransformer.name
         )
 
+        NotificationPresenter.shared.configure()
+        NotificationPresenter.shared.onAuthorizationGranted = {
+            DatabasePatcher.deliverPendingGeminiMigrationNotificationIfNeeded()
+        }
+        NotificationPresenter.shared.requestAuthorizationIfNeeded()
+
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,

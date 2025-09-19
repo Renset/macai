@@ -219,6 +219,8 @@ struct PersonaDetailView: View {
                     text: $systemMessage,
                     attachedImages: .constant([]),
                     imageUploadsAllowed: false,
+                    imageGenerationSupported: false,
+                    isImageGenerationEnabled: .constant(false),
                     onEnter: {},
                     onAddImage: {},
                     inputPlaceholderText: "Enter system message here",

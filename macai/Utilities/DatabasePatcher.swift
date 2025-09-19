@@ -7,13 +7,15 @@
 
 import CoreData
 import Foundation
-import SwiftUI
 
 class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext) {
         addDefaultPersonasIfNeeded(context: context)
         patchPersonaOrdering(context: context)
         patchImageUploadsForAPIServices(context: context)
+        patchImageGenerationForAPIServices(context: context)
+        resetGeminiEndpointMigrationState()
+        patchGeminiLegacyEndpoint(context: context)
         //resetPersonaOrdering(context: context)
     }
 
@@ -110,6 +112,132 @@ class DatabasePatcher {
         }
         catch {
             print("Error patching image uploads for API services: \(error)")
+        }
+    }
+
+    static func patchImageGenerationForAPIServices(context: NSManagedObjectContext) {
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices {
+                guard let type = service.type,
+                      let config = AppConstants.defaultApiConfigurations[type] else {
+                    continue
+                }
+
+                let currentModel = service.model ?? config.defaultModel
+                if config.imageGenerationSupported,
+                   config.autoEnableImageGenerationModels.contains(currentModel),
+                   !service.imageGenerationAllowed
+                {
+                    service.imageGenerationAllowed = true
+                    needsSave = true
+                    print("Enabled image generation for API service: \(service.name ?? "Unnamed")")
+                }
+            }
+
+            if needsSave {
+                try context.save()
+                print("Successfully patched image generation for API services")
+            }
+        }
+        catch {
+            print("Error patching image generation for API services: \(error)")
+        }
+    }
+
+    static func patchGeminiLegacyEndpoint(context: NSManagedObjectContext) {
+        deliverPendingGeminiMigrationNotificationIfNeeded()
+
+        let defaults = UserDefaults.standard
+
+        if defaults.bool(forKey: AppConstants.geminiURLMigrationCompletedKey) {
+            return
+        }
+
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "(type CONTAINS[cd] %@)", "gemini"),
+            NSPredicate(format: "(url CONTAINS[cd] %@)", "/chat/completions")
+        ])
+
+        let legacyServices: [APIServiceEntity]
+
+        do {
+            legacyServices = try context.fetch(fetchRequest)
+        }
+        catch {
+            print("Error fetching Gemini services for migration: \(error)")
+            return
+        }
+
+        guard !legacyServices.isEmpty else {
+            defaults.set(true, forKey: AppConstants.geminiURLMigrationCompletedKey)
+            return
+        }
+
+        guard let newURL = URL(string: AppConstants.geminiCurrentAPIURL) else {
+            print("Invalid Gemini models URL: \(AppConstants.geminiCurrentAPIURL)")
+            return
+        }
+
+        var updatedCount = 0
+
+        context.performAndWait {
+            for service in legacyServices {
+                if service.url != newURL {
+                    service.url = newURL
+                    updatedCount += 1
+                }
+            }
+
+            if updatedCount > 0 {
+                context.saveWithRetry(attempts: 1)
+            }
+        }
+
+        defaults.set(true, forKey: AppConstants.geminiURLMigrationCompletedKey)
+        defaults.removeObject(forKey: AppConstants.geminiURLMigrationSkippedKey)
+
+        guard updatedCount > 0 else { return }
+
+        let message = updatedCount == 1
+            ? "Updated 1 Gemini API service to the native API endpoint (vision and image generation are now supported)"
+            : "Updated \(updatedCount) Gemini API services to the native API endpoint (vision and image generation are now supported)"
+
+        scheduleGeminiNotification(message)
+    }
+
+    static func resetGeminiEndpointMigrationState() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: AppConstants.geminiURLMigrationCompletedKey)
+        defaults.removeObject(forKey: AppConstants.geminiURLMigrationSkippedKey)
+        defaults.removeObject(forKey: AppConstants.geminiMigrationPendingNotificationKey)
+    }
+
+    static func deliverPendingGeminiMigrationNotificationIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard let pendingMessage = defaults.string(forKey: AppConstants.geminiMigrationPendingNotificationKey) else {
+            return
+        }
+        scheduleGeminiNotification(pendingMessage)
+    }
+
+    private static func scheduleGeminiNotification(_ message: String) {
+        let defaults = UserDefaults.standard
+        defaults.set(message, forKey: AppConstants.geminiMigrationPendingNotificationKey)
+
+        NotificationPresenter.shared.scheduleNotification(
+            identifier: "macai.gemini.migration",
+            title: "Gemini Endpoint Updated",
+            body: message
+        ) { success in
+            if success {
+                defaults.removeObject(forKey: AppConstants.geminiMigrationPendingNotificationKey)
+            }
         }
     }
     

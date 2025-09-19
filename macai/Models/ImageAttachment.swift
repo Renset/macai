@@ -127,71 +127,95 @@ class ImageAttachment: Identifiable, ObservableObject {
         }
     }
 
-    func saveToEntity(image: NSImage? = nil, context: NSManagedObjectContext? = nil) {
-        guard let imageToSave = image ?? self.image else { return }
-
+    func saveToEntity(
+        image: NSImage? = nil,
+        context: NSManagedObjectContext? = nil,
+        waitForCompletion: Bool = false
+    ) {
         guard let contextToUse = context ?? managedObjectContext else { return }
 
         if context != nil {
             self.managedObjectContext = context
         }
 
-        if self.thumbnail == nil {
-            self.createThumbnail(from: imageToSave)
-        }
-
-        DispatchQueue.global(qos: .background).async { [weak self] in
+        let persist: (ImagePersistencePayload) -> Void = { [weak self] payload in
             guard let self = self else { return }
 
-            contextToUse.perform {
+            contextToUse.performAndWait {
                 if self.imageEntity == nil {
                     let newEntity = ImageEntity(context: contextToUse)
                     newEntity.id = self.id
                     self.imageEntity = newEntity
                 }
 
-                let formatString = self.getFormatString(from: self.originalFileType)
-                self.imageEntity?.imageFormat = formatString
+                self.imageEntity?.imageFormat = payload.format
+                self.imageEntity?.image = payload.imageData
 
-                if let tiffData = imageToSave.tiffRepresentation,
-                    let bitmapImage = NSBitmapImageRep(data: tiffData)
-                {
-                    if let imageData = self.getImageData(from: bitmapImage, using: self.originalFileType) {
-                        self.imageEntity?.image = imageData
+                if let thumbnailData = payload.thumbnailData {
+                    self.imageEntity?.thumbnail = thumbnailData
+                }
+
+                contextToUse.saveWithRetry(attempts: 1)
+            }
+
+            if self.image == nil {
+                if Thread.isMainThread {
+                    if self.image == nil {
+                        self.image = payload.image
                     }
-                    else {
-                        if let jpegData = bitmapImage.representation(
-                            using: .jpeg,
-                            properties: [.compressionFactor: 0.9]
-                        ) {
-                            self.imageEntity?.image = jpegData
-                            self.imageEntity?.imageFormat = "jpeg"
+                }
+                else {
+                    DispatchQueue.main.async {
+                        if self.image == nil {
+                            self.image = payload.image
                         }
                     }
                 }
+            }
 
-                if let thumbnail = self.thumbnail,
-                    let tiffData = thumbnail.tiffRepresentation,
-                    let bitmapImage = NSBitmapImageRep(data: tiffData),
-                    let jpegData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.7])
-                {
-                    self.imageEntity?.thumbnail = jpegData
+            if let thumbnailImage = payload.thumbnailImage {
+                let updateThumbnail = {
+                    if self.thumbnail == nil {
+                        self.thumbnail = thumbnailImage
+                    }
                 }
 
-                do {
-                    try contextToUse.save()
+                if Thread.isMainThread {
+                    updateThumbnail()
                 }
-                catch {
-                    print("Error saving image to CoreData: \(error)")
+                else {
+                    DispatchQueue.main.async(execute: updateThumbnail)
                 }
             }
+        }
+
+        if waitForCompletion {
+            guard let payload = preparePersistencePayload(using: image) else { return }
+            persist(payload)
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            guard let payload = self.preparePersistencePayload(using: image) else { return }
+            persist(payload)
         }
     }
 
     private func createThumbnail(from image: NSImage) {
+        guard let thumbnail = generateThumbnailImage(from: image) else { return }
+
+        DispatchQueue.main.async {
+            self.thumbnail = thumbnail
+        }
+    }
+
+    private func generateThumbnailImage(from image: NSImage) -> NSImage? {
         let thumbnailSize: CGFloat = AppConstants.thumbnailSize
 
         let size = image.size
+        guard size.width > 0, size.height > 0 else { return nil }
+
         let aspectRatio = size.width / size.height
 
         var newWidth: CGFloat
@@ -218,9 +242,7 @@ class ImageAttachment: Identifiable, ObservableObject {
         )
         thumbnailImage.unlockFocus()
 
-        DispatchQueue.main.async {
-            self.thumbnail = thumbnailImage
-        }
+        return thumbnailImage
     }
 
     private func convertHEICToJPEG() -> NSImage? {
@@ -323,6 +345,77 @@ class ImageAttachment: Identifiable, ObservableObject {
             return bitmapImage.representation(using: .png, properties: [:])
                 ?? bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
         }
+    }
+}
+
+extension ImageAttachment {
+    private struct ImagePersistencePayload {
+        let image: NSImage
+        let imageData: Data
+        let format: String
+        let thumbnailData: Data?
+        let thumbnailImage: NSImage?
+    }
+
+    private func preparePersistencePayload(using providedImage: NSImage?) -> ImagePersistencePayload? {
+        var workingImage = providedImage ?? self.image
+
+        if workingImage == nil {
+            if (originalFileType == .heic || originalFileType == .heif),
+                let converted = convertHEICToJPEG()
+            {
+                workingImage = converted
+                convertedToJPEG = true
+            }
+            else if let url = self.url {
+                workingImage = NSImage(contentsOf: url)
+            }
+        }
+
+        guard let imageToPersist = workingImage,
+            let tiffData = imageToPersist.tiffRepresentation,
+            let bitmapImage = NSBitmapImageRep(data: tiffData)
+        else {
+            return nil
+        }
+
+        var targetFormat = getFormatString(from: originalFileType)
+        var imageData = getImageData(from: bitmapImage, using: originalFileType)
+
+        if imageData == nil,
+            let jpegData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+        {
+            imageData = jpegData
+            targetFormat = "jpeg"
+            if originalFileType != .jpeg {
+                convertedToJPEG = true
+            }
+        }
+
+        guard let finalImageData = imageData else {
+            return nil
+        }
+
+        let thumbnailImage = self.thumbnail ?? generateThumbnailImage(from: imageToPersist)
+        var thumbnailData: Data?
+
+        if let thumbnailImage,
+            let thumbnailTiff = thumbnailImage.tiffRepresentation,
+            let thumbnailBitmap = NSBitmapImageRep(data: thumbnailTiff)
+        {
+            thumbnailData = thumbnailBitmap.representation(
+                using: .jpeg,
+                properties: [.compressionFactor: 0.7]
+            )
+        }
+
+        return ImagePersistencePayload(
+            image: imageToPersist,
+            imageData: finalImageData,
+            format: targetFormat,
+            thumbnailData: thumbnailData,
+            thumbnailImage: thumbnailImage
+        )
     }
 }
 

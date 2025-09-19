@@ -28,20 +28,21 @@ class MessageManager: ObservableObject {
         _ message: String,
         in chat: ChatEntity,
         contextSize: Int,
+        generateImage: Bool = false,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         chat.waitingForResponse = true
         let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
 
-        apiService.sendMessage(requestMessages, temperature: temperature) { [weak self] result in
+        let handleResult: (Result<String, APIError>) -> Void = { [weak self] result in
             guard let self = self else { return }
 
             switch result {
             case .success(let messageBody):
                 chat.waitingForResponse = false
-                addMessageToChat(chat: chat, message: messageBody)
-                addNewMessageToRequestMessages(chat: chat, content: messageBody, role: AppConstants.defaultRole)
+                self.addMessageToChat(chat: chat, message: messageBody)
+                self.addNewMessageToRequestMessages(chat: chat, content: messageBody, role: AppConstants.defaultRole)
                 self.viewContext.saveWithRetry(attempts: 1)
                 
                 DispatchQueue.main.async {
@@ -53,6 +54,10 @@ class MessageManager: ObservableObject {
             case .failure(let error):
                 completion(.failure(error))
             }
+        }
+
+        apiService.sendMessage(requestMessages, temperature: temperature) { result in
+            handleResult(result)
         }
     }
 
@@ -74,26 +79,46 @@ class MessageManager: ObservableObject {
                 chat.waitingForResponse = true
 
                 for try await chunk in stream {
+                    guard !chunk.isEmpty else { continue }
+
                     accumulatedResponse += chunk
-                    if let lastMessage = chat.lastMessage {
-                        if lastMessage.own {
-                            self.addMessageToChat(chat: chat, message: accumulatedResponse)
-                        }
-                        else {
-                            let now = Date()
-                            if now.timeIntervalSince(lastUpdateTime) >= updateInterval {
-                                updateLastMessage(
-                                    chat: chat,
-                                    lastMessage: lastMessage,
-                                    accumulatedResponse: accumulatedResponse
-                                )
-                                lastUpdateTime = now
-                            }
+
+                    guard let lastMessage = chat.lastMessage else { continue }
+
+                    if lastMessage.own {
+                        self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                    }
+                    else {
+                        let now = Date()
+                        if now.timeIntervalSince(lastUpdateTime) >= updateInterval {
+                            updateLastMessage(
+                                chat: chat,
+                                lastMessage: lastMessage,
+                                accumulatedResponse: accumulatedResponse
+                            )
+                            lastUpdateTime = now
                         }
                     }
                 }
-                updateLastMessage(chat: chat, lastMessage: chat.lastMessage!, accumulatedResponse: accumulatedResponse)
-                addNewMessageToRequestMessages(chat: chat, content: accumulatedResponse, role: AppConstants.defaultRole)
+
+                guard !accumulatedResponse.isEmpty else {
+                    completion(.failure(APIError.invalidResponse))
+                    return
+                }
+
+                if let assistantMessage = chat.lastMessage, !assistantMessage.own {
+                    updateLastMessage(
+                        chat: chat,
+                        lastMessage: assistantMessage,
+                        accumulatedResponse: accumulatedResponse
+                    )
+                }
+
+                addNewMessageToRequestMessages(
+                    chat: chat,
+                    content: accumulatedResponse,
+                    role: AppConstants.defaultRole
+                )
                 completion(.success(()))
             }
             catch {

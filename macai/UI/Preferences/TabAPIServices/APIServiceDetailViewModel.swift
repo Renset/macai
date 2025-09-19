@@ -23,6 +23,7 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var useStreamResponse: Bool = true
     @Published var generateChatNames: Bool = true
     @Published var imageUploadsAllowed: Bool = false
+    @Published var imageGenerationAllowed: Bool = false
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
     @Published var isCustomModel: Bool = false
@@ -52,6 +53,7 @@ class APIServiceDetailViewModel: ObservableObject {
             useStreamResponse = service.useStreamResponse
             generateChatNames = service.generateChatNames
             imageUploadsAllowed = service.imageUploadsAllowed
+            imageGenerationAllowed = service.imageGenerationAllowed
             defaultAiPersona = service.defaultPersona
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
             selectedModel = model
@@ -67,7 +69,15 @@ class APIServiceDetailViewModel: ObservableObject {
         }
         else {
             url = AppConstants.apiUrlChatCompletions
-            imageUploadsAllowed = AppConstants.defaultApiConfigurations[type]?.imageUploadsSupported ?? false
+            if let config = AppConstants.defaultApiConfigurations[type] {
+                imageUploadsAllowed = config.imageUploadsSupported
+                let modelForAutoEnable = selectedModel.isEmpty ? config.defaultModel : selectedModel
+                imageGenerationAllowed = config.imageGenerationSupported
+                    && config.autoEnableImageGenerationModels.contains(modelForAutoEnable)
+            } else {
+                imageUploadsAllowed = false
+                imageGenerationAllowed = false
+            }
         }
     }
 
@@ -77,6 +87,13 @@ class APIServiceDetailViewModel: ObservableObject {
                 self?.isCustomModel = (newValue == "custom")
                 if !self!.isCustomModel {
                     self?.model = newValue
+                }
+
+                if let config = self?.defaultApiConfiguration,
+                   config.imageGenerationSupported,
+                   config.autoEnableImageGenerationModels.contains(newValue)
+                {
+                    self?.imageGenerationAllowed = true
                 }
             }
             .store(in: &cancellables)
@@ -141,6 +158,7 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.useStreamResponse = useStreamResponse
         serviceToSave.generateChatNames = generateChatNames
         serviceToSave.imageUploadsAllowed = imageUploadsAllowed
+        serviceToSave.imageGenerationAllowed = imageGenerationAllowed
         serviceToSave.defaultPersona = defaultAiPersona
 
         if apiService == nil {
@@ -187,8 +205,11 @@ class APIServiceDetailViewModel: ObservableObject {
         self.url = self.defaultApiConfiguration!.url
         self.model = self.defaultApiConfiguration!.defaultModel
         self.selectedModel = self.model
-        
+
         self.imageUploadsAllowed = self.defaultApiConfiguration!.imageUploadsSupported
+        let shouldAutoEnableGeneration = self.defaultApiConfiguration!.imageGenerationSupported
+            && self.defaultApiConfiguration!.autoEnableImageGenerationModels.contains(self.model)
+        self.imageGenerationAllowed = shouldAutoEnableGeneration
 
         fetchModelsForService()
     }
@@ -204,5 +225,9 @@ class APIServiceDetailViewModel: ObservableObject {
 
     var supportsImageUploads: Bool {
         return AppConstants.defaultApiConfigurations[type]?.imageUploadsSupported ?? false
+    }
+
+    var supportsImageGeneration: Bool {
+        return AppConstants.defaultApiConfigurations[type]?.imageGenerationSupported ?? false
     }
 }

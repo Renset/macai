@@ -27,7 +27,7 @@ class ChatLogicHandler: ObservableObject {
         self.store = store
     }
     
-    func sendMessage(messageText: String, attachedImages: [ImageAttachment]) {
+    func sendMessage(messageText: String, attachedImages: [ImageAttachment], generateImage: Bool = false) {
         guard chatViewModel.canSendMessage else {
             currentError = ErrorMessage(
                 type: .noApiService("No API service selected. Select the API service to send your first message"),
@@ -45,8 +45,8 @@ class ChatLogicHandler: ObservableObject {
         }
 
         for attachment in attachedImages {
-            if attachment.imageEntity == nil {
-                attachment.saveToEntity(context: viewContext)
+            if attachment.imageEntity?.image == nil {
+                attachment.saveToEntity(context: viewContext, waitForCompletion: true)
             }
             messageContents.append(MessageContent(imageAttachment: attachment))
         }
@@ -63,10 +63,10 @@ class ChatLogicHandler: ObservableObject {
         saveNewMessageInStore(with: messageBody)
         userIsScrolling = false
 
-        if chat.apiService?.useStreamResponse ?? false {
+        if (chat.apiService?.useStreamResponse ?? false) && !generateImage {
             sendStreamMessage(messageBody)
         } else {
-            sendRegularMessage(messageBody)
+            sendRegularMessage(messageBody, generateImage: generateImage)
         }
     }
     
@@ -149,11 +149,12 @@ class ChatLogicHandler: ObservableObject {
         }
     }
     
-    private func sendRegularMessage(_ messageBody: String) {
+    private func sendRegularMessage(_ messageBody: String, generateImage: Bool) {
         chat.waitingForResponse = true
         chatViewModel.sendMessage(
             messageBody,
-            contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))
+            contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize)),
+            generateImage: generateImage
         ) { result in
             DispatchQueue.main.async {
                 switch result {

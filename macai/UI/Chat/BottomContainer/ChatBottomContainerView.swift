@@ -12,6 +12,8 @@ struct ChatBottomContainerView: View {
     @Binding var isExpanded: Bool
     @Binding var attachedImages: [ImageAttachment]
     var imageUploadsAllowed: Bool
+    var imageGenerationSupported: Bool
+    @Binding var isImageGenerationEnabled: Bool
     var onSendMessage: () -> Void
     var onExpandToggle: () -> Void
     var onAddImage: () -> Void
@@ -23,6 +25,8 @@ struct ChatBottomContainerView: View {
         isExpanded: Binding<Bool>,
         attachedImages: Binding<[ImageAttachment]> = .constant([]),
         imageUploadsAllowed: Bool = false,
+        imageGenerationSupported: Bool = false,
+        isImageGenerationEnabled: Binding<Bool> = .constant(false),
         onSendMessage: @escaping () -> Void,
         onExpandToggle: @escaping () -> Void = {},
         onAddImage: @escaping () -> Void = {},
@@ -33,6 +37,8 @@ struct ChatBottomContainerView: View {
         self._isExpanded = isExpanded
         self._attachedImages = attachedImages
         self.imageUploadsAllowed = imageUploadsAllowed
+        self.imageGenerationSupported = imageGenerationSupported
+        self._isImageGenerationEnabled = isImageGenerationEnabled
         self.onSendMessage = onSendMessage
         self.onExpandToggle = onExpandToggle
         self.onAddImage = onAddImage
@@ -80,6 +86,8 @@ struct ChatBottomContainerView: View {
                         text: $newMessage,
                         attachedImages: $attachedImages,
                         imageUploadsAllowed: imageUploadsAllowed,
+                        imageGenerationSupported: imageGenerationSupported,
+                        isImageGenerationEnabled: $isImageGenerationEnabled,
                         onEnter: onSendMessage,
                         onAddImage: onAddImage
                     )

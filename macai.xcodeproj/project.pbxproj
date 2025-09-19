@@ -83,6 +83,7 @@
 		4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
 		4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */; };
 		4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
+		9A040A4C76354F309DF6CB6F /* NotificationPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
 		4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */; };
 		4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7202C472F53006F99FB /* APIProtocol.swift */; };
@@ -194,6 +195,7 @@
 		4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailView.swift; sourceTree = "<group>"; };
 		4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandler.swift; sourceTree = "<group>"; };
 		4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcher.swift; sourceTree = "<group>"; };
+		14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPresenter.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
 		4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabDangerZoneView.swift; sourceTree = "<group>"; };
 		4AFEE7202C472F53006F99FB /* APIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIProtocol.swift; sourceTree = "<group>"; };
@@ -385,6 +387,7 @@
 				4ACE2FB72D61656000DEEA6D /* SwipeModifier.swift */,
 				4AADD98B2C924FB400242D20 /* APIServiceManager.swift */,
 				4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */,
+				14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */,
 				4A28424A2C87018800E5C920 /* TokenManager.swift */,
 				4AFEE71F2C472F29006F99FB /* APIHandlers */,
 				4ABDBE6529F86B5900661B2D /* MessageParser.swift */,
@@ -671,6 +674,7 @@
 				4A399CC429BCE67800E98796 /* PreferencesView.swift in Sources */,
 				4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */,
 				4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */,
+				9A040A4C76354F309DF6CB6F /* NotificationPresenter.swift in Sources */,
 				4A79A0762CEA9FB900CB41D8 /* macaiDataModel.xcdatamodeld in Sources */,
 				4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */,
 				4A254A6F2CEA6A2400F66935 /* CodeViewModel.swift in Sources */,

@@ -66,8 +66,18 @@ class ChatViewModel: ObservableObject {
         self.viewContext = viewContext
     }
 
-    func sendMessage(_ message: String, contextSize: Int, completion: @escaping (Result<Void, Error>) -> Void) {
-        self.messageManager.sendMessage(message, in: chat, contextSize: contextSize) { [weak self] result in
+    func sendMessage(
+        _ message: String,
+        contextSize: Int,
+        generateImage: Bool = false,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        self.messageManager.sendMessage(
+            message,
+            in: chat,
+            contextSize: contextSize,
+            generateImage: generateImage
+        ) { [weak self] result in
             switch result {
             case .success:
                 completion(.success(()))
