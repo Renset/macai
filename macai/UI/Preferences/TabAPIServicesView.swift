@@ -168,6 +168,9 @@ struct TabAPIServicesView: View {
             }
 
             do {
+                if newService.objectID.isTemporaryID {
+                    try viewContext.obtainPermanentIDs(for: [newService])
+                }
                 try viewContext.save()
                 refreshList()
             }

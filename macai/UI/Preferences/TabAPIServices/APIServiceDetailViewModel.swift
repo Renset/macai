@@ -204,6 +204,15 @@ class APIServiceDetailViewModel: ObservableObject {
             }
         }
 
+        if serviceToSave.objectID.isTemporaryID {
+            do {
+                try viewContext.obtainPermanentIDs(for: [serviceToSave])
+            }
+            catch {
+                print("Failed to obtain permanent ID for API service: \(error)")
+            }
+        }
+
         do {
             try viewContext.save()
         }

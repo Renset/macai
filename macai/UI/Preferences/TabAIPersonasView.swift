@@ -342,6 +342,15 @@ struct PersonaDetailView: View {
             personaToSave.editedDate = Date()
         }
 
+        if personaToSave.objectID.isTemporaryID {
+            do {
+                try viewContext.obtainPermanentIDs(for: [personaToSave])
+            }
+            catch {
+                print("Failed to obtain permanent ID for persona: \(error)")
+            }
+        }
+
         do {
             personaToSave.objectWillChange.send()
             try viewContext.save()

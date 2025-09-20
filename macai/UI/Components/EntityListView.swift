@@ -19,11 +19,40 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
     var getEntityIcon: (Entity) -> String? = { _ in nil }
     let onEdit: (() -> Void)?
     let onMove: ((IndexSet, Int) -> Void)?
+    var getEntityIdentifier: (Entity) -> AnyHashable = { entity in
+        if let idProperty = entity.entity.propertiesByName["id"] as? NSAttributeDescription {
+            switch idProperty.attributeType {
+            case .UUIDAttributeType:
+                if let uuid = entity.value(forKey: "id") as? UUID {
+                    return AnyHashable(uuid)
+                }
+            case .stringAttributeType:
+                if let stringValue = entity.value(forKey: "id") as? String {
+                    return AnyHashable(stringValue)
+                }
+            case .integer16AttributeType,
+                 .integer32AttributeType,
+                 .integer64AttributeType:
+                if let numberValue = entity.value(forKey: "id") as? NSNumber {
+                    return AnyHashable(numberValue.int64Value)
+                }
+            default:
+                break
+            }
+        }
+
+        return AnyHashable(entity.objectID)
+    }
 
     var body: some View {
+        let listItems = entities.map { entity in
+            EntityListItem(id: getEntityIdentifier(entity), entity: entity)
+        }
+
         VStack {
             List(selection: $selectedEntityID) {
-                ForEach(entities, id: \.objectID) { entity in
+                ForEach(listItems) { item in
+                    let entity = item.entity
                     EntityRowView(
                         color: getEntityColor?(entity),
                         name: getEntityName(entity),
@@ -67,6 +96,13 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
             }
             .frame(maxHeight: 150)
         }
+    }
+}
+
+extension EntityListView {
+    private struct EntityListItem: Identifiable {
+        let id: AnyHashable
+        let entity: Entity
     }
 }
 
