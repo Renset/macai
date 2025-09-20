@@ -3,7 +3,7 @@
         {
             "id": "chatgpt",
             "displayName": "OpenAI",
-            "defaultName": "OpenAI GPT-5",
+            "defaultName": "GPT-5",
             "models": [
                 {
                     "id": "gpt-5",
@@ -22,10 +22,10 @@
         {
             "id": "claude",
             "displayName": "Claude",
-            "defaultName": "Claude Sonnet 4",
+            "defaultName": "Sonnet 4",
             "models": [
                 {
-                    "id": "claude-4.1-sonnet",
+                    "id": "claude-sonnet-4-20250514",
                     "displayName": "Sonnet 4",
                     "isDefault": true,
                     "settings": {
@@ -37,7 +37,7 @@
                     }
                 },
                 {
-                    "id": "claude-4.1-opus",
+                    "id": "claude-opus-4-1-20250805",
                     "displayName": "Opus 4.1",
                     "settings": {
                         "generateChatNames": true,
@@ -95,7 +95,7 @@
         {
             "id": "xai",
             "displayName": "xAI",
-            "defaultName": "xAI Grok 4",
+            "defaultName": "Grok 4",
             "note": "",
             "models": [
                 {
