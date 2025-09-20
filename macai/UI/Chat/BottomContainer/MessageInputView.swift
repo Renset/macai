@@ -14,7 +14,6 @@ struct MessageInputView: View {
     @Binding var attachedImages: [ImageAttachment]
     var imageUploadsAllowed: Bool
     var imageGenerationSupported: Bool
-    @Binding var isImageGenerationEnabled: Bool
     var onEnter: () -> Void
     var onAddImage: () -> Void
 
@@ -39,8 +38,8 @@ struct MessageInputView: View {
     }
 
     private var effectivePlaceholderText: String {
-        if imageGenerationSupported, isImageGenerationEnabled {
-            return "Describe the image you want to generate"
+        if imageGenerationSupported {
+            return "Ask anything or describe an image to generate"
         }
         return inputPlaceholderText
     }
@@ -54,7 +53,6 @@ struct MessageInputView: View {
         attachedImages: Binding<[ImageAttachment]>,
         imageUploadsAllowed: Bool,
         imageGenerationSupported: Bool,
-        isImageGenerationEnabled: Binding<Bool>,
         onEnter: @escaping () -> Void,
         onAddImage: @escaping () -> Void,
         inputPlaceholderText: String = "Type your prompt here",
@@ -64,7 +62,6 @@ struct MessageInputView: View {
         self._attachedImages = attachedImages
         self.imageUploadsAllowed = imageUploadsAllowed
         self.imageGenerationSupported = imageGenerationSupported
-        self._isImageGenerationEnabled = isImageGenerationEnabled
         self.onEnter = onEnter
         self.onAddImage = onAddImage
         self.inputPlaceholderText = inputPlaceholderText
@@ -101,23 +98,6 @@ struct MessageInputView: View {
                     .help("Add image")
                 }
                 
-                if imageGenerationSupported {
-                    Button(action: {
-                        isImageGenerationEnabled.toggle()
-                    }) {
-                        Image(systemName: "paintbrush.pointed")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(isImageGenerationEnabled ? .accentColor : .secondary)
-                            .padding(6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 32)
-                                    .fill(isImageGenerationEnabled ? Color.accentColor.opacity(0.15) : Color.clear)
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .help("Toggle image generation mode")
-                }
-
                 ZStack {
                     Text(text == "" ? effectivePlaceholderText : text)
                         .font(.system(size: effectiveFontSize))

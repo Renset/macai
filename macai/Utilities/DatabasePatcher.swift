@@ -131,9 +131,9 @@ class DatabasePatcher {
                 let currentModel = service.model ?? config.defaultModel
                 if config.imageGenerationSupported,
                    config.autoEnableImageGenerationModels.contains(currentModel),
-                   !service.imageGenerationAllowed
+                   service.imageGenerationSupported == false
                 {
-                    service.imageGenerationAllowed = true
+                    service.imageGenerationSupported = true
                     needsSave = true
                     print("Enabled image generation for API service: \(service.name ?? "Unnamed")")
                 }

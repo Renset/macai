@@ -16,9 +16,10 @@ struct TabAPIServicesView: View {
     )
     private var apiServices: FetchedResults<APIServiceEntity>
 
-    @State private var isShowingAddOrEditService = false
+    @State private var presentedSheet: PresentedSheet?
     @State private var selectedServiceID: NSManagedObjectID?
     @State private var refreshID = UUID()
+    @State private var pendingPreferredType: String?
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
     private var isSelectedServiceDefault: Bool {
@@ -58,21 +59,49 @@ struct TabAPIServicesView: View {
                 else {
                     Spacer()
                 }
-                Button(action: onAdd) {
-                    Label("Add New", systemImage: "plus")
+                Menu {
+                    Button("Expert mode", action: presentExpertAdd)
+                } label: {
+                    Label("Add Service", systemImage: "plus")
+                } primaryAction: {
+                    presentSimpleAdd()
                 }
             }
         }
         .frame(minHeight: 300)
-        .sheet(isPresented: $isShowingAddOrEditService) {
-            let selectedApiService = apiServices.first(where: { $0.objectID == selectedServiceID }) ?? nil
-            if selectedApiService == nil {
-                APIServiceDetailView(viewContext: viewContext, apiService: nil)
+        .sheet(item: $presentedSheet) { sheet in
+            switch sheet {
+            case .addSimple:
+                APIServiceTemplateAddView(viewContext: viewContext) { destination in
+                    DispatchQueue.main.async {
+                        switch destination {
+                        case .new(let preferredType):
+                            pendingPreferredType = preferredType
+                            presentedSheet = .addExpert
+                        case .existing(let objectID):
+                            pendingPreferredType = nil
+                            selectedServiceID = objectID
+                            presentedSheet = .edit(objectID)
+                        }
+                    }
+                }
+            case .addExpert:
+                APIServiceDetailView(
+                    viewContext: viewContext,
+                    apiService: nil,
+                    preferredType: pendingPreferredType
+                )
+                .onDisappear {
+                    pendingPreferredType = nil
+                }
+            case let .edit(objectID):
+                if let selectedApiService = apiServices.first(where: { $0.objectID == objectID }) {
+                    APIServiceDetailView(viewContext: viewContext, apiService: selectedApiService)
+                }
+                else {
+                    EmptyView()
+                }
             }
-            else {
-                APIServiceDetailView(viewContext: viewContext, apiService: selectedApiService)
-            }
-
         }
     }
 
@@ -87,8 +116,8 @@ struct TabAPIServicesView: View {
             getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID },
             getEntityIcon: { "logo_" + ($0.type ?? "") },
             onEdit: {
-                if selectedServiceID != nil {
-                    isShowingAddOrEditService = true
+                if let objectID = selectedServiceID {
+                    presentedSheet = .edit(objectID)
                 }
             },
             onMove: nil
@@ -115,11 +144,6 @@ struct TabAPIServicesView: View {
 
     private func refreshList() {
         refreshID = UUID()
-    }
-
-    private func onAdd() {
-        selectedServiceID = nil
-        isShowingAddOrEditService = true
     }
 
     private func onDuplicate() {
@@ -154,7 +178,40 @@ struct TabAPIServicesView: View {
     }
 
     private func onEdit() {
-        isShowingAddOrEditService = true
+        if let objectID = selectedServiceID {
+            presentedSheet = .edit(objectID)
+        }
+    }
+
+    private func presentSimpleAdd() {
+        selectedServiceID = nil
+        pendingPreferredType = nil
+        presentedSheet = .addSimple
+    }
+
+    private func presentExpertAdd() {
+        selectedServiceID = nil
+        pendingPreferredType = nil
+        presentedSheet = .addExpert
+    }
+}
+
+extension TabAPIServicesView {
+    private enum PresentedSheet: Identifiable {
+        case addSimple
+        case addExpert
+        case edit(NSManagedObjectID)
+
+        var id: String {
+            switch self {
+            case .addSimple:
+                return "addSimple"
+            case .addExpert:
+                return "addExpert"
+            case let .edit(objectID):
+                return objectID.uriRepresentation().absoluteString
+            }
+        }
     }
 }
 

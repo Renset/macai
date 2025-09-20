@@ -375,7 +375,7 @@ class GeminiHandler: APIService {
     }
 
     private func buildRequestURL(stream: Bool) -> URL? {
-        let action = stream ? ":generateContent" : ":generateContent"
+        let action = stream ? ":streamGenerateContent" : ":generateContent"
         var base = modelsEndpoint.absoluteString
 
         if base.hasSuffix("/") {

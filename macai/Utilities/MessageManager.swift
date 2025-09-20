@@ -28,7 +28,6 @@ class MessageManager: ObservableObject {
         _ message: String,
         in chat: ChatEntity,
         contextSize: Int,
-        generateImage: Bool = false,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
@@ -76,6 +75,8 @@ class MessageManager: ObservableObject {
 
                 let stream = try await apiService.sendMessageStream(requestMessages, temperature: temperature)
                 var accumulatedResponse = ""
+                var deferImageResponse = false
+                var streamingMessage: MessageEntity?
                 chat.waitingForResponse = true
 
                 for try await chunk in stream {
@@ -83,10 +84,25 @@ class MessageManager: ObservableObject {
 
                     accumulatedResponse += chunk
 
+                    if !deferImageResponse && chunk.contains("<image-uuid>") {
+                        deferImageResponse = true
+                        if let message = streamingMessage ?? (chat.lastMessage?.own == false ? chat.lastMessage : nil) {
+                            chat.removeFromMessages(message)
+                            viewContext.delete(message)
+                            streamingMessage = nil
+                            chat.objectWillChange.send()
+                        }
+                    }
+
+                    if deferImageResponse {
+                        continue
+                    }
+
                     guard let lastMessage = chat.lastMessage else { continue }
 
                     if lastMessage.own {
                         self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                        streamingMessage = chat.lastMessage
                     }
                     else {
                         let now = Date()
@@ -97,6 +113,7 @@ class MessageManager: ObservableObject {
                                 accumulatedResponse: accumulatedResponse
                             )
                             lastUpdateTime = now
+                            streamingMessage = lastMessage
                         }
                     }
                 }
@@ -106,13 +123,21 @@ class MessageManager: ObservableObject {
                     return
                 }
 
-                if let assistantMessage = chat.lastMessage, !assistantMessage.own {
+                if deferImageResponse {
+                    self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                }
+                else if let assistantMessage = streamingMessage ?? (chat.lastMessage?.own == false ? chat.lastMessage : nil) {
                     updateLastMessage(
                         chat: chat,
                         lastMessage: assistantMessage,
                         accumulatedResponse: accumulatedResponse
                     )
                 }
+                else {
+                    self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                }
+
+                chat.waitingForResponse = false
 
                 addNewMessageToRequestMessages(
                     chat: chat,

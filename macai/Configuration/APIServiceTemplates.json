@@ -1,0 +1,116 @@
+{
+    "providers": [
+        {
+            "id": "chatgpt",
+            "displayName": "OpenAI",
+            "defaultName": "OpenAI GPT-5",
+            "models": [
+                {
+                    "id": "gpt-5",
+                    "displayName": "GPT-5",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 10,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "imageGenerationSupported": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": "claude",
+            "displayName": "Claude",
+            "defaultName": "Claude Sonnet 4",
+            "models": [
+                {
+                    "id": "claude-4.1-sonnet",
+                    "displayName": "Sonnet 4",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 10,
+                        "useStreaming": true,
+                        "allowImageUploads": false,
+                        "imageGenerationSupported": false
+                    }
+                },
+                {
+                    "id": "claude-4.1-opus",
+                    "displayName": "Opus 4.1",
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 10,
+                        "useStreaming": true,
+                        "allowImageUploads": false,
+                        "imageGenerationSupported": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": "gemini",
+            "displayName": "Gemini",
+            "defaultName": "Gemini 2.5 Pro",
+            "models": [
+                {
+                    "id": "gemini-2.5-flash-image-preview",
+                    "displayName": "🍌 Nano Banana (Gemini 2.5 Flash)",
+                    "description": "Enables image preview capabilities",
+                    "note": "Supports image generation inside chats: text-to-image, image-to-text, and image and text to image. Free API keys may not work with image generation - consider setting up billing in Google AI Studio.",
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 20,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "imageGenerationSupported": true
+                    }
+                },
+                {
+                    "id": "gemini-2.5-pro",
+                    "displayName": "Gemini 2.5 Pro",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 20,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "imageGenerationSupported": false
+                    }
+                },
+                {
+                    "id": "gemini-2.5-flash",
+                    "displayName": "Gemini 2.5 Flash",
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 20,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "imageGenerationSupported": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": "xai",
+            "displayName": "xAI",
+            "defaultName": "xAI Grok 4",
+            "note": "",
+            "models": [
+                {
+                    "id": "grok-4",
+                    "displayName": "Grok 4",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 10,
+                        "useStreaming": true,
+                        "allowImageUploads": false,
+                        "imageGenerationSupported": false
+                    }
+                }
+            ]
+        }
+    ]
+}

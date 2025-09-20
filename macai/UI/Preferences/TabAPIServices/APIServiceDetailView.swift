@@ -18,8 +18,12 @@ struct APIServiceDetailView: View {
     )
     private var personas: FetchedResults<PersonaEntity>
 
-    init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?) {
-        let viewModel = APIServiceDetailViewModel(viewContext: viewContext, apiService: apiService)
+    init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
+        let viewModel = APIServiceDetailViewModel(
+            viewContext: viewContext,
+            apiService: apiService,
+            preferredType: preferredType
+        )
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
@@ -258,9 +262,9 @@ struct APIServiceDetailView: View {
                 }
 
                 if viewModel.supportsImageGeneration {
-                    Toggle(isOn: $viewModel.imageGenerationAllowed) {
+                    Toggle(isOn: $viewModel.imageGenerationSupported) {
                         HStack {
-                            Text("Allow image generation")
+                            Text("Image generation supported")
                             Button(action: {
                             }) {
                                 Image(systemName: "questionmark.circle")
@@ -268,7 +272,7 @@ struct APIServiceDetailView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .help(
-                                "If enabled, you can generate images via this API Service when composing messages."
+                                "Enable when the selected model should expose image generation features in chat."
                             )
 
                             Spacer()

@@ -12,6 +12,8 @@ import Foundation
 import SwiftUI
 
 struct ContentView: View {
+    private static var handledStartChatRequestIds = Set<String>()
+
     @State private var window: NSWindow?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.managedObjectContext) private var viewContext
@@ -114,10 +116,32 @@ struct ContentView: View {
                 object: nil,
                 queue: .main
             ) { notification in
-                let windowId = window?.windowNumber
-                if let sourceWindowId = notification.userInfo?["windowId"] as? Int,
-                    sourceWindowId == windowId
+                let currentWindowId = window?.windowNumber
+                let sourceWindowId = notification.userInfo?["windowId"] as? Int
+
+                let shouldHandle: Bool
+                if let sourceWindowId, sourceWindowId > 0 {
+                    shouldHandle = sourceWindowId == currentWindowId
+                }
+                else {
+                    shouldHandle = true
+                }
+
+                guard shouldHandle else { return }
+
+                if let requestId = notification.userInfo?["requestId"] as? String {
+                    if ContentView.handledStartChatRequestIds.contains(requestId) {
+                        return
+                    }
+                    ContentView.handledStartChatRequestIds.insert(requestId)
+                }
+
+                if let uriString = notification.userInfo?["apiServiceURI"] as? String,
+                   let service = apiService(fromURI: uriString)
                 {
+                    newChat(using: service)
+                }
+                else {
                     newChat()
                 }
             }
@@ -199,6 +223,10 @@ struct ContentView: View {
     }
 
     func newChat() {
+        newChat(using: nil)
+    }
+
+    private func newChat(using preferredService: APIServiceEntity?) {
         let uuid = UUID()
         let newChat = ChatEntity(context: viewContext)
 
@@ -213,11 +241,16 @@ struct ContentView: View {
         newChat.systemMessage = systemMessage
         newChat.gptModel = gptModel
 
-        if let defaultServiceIDString = defaultApiServiceID,
-            let url = URL(string: defaultServiceIDString),
-            let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
+        if let service = preferredService {
+            newChat.apiService = service
+            newChat.persona = service.defaultPersona
+            newChat.gptModel = service.model ?? AppConstants.chatGptDefaultModel
+            newChat.systemMessage = service.defaultPersona?.systemMessage ?? AppConstants.chatGptSystemMessage
+        }
+        else if let defaultServiceIDString = defaultApiServiceID,
+                let url = URL(string: defaultServiceIDString),
+                let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
         {
-
             do {
                 let defaultService = try viewContext.existingObject(with: objectID) as? APIServiceEntity
                 newChat.apiService = defaultService
@@ -238,6 +271,22 @@ struct ContentView: View {
         catch {
             print("Error saving new chat: \(error.localizedDescription)")
             viewContext.rollback()
+        }
+    }
+
+    private func apiService(fromURI uriString: String) -> APIServiceEntity? {
+        guard let url = URL(string: uriString),
+              let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
+        else {
+            return nil
+        }
+
+        do {
+            return try viewContext.existingObject(with: objectID) as? APIServiceEntity
+        }
+        catch {
+            print("Failed to locate API service for URI \(uriString): \(error)")
+            return nil
         }
     }
 

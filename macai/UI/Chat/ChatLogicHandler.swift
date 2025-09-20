@@ -27,7 +27,7 @@ class ChatLogicHandler: ObservableObject {
         self.store = store
     }
     
-    func sendMessage(messageText: String, attachedImages: [ImageAttachment], generateImage: Bool = false) {
+    func sendMessage(messageText: String, attachedImages: [ImageAttachment]) {
         guard chatViewModel.canSendMessage else {
             currentError = ErrorMessage(
                 type: .noApiService("No API service selected. Select the API service to send your first message"),
@@ -63,10 +63,10 @@ class ChatLogicHandler: ObservableObject {
         saveNewMessageInStore(with: messageBody)
         userIsScrolling = false
 
-        if (chat.apiService?.useStreamResponse ?? false) && !generateImage {
+        if chat.apiService?.useStreamResponse ?? false {
             sendStreamMessage(messageBody)
         } else {
-            sendRegularMessage(messageBody, generateImage: generateImage)
+            sendRegularMessage(messageBody)
         }
     }
     
@@ -149,12 +149,11 @@ class ChatLogicHandler: ObservableObject {
         }
     }
     
-    private func sendRegularMessage(_ messageBody: String, generateImage: Bool) {
+    private func sendRegularMessage(_ messageBody: String) {
         chat.waitingForResponse = true
         chatViewModel.sendMessage(
             messageBody,
-            contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize)),
-            generateImage: generateImage
+            contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))
         ) { result in
             DispatchQueue.main.async {
                 switch result {

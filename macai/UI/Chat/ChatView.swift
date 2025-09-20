@@ -22,7 +22,6 @@ struct ChatView: View {
     @State private var editSystemMessage: Bool = false
     @State private var attachedImages: [ImageAttachment] = []
     @State private var isBottomContainerExpanded = false
-    @State private var isImageGenerationEnabled = false
     @State private var renderTime: Double = 0
     
     // View models and logic
@@ -73,13 +72,11 @@ struct ChatView: View {
                 attachedImages: $attachedImages,
                 isBottomContainerExpanded: $isBottomContainerExpanded,
                 imageUploadsAllowed: chat.apiService?.imageUploadsAllowed ?? false,
-                imageGenerationSupported: chat.apiService?.imageGenerationAllowed ?? false,
-                isImageGenerationEnabled: $isImageGenerationEnabled,
+                imageGenerationSupported: chat.apiService?.imageGenerationSupported ?? false,
                 onSendMessage: {
                     logicHandler.sendMessage(
                         messageText: newMessage,
-                        attachedImages: attachedImages,
-                        generateImage: isImageGenerationEnabled
+                        attachedImages: attachedImages
                     )
                     newMessage = ""
                     attachedImages = []
@@ -126,11 +123,6 @@ struct ChatView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
             logicHandler.ignoreError()
-        }
-        .onChange(of: chat.apiService?.imageGenerationAllowed) { isAllowed in
-            if isAllowed != true {
-                isImageGenerationEnabled = false
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FindNext"))) { _ in
             if !searchText.isEmpty {

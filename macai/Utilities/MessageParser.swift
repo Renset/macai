@@ -168,6 +168,81 @@ struct MessageParser {
             }
         }
 
+        func handleLineWithInlineImages(_ line: String, isLastLine: Bool) {
+            let pattern = "<image-uuid>(.*?)</image-uuid>"
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+                textLines.append(line)
+                return
+            }
+
+            let nsString = line as NSString
+            let matches = regex.matches(in: line, options: [], range: NSRange(location: 0, length: nsString.length))
+
+            guard !matches.isEmpty else {
+                textLines.append(line)
+                return
+            }
+
+            var currentLocation = 0
+            var pendingText = ""
+
+            func flushPendingText(allowEmptyNewline: Bool = false) {
+                guard !pendingText.isEmpty || allowEmptyNewline else { return }
+                elements.append(.text(pendingText))
+                pendingText = ""
+            }
+
+            for match in matches {
+                let matchRange = match.range
+                let textLength = matchRange.location - currentLocation
+                if textLength > 0 {
+                    let segment = nsString.substring(with: NSRange(location: currentLocation, length: textLength))
+                    pendingText += segment
+                }
+
+                if !pendingText.isEmpty {
+                    flushPendingText()
+                }
+
+                var appendedImage = false
+                if match.numberOfRanges > 1 {
+                    let uuidRange = match.range(at: 1)
+                    let uuidString = nsString.substring(with: uuidRange)
+                    if let uuid = UUID(uuidString: uuidString), let image = loadImageFromCoreData(uuid: uuid) {
+                        elements.append(.image(image))
+                        appendedImage = true
+                    }
+                }
+
+                if !appendedImage {
+                    let placeholder = nsString.substring(with: matchRange)
+                    pendingText += placeholder
+                }
+
+                currentLocation = matchRange.location + matchRange.length
+
+                if !pendingText.isEmpty {
+                    flushPendingText()
+                }
+            }
+
+            if currentLocation < nsString.length {
+                let trailing = nsString.substring(from: currentLocation)
+                pendingText += trailing
+            }
+
+            if !pendingText.isEmpty {
+                if !isLastLine {
+                    pendingText += "\n"
+                }
+                flushPendingText()
+            }
+            else if !isLastLine {
+                pendingText = "\n"
+                flushPendingText(allowEmptyNewline: true)
+            }
+        }
+
         func extractImageUUID(_ line: String) -> UUID? {
             let pattern = "<image-uuid>(.*?)</image-uuid>"
             if let range = line.range(of: pattern, options: .regularExpression) {
@@ -220,7 +295,8 @@ struct MessageParser {
             appendThinkingBlockIfNeeded()
         }
 
-        for line in lines {
+        for (index, line) in lines.enumerated() {
+            let isLastLine = index == lines.count - 1
             let blockType = detectBlockType(line: line)
 
             switch blockType {
@@ -277,6 +353,9 @@ struct MessageParser {
                 if let uuid = extractImageUUID(line), let image = loadImageFromCoreData(uuid: uuid) {
                     combineTextLinesIfNeeded()
                     elements.append(.image(image))
+                    if !isLastLine {
+                        elements.append(.text("\n"))
+                    }
                 }
                 else {
                     textLines.append(line)
@@ -308,6 +387,12 @@ struct MessageParser {
                     handleFormulaLine(line: line)
                 }
                 else {
+                    if line.contains("<image-uuid>") {
+                        combineTextLinesIfNeeded()
+                        appendTableIfNeeded()
+                        handleLineWithInlineImages(line, isLastLine: isLastLine)
+                        continue
+                    }
                     if !currentTableData.isEmpty {
                         appendTable()
                     }

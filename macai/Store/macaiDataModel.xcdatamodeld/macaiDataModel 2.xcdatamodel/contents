@@ -8,7 +8,7 @@
         <attribute name="generateChatNames" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="imageGenerationAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="imageGenerationSupported" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" renamingIdentifier="imageGenerationAllowed"/>
         <attribute name="model" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="tokenIdentifier" optional="YES" attributeType="String"/>

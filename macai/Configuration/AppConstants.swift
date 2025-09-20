@@ -157,6 +157,7 @@ struct AppConstants {
             apiModelRef: "https://platform.openai.com/docs/models",
             defaultModel: "gpt-4o",
             models: [
+                "gpt-5",
                 "o1-preview",
                 "o1-mini",
                 "gpt-4o",
@@ -195,8 +196,10 @@ struct AppConstants {
             url: "https://api.anthropic.com/v1/messages",
             apiKeyRef: "https://docs.anthropic.com/en/docs/initial-setup#prerequisites",
             apiModelRef: "https://docs.anthropic.com/en/docs/about-claude/models",
-            defaultModel: "claude-3-5-sonnet-latest",
+            defaultModel: "claude-4.1-sonnet",
             models: [
+                "claude-4.1-sonnet",
+                "claude-4.1-opus",
                 "claude-3-5-sonnet-latest",
                 "claude-3-opus-latest",
                 "claude-3-haiku-20240307",
@@ -208,8 +211,11 @@ struct AppConstants {
             url: "https://api.x.ai/v1/chat/completions",
             apiKeyRef: "https://console.x.ai/",
             apiModelRef: "https://docs.x.ai/docs#models",
-            defaultModel: "grok-beta",
-            models: ["grok-beta"],
+            defaultModel: "grok-4",
+            models: [
+                "grok-4",
+                "grok-beta",
+            ],
             inherits: "chatgpt"
         ),
         "gemini": defaultApiConfiguration(
@@ -217,12 +223,15 @@ struct AppConstants {
             url: "https://generativelanguage.googleapis.com/v1beta/models",
             apiKeyRef: "https://aistudio.google.com/app/apikey",
             apiModelRef: "https://ai.google.dev/gemini-api/docs/models/gemini#model-variations",
-            defaultModel: "gemini-1.5-flash",
+            defaultModel: "gemini-2.5-pro",
             models: [
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-image-preview",
                 "gemini-2.0-flash-exp",
+                "gemini-1.5-pro",
                 "gemini-1.5-flash",
                 "gemini-1.5-flash-8b",
-                "gemini-1.5-pro",
             ],
             imageUploadsSupported: true,
             imageGenerationSupported: true,
