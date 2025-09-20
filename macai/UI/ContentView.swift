@@ -179,12 +179,6 @@ struct ContentView: View {
                         Text(selectedChat.apiService?.name ?? "Select API Service")
                     }
                 }
-
-                Button(action: {
-                    isSearchPresented.toggle()
-                }) {
-                    Image(systemName: "magnifyingglass")
-                }
                 
                 Button(action: {
                     newChat()
