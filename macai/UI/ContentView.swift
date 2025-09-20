@@ -232,7 +232,7 @@ struct ContentView: View {
 
         newChat.id = uuid
         newChat.newChat = true
-        newChat.temperature = 0.8
+        newChat.temperature = 1
         newChat.top_p = 1.0
         newChat.behavior = "default"
         newChat.newMessage = ""

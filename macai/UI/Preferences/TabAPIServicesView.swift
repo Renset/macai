@@ -60,12 +60,12 @@ struct TabAPIServicesView: View {
                     Spacer()
                 }
                 Menu {
-                    Button("Expert mode", action: presentExpertAdd)
+                    Button("Add in Expert mode", action: presentExpertAdd)
                 } label: {
                     Label("Add Service", systemImage: "plus")
                 } primaryAction: {
                     presentSimpleAdd()
-                }
+                }.frame(maxWidth: 200)
             }
         }
         .frame(minHeight: 300)

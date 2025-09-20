@@ -196,16 +196,13 @@ class MessageManager: ObservableObject {
 
     func testAPI(model: String, completion: @escaping (Result<Void, Error>) -> Void) {
         var requestMessages: [[String: String]] = []
-        var temperature = AppConstants.defaultPersonaTemperature
+        let temperature: Float = 1
 
         if !AppConstants.openAiReasoningModels.contains(model) {
             requestMessages.append([
                 "role": "system",
                 "content": "You are a test assistant.",
             ])
-        }
-        else {
-            temperature = 1
         }
 
         requestMessages.append(
