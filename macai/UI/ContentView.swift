@@ -149,11 +149,14 @@ struct ContentView: View {
         .navigationTitle("Chats")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Image("logo_\(selectedChat?.apiService?.type ?? "")")
-                    .resizable()
-                    .renderingMode(.template)
-                    .interpolation(.high)
-                    .frame(width: 16, height: 16)
+                if let selectedChatType = selectedChat?.apiService?.type {
+                    Image("logo_\(selectedChatType)")
+                        .resizable()
+                        .renderingMode(.template)
+                        .interpolation(.high)
+                        .frame(width: 16, height: 16)
+                        .padding(.horizontal, 12)
+                }
 
                 if let selectedChat = selectedChat {
                     Menu {
