@@ -11,19 +11,18 @@ struct BackupRestoreView: View {
     @ObservedObject var store: ChatStore
 
     var body: some View {
-        VStack {
+        VStack(alignment: .center, spacing: 8) {
             HStack {
                 Text("Chats are exported into plaintext, unencrypted JSON file. You can import them back later.")
                     .foregroundColor(.gray)
                 Spacer()
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 10)
 
             HStack {
                 Text("Export chats history")
                 Spacer()
                 Button("Export to file...") {
-
                     store.loadFromCoreData { result in
                         switch result {
                         case .failure(let error):
@@ -35,7 +34,7 @@ struct BackupRestoreView: View {
                             let savePanel = NSSavePanel()
                             savePanel.allowedContentTypes = [.json]
                             savePanel.nameFieldStringValue = "chats_\(getCurrentFormattedDate()).json"
-                            savePanel.begin { (result) in
+                            savePanel.begin { result in
                                 if result == .OK {
                                     do {
                                         try data.write(to: savePanel.url!)
@@ -56,7 +55,7 @@ struct BackupRestoreView: View {
                 Button("Import from file...") {
                     let openPanel = NSOpenPanel()
                     openPanel.allowedContentTypes = [.json]
-                    openPanel.begin { (result) in
+                    openPanel.begin { result in
                         if result == .OK {
                             do {
                                 let data = try Data(contentsOf: openPanel.url!)
@@ -69,7 +68,6 @@ struct BackupRestoreView: View {
                                         fatalError(error.localizedDescription)
                                     }
                                 }
-
                             }
                             catch {
                                 print(error)
@@ -81,5 +79,4 @@ struct BackupRestoreView: View {
         }
         .padding(32)
     }
-
 }
