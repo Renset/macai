@@ -33,6 +33,8 @@
 		4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A28424A2C87018800E5C920 /* TokenManager.swift */; };
 		4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */; };
 		4A2D3CEB2D5794B10082A262 /* ThemeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */; };
+		B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
+		B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
 		4A315DB22C8CD8410095ABD1 /* TabAIPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */; };
 		4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A37B8542C2A399800F36CC4 /* Credits.rtf */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
@@ -210,6 +212,8 @@
 		4AFEE7202C472F53006F99FB /* APIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIProtocol.swift; sourceTree = "<group>"; };
 		4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGPTHandler.swift; sourceTree = "<group>"; };
 		4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaHandler.swift; sourceTree = "<group>"; };
+		B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIHandlerBase.swift; sourceTree = "<group>"; };
+		B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIResponsesHandler.swift; sourceTree = "<group>"; };
 		5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddView.swift; sourceTree = "<group>"; };
 		62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplate.swift; sourceTree = "<group>"; };
 		7E9696501A3843E4A2D9926B /* APIServiceTemplates.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = APIServiceTemplates.json; sourceTree = "<group>"; };
@@ -505,6 +509,8 @@
 				4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */,
 				4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */,
 				4AFEE7202C472F53006F99FB /* APIProtocol.swift */,
+				B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */,
+				B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */,
 				4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */,
 				4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */,
 				4AA6EF582C565F90003B6D41 /* APIServiceConfig.swift */,
@@ -668,6 +674,8 @@
 				4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */,
 				4ABB867B2CFC79ED004EC7B1 /* ErrorBubbleView.swift in Sources */,
 				4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */,
+				B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */,
+				B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */,
 				4AFEE7232C472FA1006F99FB /* ChatGPTHandler.swift in Sources */,
 				4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */,
 				4A27FF942DA1C4640075D730 /* MessageContent.swift in Sources */,

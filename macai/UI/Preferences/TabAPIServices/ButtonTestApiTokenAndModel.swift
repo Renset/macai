@@ -10,9 +10,9 @@ import SwiftUI
 struct ButtonTestApiTokenAndModel: View {
     @Binding var lampColor: Color
     var gptToken: String = ""
-    var gptModel: String = AppConstants.chatGptDefaultModel
-    var apiUrl: String = AppConstants.apiUrlChatCompletions
-    var apiType: String = "chatgpt"
+    var gptModel: String = AppConstants.defaultPrimaryModel
+    var apiUrl: String = AppConstants.apiUrlOpenAIResponses
+    var apiType: String = AppConstants.defaultApiType
     @State var testOk: Bool = false
 
     @Environment(\.managedObjectContext) private var viewContext

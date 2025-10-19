@@ -58,8 +58,8 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
 
     // Persisted settings (not directly exposed in the simple UI)
     private(set) var type: String = AppConstants.defaultApiType
-    private(set) var url: String = AppConstants.apiUrlChatCompletions
-    private(set) var model: String = AppConstants.chatGptDefaultModel
+    private(set) var url: String = AppConstants.apiUrlOpenAIResponses
+    private(set) var model: String = AppConstants.defaultPrimaryModel
     private(set) var contextSize: Float = 20
     private(set) var generateChatNames: Bool = true
     private(set) var useStreamResponse: Bool = true
@@ -154,7 +154,7 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
 
         type = option.provider.id
         defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
-        url = defaultApiConfiguration?.url ?? AppConstants.apiUrlChatCompletions
+        url = defaultApiConfiguration?.url ?? AppConstants.apiUrlOpenAIResponses
         model = option.model.id
 
         updateSettings(from: option.model.settings)

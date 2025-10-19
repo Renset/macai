@@ -20,6 +20,8 @@ class APIServiceFactory {
             AppConstants.defaultApiConfigurations[config.name.lowercased()]?.inherits ?? config.name.lowercased()
 
         switch configName {
+        case "openai-responses", "openai":
+            return OpenAIResponsesHandler(config: config, session: session)
         case "chatgpt":
             return ChatGPTHandler(config: config, session: session)
         case "ollama":

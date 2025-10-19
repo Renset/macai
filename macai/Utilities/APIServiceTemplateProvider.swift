@@ -52,8 +52,28 @@ enum APIServiceTemplateProvider {
     {
         "providers": [
             {
-                "id": "chatgpt",
+                "id": "openai-responses",
                 "displayName": "OpenAI",
+                "defaultName": "OpenAI GPT-4.1",
+                "note": "Requires an API key from platform.openai.com",
+                "models": [
+                    {
+                        "id": "gpt-5",
+                        "displayName": "GPT-5",
+                        "isDefault": true,
+                        "settings": {
+                            "generateChatNames": true,
+                            "contextSize": 30,
+                            "useStreaming": true,
+                            "allowImageUploads": true,
+                            "imageGenerationSupported": false
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "chatgpt",
+                "displayName": "Generic Completions API",
                 "defaultName": "OpenAI GPT-5",
                 "note": "Requires an API key from platform.openai.com",
                 "models": [

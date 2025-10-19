@@ -169,7 +169,7 @@ extension PersistenceController {
         chat.createdDate = Date()
         chat.updatedDate = Date()
         chat.systemMessage = AppConstants.chatGptSystemMessage
-        chat.gptModel = AppConstants.chatGptDefaultModel
+        chat.gptModel = AppConstants.defaultPrimaryModel
 
         let persona = PersonaEntity(context: viewContext)
         persona.name = "Assistant"

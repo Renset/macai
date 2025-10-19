@@ -59,7 +59,7 @@ class PersistenceController {
 
 @main
 struct macaiApp: App {
-    @AppStorage("gptModel") var gptModel: String = AppConstants.chatGptDefaultModel
+    @AppStorage("gptModel") var gptModel: String = AppConstants.defaultPrimaryModel
     @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
 

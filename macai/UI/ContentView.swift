@@ -29,10 +29,10 @@ struct ContentView: View {
 
     @State var selectedChat: ChatEntity?
     @AppStorage("gptToken") var gptToken = ""
-    @AppStorage("gptModel") var gptModel = AppConstants.chatGptDefaultModel
+    @AppStorage("gptModel") var gptModel = AppConstants.defaultPrimaryModel
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
-    @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlChatCompletions
+    @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlOpenAIResponses
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
     @StateObject private var previewStateManager = PreviewStateManager()
 
@@ -61,7 +61,7 @@ struct ContentView: View {
                     WelcomeScreen(
                         chatsCount: chats.count,
                         apiServiceIsPresent: apiServices.count > 0,
-                        customUrl: apiUrl != AppConstants.apiUrlChatCompletions,
+                        customUrl: apiUrl != AppConstants.apiUrlOpenAIResponses,
                         openPreferencesView: openPreferencesView,
                         newChat: newChat
                     )
@@ -241,7 +241,7 @@ struct ContentView: View {
         if let service = preferredService {
             newChat.apiService = service
             newChat.persona = service.defaultPersona
-            newChat.gptModel = service.model ?? AppConstants.chatGptDefaultModel
+            newChat.gptModel = service.model ?? AppConstants.defaultModel(for: service.type)
             newChat.systemMessage = service.defaultPersona?.systemMessage ?? AppConstants.chatGptSystemMessage
         }
         else if let defaultServiceIDString = defaultApiServiceID,
@@ -253,7 +253,7 @@ struct ContentView: View {
                 newChat.apiService = defaultService
                 newChat.persona = defaultService?.defaultPersona
                 // TODO: Refactor the following code along with ChatView.swift
-                newChat.gptModel = defaultService?.model ?? AppConstants.chatGptDefaultModel
+                newChat.gptModel = defaultService?.model ?? AppConstants.defaultModel(for: defaultService?.type)
                 newChat.systemMessage = newChat.persona?.systemMessage ?? AppConstants.chatGptSystemMessage
             }
             catch {
@@ -318,7 +318,7 @@ struct ContentView: View {
         }
         
         chat.apiService = newService
-        chat.gptModel = newService.model ?? AppConstants.chatGptDefaultModel
+        chat.gptModel = newService.model ?? AppConstants.defaultModel(for: newService.type)
         chat.objectWillChange.send()
         try? viewContext.save()
 

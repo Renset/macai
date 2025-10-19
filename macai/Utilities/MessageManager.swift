@@ -166,7 +166,10 @@ class MessageManager: ObservableObject {
             chat: chat,
             contextSize: 3
         )
-        apiService.sendMessage(requestMessages, temperature: AppConstants.defaultTemperatureForChatNameGeneration) {
+        let personaTemperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat)
+            .roundedToOneDecimal()
+
+        apiService.sendMessage(requestMessages, temperature: personaTemperature) {
             [weak self] result in
             guard let self = self else { return }
 

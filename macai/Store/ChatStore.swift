@@ -82,7 +82,7 @@ class ChatStore: ObservableObject {
                     chatEntity.createdDate = Date()
                     chatEntity.updatedDate = Date()
                     chatEntity.requestMessages = oldChat.requestMessages
-                    chatEntity.gptModel = oldChat.gptModel ?? AppConstants.chatGptDefaultModel
+                    chatEntity.gptModel = oldChat.gptModel ?? AppConstants.defaultModel(for: oldChat.apiServiceType)
                     chatEntity.systemMessage = oldChat.systemMessage ?? AppConstants.chatGptSystemMessage
                     chatEntity.name = oldChat.name ?? ""
 

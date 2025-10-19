@@ -1,7 +1,7 @@
 {
     "providers": [
         {
-            "id": "chatgpt",
+            "id": "openai-responses",
             "displayName": "OpenAI",
             "defaultName": "GPT-5",
             "models": [
@@ -11,7 +11,7 @@
                     "isDefault": true,
                     "settings": {
                         "generateChatNames": true,
-                        "contextSize": 10,
+                        "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
                         "imageGenerationSupported": false

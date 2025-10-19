@@ -152,7 +152,7 @@ class ChatViewModel: ObservableObject {
     }
 
     private func getApiServiceName() -> String {
-        return chat.apiService?.type ?? "chatgpt"
+        return chat.apiService?.type ?? AppConstants.defaultApiType
     }
     
     func regenerateChatName() {

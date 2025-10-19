@@ -94,7 +94,7 @@ class APIServiceDetailViewModel: ObservableObject {
                 defaultApiConfiguration = config
             }
             else {
-                url = AppConstants.apiUrlChatCompletions
+                url = AppConstants.apiUrlOpenAIResponses
                 imageUploadsAllowed = false
                 imageGenerationSupported = false
             }
