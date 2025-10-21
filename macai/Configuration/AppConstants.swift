@@ -168,7 +168,7 @@ struct AppConstants {
             url: Self.apiUrlOpenAIResponses,
             apiKeyRef: "https://platform.openai.com/docs/api-reference/api-keys",
             apiModelRef: "https://platform.openai.com/docs/models",
-            defaultModel: "gpt-4.1",
+            defaultModel: "gpt-5",
             models: [
                 "gpt-5",
             ],

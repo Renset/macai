@@ -14,7 +14,7 @@ class DatabasePatcher {
         patchPersonaOrdering(context: context)
         patchImageUploadsForAPIServices(context: context)
         patchImageGenerationForAPIServices(context: context)
-        resetMigrationState()
+        //resetMigrationState()
         patchGeminiLegacyEndpoint(context: context)
         patchChatGPTLegacyEndpoint(context: context)
         //resetPersonaOrdering(context: context)

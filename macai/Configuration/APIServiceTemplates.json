@@ -16,6 +16,18 @@
                         "allowImageUploads": true,
                         "imageGenerationSupported": true
                     }
+                },
+                {
+                    "id": "gpt-4o",
+                    "displayName": "GPT-4o",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 20,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "imageGenerationSupported": false
+                    }
                 }
             ]
         },
