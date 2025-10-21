@@ -94,7 +94,7 @@ class APIServiceDetailViewModel: ObservableObject {
                 defaultApiConfiguration = config
             }
             else {
-                url = AppConstants.apiUrlChatCompletions
+                url = AppConstants.apiUrlOpenAIResponses
                 imageUploadsAllowed = false
                 imageGenerationSupported = false
             }
@@ -135,7 +135,10 @@ class APIServiceDetailViewModel: ObservableObject {
             model: ""
         )
 
-        let apiService = APIServiceFactory.createAPIService(config: config)
+        let apiService = APIServiceFactory.createAPIService(
+            config: config,
+            imageGenerationSupported: imageGenerationSupported
+        )
 
         Task {
             do {

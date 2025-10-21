@@ -10,9 +10,10 @@ import SwiftUI
 struct ButtonTestApiTokenAndModel: View {
     @Binding var lampColor: Color
     var gptToken: String = ""
-    var gptModel: String = AppConstants.chatGptDefaultModel
-    var apiUrl: String = AppConstants.apiUrlChatCompletions
-    var apiType: String = "chatgpt"
+    var gptModel: String = AppConstants.defaultPrimaryModel
+    var apiUrl: String = AppConstants.apiUrlOpenAIResponses
+    var apiType: String = AppConstants.defaultApiType
+    var imageGenerationSupported: Bool = false
     @State var testOk: Bool = false
 
     @Environment(\.managedObjectContext) private var viewContext
@@ -39,7 +40,10 @@ struct ButtonTestApiTokenAndModel: View {
             apiKey: gptToken,
             model: gptModel
         )
-        let apiService = APIServiceFactory.createAPIService(config: config)
+        let apiService = APIServiceFactory.createAPIService(
+            config: config,
+            imageGenerationSupported: imageGenerationSupported
+        )
         let messageManager = MessageManager(apiService: apiService, viewContext: viewContext)
         messageManager.testAPI(model: gptModel) { result in
             DispatchQueue.main.async {

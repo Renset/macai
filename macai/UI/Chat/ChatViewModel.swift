@@ -116,8 +116,12 @@ class ChatViewModel: ObservableObject {
             fatalError("No valid API configuration found")
         }
         print(">> Creating new MessageManager with URL: \(config.apiUrl) and model: \(config.model)")
+        let supportsImageGeneration = chat.apiService?.imageGenerationSupported ?? false
         return MessageManager(
-            apiService: APIServiceFactory.createAPIService(config: config),
+            apiService: APIServiceFactory.createAPIService(
+                config: config,
+                imageGenerationSupported: supportsImageGeneration
+            ),
             viewContext: self.viewContext
         )
     }
@@ -152,7 +156,7 @@ class ChatViewModel: ObservableObject {
     }
 
     private func getApiServiceName() -> String {
-        return chat.apiService?.type ?? "chatgpt"
+        return chat.apiService?.type ?? AppConstants.defaultApiType
     }
     
     func regenerateChatName() {

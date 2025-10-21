@@ -15,11 +15,22 @@ class APIServiceFactory {
         return URLSession(configuration: configuration)
     }()
 
-    static func createAPIService(config: APIServiceConfiguration) -> APIService {
+    static func createAPIService(
+        config: APIServiceConfiguration,
+        imageGenerationSupported: Bool? = nil
+    ) -> APIService {
         let configName =
             AppConstants.defaultApiConfigurations[config.name.lowercased()]?.inherits ?? config.name.lowercased()
 
         switch configName {
+        case "openai-responses", "openai":
+            let supportsImageGeneration = imageGenerationSupported
+                ?? false
+            return OpenAIResponsesHandler(
+                config: config,
+                session: session,
+                imageGenerationSupported: supportsImageGeneration
+            )
         case "chatgpt":
             return ChatGPTHandler(config: config, session: session)
         case "ollama":

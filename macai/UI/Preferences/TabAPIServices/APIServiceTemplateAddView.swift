@@ -216,11 +216,11 @@ struct APIServiceTemplateAddView: View {
                 }
             }
 
-            if let provider = viewModel.selectedProvider, let model = viewModel.selectedModel {
-                Text("Service saved as \(provider.displayName) • \(model.displayName). You can refine any settings in Expert mode.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+            
+            Text("Service saved as \(viewModel.serviceName). You can refine any settings in Expert mode.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            
         }
     }
 
