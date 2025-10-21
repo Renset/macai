@@ -33,8 +33,6 @@
 		4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A28424A2C87018800E5C920 /* TokenManager.swift */; };
 		4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */; };
 		4A2D3CEB2D5794B10082A262 /* ThemeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */; };
-		B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
-		B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
 		4A315DB22C8CD8410095ABD1 /* TabAIPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */; };
 		4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A37B8542C2A399800F36CC4 /* Credits.rtf */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
@@ -96,6 +94,8 @@
 		537028A45E2C4DD7A33DA2D2 /* APIServiceTemplates.json in Resources */ = {isa = PBXBuildFile; fileRef = 7E9696501A3843E4A2D9926B /* APIServiceTemplates.json */; };
 		7CEEFA33B4C841A2AC2BFBA2 /* APIServiceTemplateProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */; };
 		9A040A4C76354F309DF6CB6F /* NotificationPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */; };
+		B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
+		B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
 		F595CD3876D345D794C42AFF /* APIServiceTemplateAddViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */; };
 /* End PBXBuildFile section */
 
@@ -212,11 +212,11 @@
 		4AFEE7202C472F53006F99FB /* APIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIProtocol.swift; sourceTree = "<group>"; };
 		4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGPTHandler.swift; sourceTree = "<group>"; };
 		4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaHandler.swift; sourceTree = "<group>"; };
-		B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIHandlerBase.swift; sourceTree = "<group>"; };
-		B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIResponsesHandler.swift; sourceTree = "<group>"; };
 		5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddView.swift; sourceTree = "<group>"; };
 		62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplate.swift; sourceTree = "<group>"; };
 		7E9696501A3843E4A2D9926B /* APIServiceTemplates.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = APIServiceTemplates.json; sourceTree = "<group>"; };
+		B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIHandlerBase.swift; sourceTree = "<group>"; };
+		B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIResponsesHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -906,7 +906,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.2.2;
+				CURRENT_PROJECT_VERSION = 2.2.3;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -925,7 +925,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.2;
+				MARKETING_VERSION = 2.2.3;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -948,7 +948,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.2.2;
+				CURRENT_PROJECT_VERSION = 2.2.3;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -967,7 +967,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.2;
+				MARKETING_VERSION = 2.2.3;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
