@@ -171,7 +171,8 @@ struct APIServiceDetailView: View {
                             gptToken: viewModel.apiKey,
                             gptModel: viewModel.model,
                             apiUrl: viewModel.url,
-                            apiType: viewModel.type
+                            apiType: viewModel.type,
+                            imageGenerationSupported: viewModel.imageGenerationSupported
                         )
                     }
                 }

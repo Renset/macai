@@ -388,7 +388,10 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             apiKey: apiKey,
             model: model
         )
-        let apiService = APIServiceFactory.createAPIService(config: config)
+        let apiService = APIServiceFactory.createAPIService(
+            config: config,
+            imageGenerationSupported: imageGenerationSupported
+        )
         let messageManager = MessageManager(apiService: apiService, viewContext: viewContext)
 
         messageManager.testAPI(model: model) { [weak self] result in

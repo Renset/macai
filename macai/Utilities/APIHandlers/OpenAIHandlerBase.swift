@@ -13,13 +13,15 @@ class OpenAIHandlerBase {
     let baseURL: URL
     let apiKey: String
     let model: String
+    let imageGenerationSupported: Bool
     let session: URLSession
 
-    init(config: APIServiceConfiguration, session: URLSession) {
+    init(config: APIServiceConfiguration, session: URLSession, imageGenerationSupported: Bool = false) {
         self.name = config.name
         self.baseURL = config.apiUrl
         self.apiKey = config.apiKey
         self.model = config.model
+        self.imageGenerationSupported = imageGenerationSupported
         self.session = session
     }
 
@@ -79,4 +81,3 @@ class OpenAIHandlerBase {
         return !string.starts(with: ":")
     }
 }
-

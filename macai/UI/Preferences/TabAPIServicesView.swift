@@ -53,19 +53,17 @@ struct TabAPIServicesView: View {
                         }
                         .buttonStyle(BorderlessButtonStyle())
                     }
-                    Spacer()
+                }
+                Spacer(minLength: 0)
 
-                }
-                else {
-                    Spacer()
-                }
                 Menu {
                     Button("Add in Expert mode", action: presentExpertAdd)
                 } label: {
                     Label("Add Service", systemImage: "plus")
                 } primaryAction: {
                     presentSimpleAdd()
-                }.frame(maxWidth: 200)
+                }
+                .frame(maxWidth: 200, alignment: .trailing)
             }
         }
         .frame(minHeight: 300)

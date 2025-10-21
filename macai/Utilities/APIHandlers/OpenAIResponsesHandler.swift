@@ -5,6 +5,8 @@
 //  Created by Renat on 19.10.2025.
 //
 
+import AppKit
+import CoreData
 import Foundation
 
 private struct OpenAIModelsResponse: Codable {
@@ -18,10 +20,6 @@ private struct OpenAIModel: Codable {
 class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
     private static var temperatureUnsupportedModels = Set<String>()
     private static let temperatureLock = NSLock()
-
-    override init(config: APIServiceConfiguration, session: URLSession) {
-        super.init(config: config, session: session)
-    }
 
     func sendMessage(
         _ requestMessages: [[String: String]],
@@ -270,6 +268,10 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
             jsonDict["temperature"] = temperatureOverride
         }
 
+        if shouldIncludeImageGenerationTool() {
+            jsonDict["tools"] = [["type": "image_generation"]]
+        }
+
         if stream {
             jsonDict["stream"] = true
         }
@@ -284,59 +286,7 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
             return nil
         }
 
-        if let outputText = json["output_text"] as? String {
-            return (outputText, "assistant")
-        }
-
-        if let output = json["output"] as? [[String: Any]] {
-            for item in output {
-                let role = item["role"] as? String ?? "assistant"
-                guard let contentItems = item["content"] as? [[String: Any]] else { continue }
-
-                var aggregatedText = ""
-
-                for contentItem in contentItems {
-                    if let text = contentItem["text"] as? String {
-                        aggregatedText += text
-                    }
-                    else if let text = contentItem["output_text"] as? String {
-                        aggregatedText += text
-                    }
-                }
-
-                if !aggregatedText.isEmpty {
-                    return (aggregatedText, role)
-                }
-            }
-        }
-
-        if let response = json["response"] as? [String: Any] {
-            if let outputText = response["output_text"] as? String {
-                let role = response["role"] as? String ?? "assistant"
-                return (outputText, role)
-            }
-
-            if let output = response["output"] as? [[String: Any]] {
-                for item in output {
-                    let role = item["role"] as? String ?? "assistant"
-                    if let contents = item["content"] as? [[String: Any]] {
-                        let aggregatedText = contents.reduce(into: "") { partialResult, entry in
-                            if let text = entry["text"] as? String {
-                                partialResult += text
-                            }
-                            else if let text = entry["output_text"] as? String {
-                                partialResult += text
-                            }
-                        }
-                        if !aggregatedText.isEmpty {
-                            return (aggregatedText, role)
-                        }
-                    }
-                }
-            }
-        }
-
-        return nil
+        return extractMessage(from: json)
     }
 
     private func parseStreamResponse(data: Data) -> (Bool, APIError?, String?) {
@@ -352,39 +302,45 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
             }
 
             if let type = json["type"] as? String {
-                if type == "response.completed" {
+                switch type {
+                case "response.completed":
                     if let response = json["response"] as? [String: Any],
-                       let outputText = response["output_text"] as? String,
-                       !outputText.isEmpty
+                       let (messageText, _) = extractMessage(from: response)
                     {
-                        return (true, nil, outputText)
+                        return (true, nil, messageText)
                     }
                     return (true, nil, nil)
-                }
-
-                if type == "response.error" {
+                case "response.error":
                     let message = (json["message"] as? String)
                         ?? (json["error"] as? [String: Any])?["message"] as? String
                         ?? String(data: data, encoding: .utf8)
                         ?? "Unknown error"
                     return (true, APIError.serverError(message), nil)
-                }
+                default:
+                    if type.hasSuffix(".delta") {
+                        if let deltaString = json["delta"] as? String {
+                            return (false, nil, deltaString)
+                        }
+                        else if let deltaDict = json["delta"] as? [String: Any] {
+                            let placeholders = extractImagePlaceholders(from: deltaDict)
+                            if !placeholders.isEmpty {
+                                return (false, nil, joinSegments(placeholders))
+                            }
+                        }
+                    }
 
-                if type.hasSuffix(".delta"), let delta = json["delta"] as? String {
-                    return (false, nil, delta)
-                }
-
-                if type.hasSuffix(".done") {
-                    return (false, nil, nil)
+                    if type.hasSuffix(".done") {
+                        return (false, nil, nil)
+                    }
                 }
             }
 
-            if let delta = json["delta"] as? String {
-                return (false, nil, delta)
+            if let (messageText, _) = extractMessage(from: json) {
+                return (false, nil, messageText)
             }
 
-            if let outputText = json["output_text"] as? String {
-                return (false, nil, outputText)
+            if let deltaString = json["delta"] as? String {
+                return (false, nil, deltaString)
             }
 
             return (false, nil, nil)
@@ -392,6 +348,344 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
         catch {
             return (false, APIError.decodingFailed("Failed to parse JSON: \(error.localizedDescription)"), nil)
         }
+    }
+
+    private func extractMessage(from json: [String: Any]) -> (String, String)? {
+        if let response = json["response"] as? [String: Any] {
+            return extractMessage(from: response)
+        }
+
+        if let outputText = json["output_text"] as? String,
+           !outputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            let role = json["role"] as? String ?? "assistant"
+            return (outputText, role)
+        }
+
+        if let outputItems = json["output"] as? [[String: Any]] {
+            return aggregateOutputItems(outputItems, fallbackRole: json["role"] as? String ?? "assistant")
+        }
+
+        if let contentItems = json["content"] as? [[String: Any]] {
+            let role = json["role"] as? String ?? "assistant"
+            let aggregated = aggregateContentItems(contentItems)
+            return aggregated.isEmpty ? nil : (aggregated, role)
+        }
+
+        if let message = json["message"] as? [String: Any] {
+            return extractMessage(from: message)
+        }
+
+        return nil
+    }
+
+    private func aggregateOutputItems(_ items: [[String: Any]], fallbackRole: String) -> (String, String)? {
+        var segments: [String] = []
+        var role = fallbackRole
+
+        for item in items {
+            if let itemRole = item["role"] as? String {
+                role = itemRole
+            }
+
+            if let type = item["type"] as? String {
+                switch type {
+                case "message":
+                    if let content = item["content"] as? [[String: Any]] {
+                        let text = aggregateContentItems(content)
+                        if !text.isEmpty { segments.append(text) }
+                    }
+                case "output_text":
+                    if let text = item["text"] as? String ?? item["output_text"] as? String {
+                        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { segments.append(trimmed) }
+                    }
+                case "image_generation_call", "output_image", "image":
+                    let placeholders = extractImagePlaceholders(from: item)
+                    segments.append(contentsOf: placeholders)
+                case "refusal":
+                    if let refusal = item["refusal"] as? String {
+                        segments.append(refusal)
+                    }
+                    else if let content = item["content"] as? [[String: Any]] {
+                        let text = aggregateContentItems(content)
+                        if !text.isEmpty { segments.append(text) }
+                    }
+                default:
+                    let placeholders = extractImagePlaceholders(from: item)
+                    segments.append(contentsOf: placeholders)
+
+                    if let content = item["content"] as? [[String: Any]] {
+                        let text = aggregateContentItems(content)
+                        if !text.isEmpty { segments.append(text) }
+                    }
+                    else if let text = item["text"] as? String {
+                        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { segments.append(trimmed) }
+                    }
+                }
+            }
+            else if let content = item["content"] as? [[String: Any]] {
+                let text = aggregateContentItems(content)
+                if !text.isEmpty { segments.append(text) }
+            }
+        }
+
+        let message = joinSegments(segments)
+        return message.isEmpty ? nil : (message, role)
+    }
+
+    private func aggregateContentItems(_ items: [[String: Any]]) -> String {
+        var segments: [String] = []
+
+        for item in items {
+            if let type = item["type"] as? String {
+                switch type {
+                case "input_text", "output_text", "text":
+                    if let text = item["text"] as? String ?? item["output_text"] as? String {
+                        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { segments.append(trimmed) }
+                    }
+                case "image", "output_image", "image_url":
+                    let placeholders = extractImagePlaceholders(from: item)
+                    segments.append(contentsOf: placeholders)
+                case "refusal":
+                    if let refusal = item["refusal"] as? String {
+                        segments.append(refusal)
+                    }
+                default:
+                    let placeholders = extractImagePlaceholders(from: item)
+                    segments.append(contentsOf: placeholders)
+
+                    if let text = item["text"] as? String {
+                        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { segments.append(trimmed) }
+                    }
+                }
+            }
+            else if let text = item["text"] as? String {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { segments.append(trimmed) }
+            }
+        }
+
+        return joinSegments(segments)
+    }
+
+    private func joinSegments(_ segments: [String]) -> String {
+        segments
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func extractImagePlaceholders(from item: [String: Any]) -> [String] {
+        let payloads = collectImagePayloads(from: item)
+        guard !payloads.isEmpty else { return [] }
+
+        var seen = Set<String>()
+        var placeholders: [String] = []
+
+        for (base64, hint) in payloads {
+            guard !base64.isEmpty else { continue }
+            if seen.contains(base64) { continue }
+            seen.insert(base64)
+
+            if let placeholder = storeGeneratedImage(base64: base64, formatHint: hint) {
+                placeholders.append(placeholder)
+            }
+        }
+
+        return placeholders
+    }
+
+    private func collectImagePayloads(from item: [String: Any], formatHint: String? = nil) -> [(String, String?)] {
+        var results: [(String, String?)] = []
+        let currentHint = item["mime_type"] as? String
+            ?? item["media_type"] as? String
+            ?? item["content_type"] as? String
+            ?? (item["format"] as? String)
+            ?? formatHint
+
+        if let resultString = item["result"] as? String {
+            results.append((resultString, currentHint))
+        }
+        else if let resultArray = item["result"] as? [String] {
+            results.append(contentsOf: resultArray.map { ($0, currentHint) })
+        }
+        else if let resultDict = item["result"] as? [String: Any] {
+            results.append(contentsOf: collectImagePayloads(from: resultDict, formatHint: currentHint))
+        }
+
+        if let imageDict = item["image"] as? [String: Any] {
+            results.append(contentsOf: collectImagePayloads(from: imageDict, formatHint: currentHint))
+        }
+
+        if let imagesArray = item["images"] as? [[String: Any]] {
+            for image in imagesArray {
+                results.append(contentsOf: collectImagePayloads(from: image, formatHint: currentHint))
+            }
+        }
+
+        if let dataArray = item["data"] as? [[String: Any]] {
+            for entry in dataArray {
+                results.append(contentsOf: collectImagePayloads(from: entry, formatHint: currentHint))
+            }
+        }
+
+        if let base64 = item["b64_json"] as? String {
+            results.append((base64, currentHint))
+        }
+
+        if let base64 = item["base64"] as? String {
+            results.append((base64, currentHint))
+        }
+
+        if let inlineData = item["inline_data"] as? [String: Any] {
+            let inlineHint = inlineData["mime_type"] as? String ?? currentHint
+            if let embedded = inlineData["data"] as? String {
+                results.append((embedded, inlineHint))
+            }
+        }
+
+        if let urlString = item["image_url"] as? String, urlString.starts(with: "data:image") {
+            let components = urlString.split(separator: ",", maxSplits: 1).map(String.init)
+            if components.count == 2 {
+                let metadata = components[0]
+                let base64Part = components[1]
+                var hintFromUrl: String? = currentHint
+                if let mimePart = metadata.split(separator: ":").last?.split(separator: ";").first {
+                    hintFromUrl = String(mimePart)
+                }
+                results.append((base64Part, hintFromUrl))
+            }
+        }
+
+        if let mediaArray = item["media"] as? [[String: Any]] {
+            for media in mediaArray {
+                results.append(contentsOf: collectImagePayloads(from: media, formatHint: currentHint))
+            }
+        }
+
+        return results
+    }
+
+    private func storeGeneratedImage(base64: String, formatHint: String?) -> String? {
+        guard let data = Data(base64Encoded: base64) else { return nil }
+        let format = determineImageFormat(for: data, hint: formatHint)
+        guard let uuid = saveImageData(data, format: format) else { return nil }
+        return "<image-uuid>\(uuid.uuidString)</image-uuid>"
+    }
+
+    private func determineImageFormat(for data: Data, hint: String?) -> String {
+        if let normalized = normalizeFormatHint(hint) {
+            return normalized
+        }
+
+        let bytes = [UInt8](data.prefix(12))
+
+        if bytes.count >= 4 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 {
+            return "png"
+        }
+
+        if bytes.count >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8 {
+            return "jpeg"
+        }
+
+        if bytes.count >= 3,
+           let signature = String(bytes: bytes[0..<3], encoding: .ascii),
+           signature == "GIF"
+        {
+            return "gif"
+        }
+
+        if bytes.count >= 12,
+           let riff = String(bytes: bytes[0..<4], encoding: .ascii), riff == "RIFF",
+           let webp = String(bytes: bytes[8..<12], encoding: .ascii), webp == "WEBP"
+        {
+            return "webp"
+        }
+
+        return "jpeg"
+    }
+
+    private func normalizeFormatHint(_ hint: String?) -> String? {
+        guard let hint = hint?.lowercased(), !hint.isEmpty else {
+            return nil
+        }
+
+        if hint.contains("/") {
+            let suffix = hint.split(separator: "/").last ?? Substring()
+            let cleaned = suffix.replacingOccurrences(of: "jpg", with: "jpeg")
+            return cleaned.isEmpty ? nil : cleaned
+        }
+
+        if hint == "jpg" {
+            return "jpeg"
+        }
+
+        return hint
+    }
+
+    private func saveImageData(_ data: Data, format: String) -> UUID? {
+        guard let image = NSImage(data: data) else { return nil }
+        let uuid = UUID()
+        let context = PersistenceController.shared.container.viewContext
+        var saveSucceeded = false
+
+        context.performAndWait {
+            let imageEntity = ImageEntity(context: context)
+            imageEntity.id = uuid
+            imageEntity.image = data
+            imageEntity.imageFormat = format
+            imageEntity.thumbnail = createThumbnailData(from: image)
+
+            do {
+                try context.save()
+                saveSucceeded = true
+            }
+            catch {
+                context.rollback()
+                print("Error saving generated image: \(error)")
+            }
+        }
+
+        return saveSucceeded ? uuid : nil
+    }
+
+    private func createThumbnailData(from image: NSImage) -> Data? {
+        let thumbnailSize = CGFloat(AppConstants.thumbnailSize)
+        let originalSize = image.size
+        guard originalSize.width > 0, originalSize.height > 0 else { return nil }
+
+        let aspectRatio = originalSize.width / originalSize.height
+        var targetSize = CGSize(width: thumbnailSize, height: thumbnailSize)
+
+        if aspectRatio > 1 {
+            targetSize.height = thumbnailSize / aspectRatio
+        }
+        else {
+            targetSize.width = thumbnailSize * aspectRatio
+        }
+
+        let thumbnail = NSImage(size: targetSize)
+        thumbnail.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+        image.draw(in: CGRect(origin: .zero, size: targetSize), from: .zero, operation: .copy, fraction: 1.0)
+        thumbnail.unlockFocus()
+
+        guard let tiffData = thumbnail.tiffRepresentation,
+            let bitmap = NSBitmapImageRep(data: tiffData)
+        else {
+            return nil
+        }
+
+        return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.7])
+    }
+
+    private func shouldIncludeImageGenerationTool() -> Bool {
+        imageGenerationSupported
     }
 
     private func shouldSendTemperature() -> Bool {

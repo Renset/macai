@@ -172,7 +172,8 @@ struct AppConstants {
             models: [
                 "gpt-5",
             ],
-            imageUploadsSupported: true
+            imageUploadsSupported: true,
+            imageGenerationSupported: true
         ),
         "chatgpt": defaultApiConfiguration(
             name: "Generic Completions API",
@@ -181,15 +182,7 @@ struct AppConstants {
             apiModelRef: "https://platform.openai.com/docs/models",
             defaultModel: "gpt-4o",
             models: [
-                "gpt-5",
-                "o1-preview",
-                "o1-mini",
-                "gpt-4o",
-                "chatgpt-4o-latest",
-                "gpt-4o-mini",
-                "gpt-4-turbo",
-                "gpt-4",
-                "gpt-3.5-turbo",
+                "gpt-5"
             ],
             imageUploadsSupported: true
         ),

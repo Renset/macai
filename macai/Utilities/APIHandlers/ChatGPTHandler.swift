@@ -18,7 +18,7 @@ private struct ChatGPTModel: Codable {
 }
 
 class ChatGPTHandler: OpenAIHandlerBase, APIService {
-    override init(config: APIServiceConfiguration, session: URLSession) {
+    init(config: APIServiceConfiguration, session: URLSession) {
         super.init(config: config, session: session)
     }
 
