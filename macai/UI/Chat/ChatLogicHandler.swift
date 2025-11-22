@@ -102,17 +102,22 @@ class ChatLogicHandler: ObservableObject {
 
         guard !messageToResend.isEmpty else { return }
 
-        if currentError == nil,
-            let lastMessage = chatViewModel.sortedMessages.last {
-            viewContext.delete(lastMessage)
-            if !lastMessage.own,
-                let secondLastMessage = chatViewModel.sortedMessages.dropLast().last {
-                viewContext.delete(secondLastMessage)
-            }
-            try? viewContext.save()
-        }
+        removeLastAttemptMessages()
 
         sendMessage(messageText: messageToResend, attachedImages: [])
+    }
+
+    private func removeLastAttemptMessages() {
+        guard let lastMessage = chatViewModel.sortedMessages.last else { return }
+
+        viewContext.delete(lastMessage)
+
+        if !lastMessage.own,
+            let secondLastMessage = chatViewModel.sortedMessages.dropLast().last {
+            viewContext.delete(secondLastMessage)
+        }
+
+        try? viewContext.save()
     }
     
     func ignoreError() {
