@@ -43,6 +43,7 @@ class ChatViewModel: ObservableObject {
     @Published var messages: NSOrderedSet
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
+    private var serviceChangesCancellable: AnyCancellable?
 
     private var _messageManager: MessageManager?
     private var messageManager: MessageManager {
@@ -59,11 +60,14 @@ class ChatViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var searchDebounceTimer: Timer?
+    private var isApplyingServiceChanges = false
 
     init(chat: ChatEntity, viewContext: NSManagedObjectContext) {
         self.chat = chat
         self.messages = chat.messages
         self.viewContext = viewContext
+
+        observeAPIServiceChanges()
     }
 
     func sendMessage(
@@ -128,6 +132,59 @@ class ChatViewModel: ObservableObject {
 
     func recreateMessageManager() {
         _messageManager = createMessageManager()
+    }
+
+    // MARK: - Service change observation
+    private func observeAPIServiceChanges() {
+        guard serviceChangesCancellable == nil else { return }
+
+        serviceChangesCancellable = NotificationCenter.default
+            .publisher(for: .NSManagedObjectContextObjectsDidChange, object: viewContext)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      !self.isApplyingServiceChanges,
+                      let serviceObjectID = self.chat.apiService?.objectID else { return }
+
+                let updated = notification.userInfo?[NSUpdatedObjectsKey] as? Set<NSManagedObject> ?? []
+                let refreshed = notification.userInfo?[NSRefreshedObjectsKey] as? Set<NSManagedObject> ?? []
+                let changedServices = updated.union(refreshed)
+
+                guard changedServices.contains(where: { $0.objectID == serviceObjectID }) else { return }
+
+                self.applyAPIServiceChanges()
+            }
+    }
+
+    private func applyAPIServiceChanges() {
+        guard let apiService = chat.apiService else { return }
+
+        isApplyingServiceChanges = true
+        defer { isApplyingServiceChanges = false }
+
+        var didChange = false
+
+        let newModel = apiService.model ?? AppConstants.defaultModel(for: apiService.type)
+        if chat.gptModel != newModel {
+            chat.gptModel = newModel
+            didChange = true
+        }
+
+        // Ensure we keep the latest managed object instance (it may have been refreshed)
+        if chat.apiService != apiService {
+            chat.apiService = apiService
+            didChange = true
+        }
+
+        if didChange {
+            chat.objectWillChange.send()
+            recreateMessageManager()
+            try? viewContext.save()
+        }
+    }
+
+    deinit {
+        serviceChangesCancellable?.cancel()
     }
 
     var canSendMessage: Bool {
