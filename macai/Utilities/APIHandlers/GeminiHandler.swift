@@ -27,27 +27,30 @@ private struct GeminiGenerateRequest: Encodable {
     let generationConfig: GeminiGenerationConfig?
 }
 
-private struct GeminiContentRequest: Encodable {
+struct GeminiContentRequest: Encodable {
     let role: String?
     let parts: [GeminiPartRequest]
 }
 
-private struct GeminiPartRequest: Encodable {
+struct GeminiPartRequest: Codable {
     let text: String?
     let inlineData: GeminiInlineData?
+    let thoughtSignature: String?
 
-    init(text: String) {
+    init(text: String, thoughtSignature: String? = nil) {
         self.text = text
         self.inlineData = nil
+        self.thoughtSignature = thoughtSignature
     }
 
-    init(inlineData: GeminiInlineData) {
+    init(inlineData: GeminiInlineData, thoughtSignature: String? = nil) {
         self.text = nil
         self.inlineData = inlineData
+        self.thoughtSignature = thoughtSignature
     }
 }
 
-private struct GeminiInlineData: Encodable {
+struct GeminiInlineData: Codable {
     let mimeType: String
     let data: String
 }
@@ -72,6 +75,12 @@ private struct GeminiContentResponse: Decodable {
 private struct GeminiPartResponse: Decodable {
     let text: String?
     let inlineData: GeminiInlineDataResponse?
+    let thoughtSignature: String?
+}
+
+struct PartsEnvelope: Codable {
+    let serviceType: String
+    let parts: [GeminiPartRequest]
 }
 
 private struct GeminiInlineDataResponse: Decodable {
@@ -101,6 +110,7 @@ class GeminiHandler: APIService {
     let model: String
     private let session: URLSession
     private let modelsEndpoint: URL
+    private var lastResponseParts: [GeminiPartResponse]?
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
@@ -180,6 +190,7 @@ class GeminiHandler: APIService {
                         do {
                             let decoder = self.makeDecoder()
                             let response = try decoder.decode(GeminiGenerateResponse.self, from: payload)
+                            self.lastResponseParts = response.candidates?.first?.content?.parts
                             var inlineDataCache: [String: String] = [:]
                             if let message = self.renderMessage(from: response, inlineDataCache: &inlineDataCache) {
                                 completion(.success(message))
@@ -338,9 +349,11 @@ class GeminiHandler: APIService {
     ) {
         var systemInstruction: GeminiContentRequest?
         var contents: [GeminiContentRequest] = []
+        let requiresThoughtSignatures = model.lowercased().contains("gemini-3")
 
         for message in requestMessages {
             guard let role = message["role"], let content = message["content"] else { continue }
+            let storedParts = decodeStoredParts(from: message["message_parts"])
 
             switch role {
             case "system":
@@ -351,7 +364,11 @@ class GeminiHandler: APIService {
                     parts: [GeminiPartRequest(text: text)]
                 )
             case "assistant":
-                let parts = buildParts(from: content, allowInlineData: true)
+                let parts = storedParts ?? buildParts(from: content, allowInlineData: true)
+                // For Gemini 3 models, we must include thought signatures; if missing, skip to avoid INVALID_ARGUMENT.
+                if requiresThoughtSignatures, !parts.contains(where: { $0.thoughtSignature != nil }) {
+                    continue
+                }
                 guard !parts.isEmpty else { continue }
                 contents.append(
                     GeminiContentRequest(
@@ -360,7 +377,7 @@ class GeminiHandler: APIService {
                     )
                 )
             default:
-                let parts = buildParts(from: content, allowInlineData: true)
+                let parts = storedParts ?? buildParts(from: content, allowInlineData: true)
                 guard !parts.isEmpty else { continue }
                 contents.append(
                     GeminiContentRequest(
@@ -392,6 +409,25 @@ class GeminiHandler: APIService {
 
         components?.queryItems = queryItems
         return components?.url
+    }
+
+    func consumeLastResponseParts() -> [GeminiPartRequest]? {
+        defer { lastResponseParts = nil }
+        guard let parts = lastResponseParts else { return nil }
+        let requestParts: [GeminiPartRequest] = parts.compactMap { responsePart in
+            if let text = responsePart.text {
+                return GeminiPartRequest(text: text, thoughtSignature: responsePart.thoughtSignature)
+            }
+            if let mime = responsePart.inlineData?.mimeType,
+               let data = responsePart.inlineData?.data {
+                return GeminiPartRequest(
+                    inlineData: GeminiInlineData(mimeType: mime, data: data),
+                    thoughtSignature: responsePart.thoughtSignature
+                )
+            }
+            return nil
+        }
+        return requestParts.isEmpty ? nil : requestParts
     }
 
     private func handleAPIResponse(_ response: URLResponse?, data: Data?, error: Error?) -> Result<Data?, APIError> {
@@ -545,6 +581,7 @@ class GeminiHandler: APIService {
         }
 
         if let response = try? decoder.decode(GeminiGenerateResponse.self, from: data) {
+            lastResponseParts = response.candidates?.first?.content?.parts
             let delta = extractDelta(
                 from: response,
                 aggregatedText: &aggregatedText,
@@ -623,6 +660,20 @@ class GeminiHandler: APIService {
         }
 
         return parts
+    }
+
+    private func decodeStoredParts(from base64: String?) -> [GeminiPartRequest]? {
+        guard let base64 = base64, let data = Data(base64Encoded: base64) else { return nil }
+        // Expect a vendor-tagged envelope
+        if let envelope = try? JSONDecoder().decode(PartsEnvelope.self, from: data),
+           envelope.serviceType.lowercased() == "gemini" {
+            return envelope.parts
+        }
+        // Legacy direct array encoding
+        if let parts = try? JSONDecoder().decode([GeminiPartRequest].self, from: data) {
+            return parts
+        }
+        return nil
     }
 
     private func extractDelta(

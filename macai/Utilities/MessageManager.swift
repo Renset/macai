@@ -40,8 +40,17 @@ class MessageManager: ObservableObject {
             switch result {
             case .success(let messageBody):
                 chat.waitingForResponse = false
-                self.addMessageToChat(chat: chat, message: messageBody)
-                self.addNewMessageToRequestMessages(chat: chat, content: messageBody, role: AppConstants.defaultRole)
+                let partsEnvelope = encodePartsEnvelope(
+                    from: (self.apiService as? GeminiHandler)?.consumeLastResponseParts(),
+                    serviceType: chat.apiService?.type
+                )
+                self.addMessageToChat(chat: chat, message: messageBody, partsEnvelope: partsEnvelope)
+                self.addNewMessageToRequestMessages(
+                    chat: chat,
+                    content: messageBody,
+                    role: AppConstants.defaultRole,
+                    geminiParts: decodePartsEnvelopeToBase64(partsEnvelope)
+                )
                 self.viewContext.saveWithRetry(attempts: 1)
                 
                 DispatchQueue.main.async {
@@ -123,8 +132,13 @@ class MessageManager: ObservableObject {
                     return
                 }
 
+                let geminiParts = encodePartsEnvelope(
+                    from: (self.apiService as? GeminiHandler)?.consumeLastResponseParts(),
+                    serviceType: chat.apiService?.type
+                )
+
                 if deferImageResponse {
-                    self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                    self.addMessageToChat(chat: chat, message: accumulatedResponse, partsEnvelope: geminiParts)
                 }
                 else if let assistantMessage = streamingMessage ?? (chat.lastMessage?.own == false ? chat.lastMessage : nil) {
                     updateLastMessage(
@@ -132,9 +146,10 @@ class MessageManager: ObservableObject {
                         lastMessage: assistantMessage,
                         accumulatedResponse: accumulatedResponse
                     )
+                    assistantMessage.messageParts = geminiParts
                 }
                 else {
-                    self.addMessageToChat(chat: chat, message: accumulatedResponse)
+                    self.addMessageToChat(chat: chat, message: accumulatedResponse, partsEnvelope: geminiParts)
                 }
 
                 chat.waitingForResponse = false
@@ -142,7 +157,8 @@ class MessageManager: ObservableObject {
                 addNewMessageToRequestMessages(
                     chat: chat,
                     content: accumulatedResponse,
-                    role: AppConstants.defaultRole
+                    role: AppConstants.defaultRole,
+                    geminiParts: decodePartsEnvelopeToBase64(geminiParts)
                 )
                 completion(.success(()))
             }
@@ -226,15 +242,27 @@ class MessageManager: ObservableObject {
     }
 
     private func prepareRequestMessages(userMessage: String, chat: ChatEntity, contextSize: Int) -> [[String: String]] {
-        return constructRequestMessages(chat: chat, forUserMessage: userMessage, contextSize: contextSize)
+        var messages = constructRequestMessages(chat: chat, forUserMessage: userMessage, contextSize: contextSize)
+
+        // Strip vendor-specific payloads when current service is not Gemini to avoid API validation errors.
+        if !(apiService is GeminiHandler) {
+            messages = messages.map { msg in
+                var m = msg
+                m.removeValue(forKey: "message_parts")
+                return m
+            }
+        }
+
+        return messages
     }
 
-    private func addMessageToChat(chat: ChatEntity, message: String) {
+    private func addMessageToChat(chat: ChatEntity, message: String, partsEnvelope: Data? = nil) {
         let newMessage = MessageEntity(context: self.viewContext)
         newMessage.id = Int64(chat.messages.count + 1)
         newMessage.body = message
         newMessage.timestamp = Date()
         newMessage.own = false
+        newMessage.messageParts = partsEnvelope
         newMessage.chat = chat
 
         chat.updatedDate = Date()
@@ -242,8 +270,12 @@ class MessageManager: ObservableObject {
         chat.objectWillChange.send()
     }
 
-    private func addNewMessageToRequestMessages(chat: ChatEntity, content: String, role: String) {
-        chat.requestMessages.append(["role": role, "content": content])
+    private func addNewMessageToRequestMessages(chat: ChatEntity, content: String, role: String, geminiParts: String? = nil) {
+        var message: [String: String] = ["role": role, "content": content]
+        if let geminiParts {
+            message["message_parts"] = geminiParts
+        }
+        chat.requestMessages.append(message)
         self.viewContext.saveWithRetry(attempts: 1)
     }
 
@@ -288,10 +320,18 @@ class MessageManager: ObservableObject {
 
         // Add conversation history
         for message in sortedMessages {
-            messages.append([
+            var payload: [String: String] = [
                 "role": message.own ? "user" : "assistant",
                 "content": message.body,
-            ])
+            ]
+
+            if let envelope = message.messageParts,
+               let base64 = decodePartsEnvelopeToBase64(envelope),
+               envelopeHasVendorGemini(envelope) {
+                payload["message_parts"] = base64
+            }
+
+            messages.append(payload)
         }
 
         // Add new user message if provided
@@ -306,5 +346,22 @@ class MessageManager: ObservableObject {
         }
 
         return messages
+    }
+
+    // MARK: - Parts encoding helpers
+    private func encodePartsEnvelope(from parts: [GeminiPartRequest]?, serviceType: String?) -> Data? {
+        guard let parts, !parts.isEmpty else { return nil }
+        let envelope = PartsEnvelope(serviceType: (serviceType ?? "gemini"), parts: parts)
+        return try? JSONEncoder().encode(envelope)
+    }
+
+    private func decodePartsEnvelopeToBase64(_ data: Data?) -> String? {
+        guard let data else { return nil }
+        return data.base64EncodedString()
+    }
+
+    private func envelopeHasVendorGemini(_ data: Data) -> Bool {
+        guard let env = try? JSONDecoder().decode(PartsEnvelope.self, from: data) else { return false }
+        return env.serviceType.lowercased() == "gemini"
     }
 }

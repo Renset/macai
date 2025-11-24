@@ -58,6 +58,7 @@ class MessageEntity: NSManagedObject, Identifiable {
     @NSManaged public var timestamp: Date
     @NSManaged public var own: Bool
     @NSManaged public var waitingForResponse: Bool
+    @NSManaged public var messageParts: Data?
     @NSManaged public var chat: ChatEntity?
 }
 
