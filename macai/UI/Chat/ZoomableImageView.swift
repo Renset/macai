@@ -10,6 +10,7 @@ import SwiftUI
 struct ZoomableImageView: View {
     let image: NSImage
     let imageAspectRatio: CGFloat
+    let chatName: String?
     @Environment(\.dismiss) private var dismiss
 
     @State private var scale: CGFloat = 1.0
@@ -125,22 +126,35 @@ struct ZoomableImageView: View {
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.png, .jpeg]
         savePanel.canCreateDirectories = true
-        savePanel.nameFieldStringValue = "image"
+        savePanel.nameFieldStringValue = defaultFileName()
         savePanel.title = "Save Image"
         savePanel.message = "Choose where to save the image"
 
         savePanel.begin { response in
             if response == .OK, let url = savePanel.url {
-                guard let tiffData = image.tiffRepresentation,
+                let ext = url.pathExtension.lowercased()
+                let isPNG = ext == "png"
+
+                guard
+                    let tiffData = image.tiffRepresentation,
                     let bitmap = NSBitmapImageRep(data: tiffData),
-                    let imageData = bitmap.representation(using: .png, properties: [:])
+                    let imageData = isPNG
+                        ? bitmap.representation(using: .png, properties: [:])
+                        : bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
                 else {
                     print("Failed to convert image to data")
                     return
                 }
 
                 do {
-                    try imageData.write(to: url)
+                    let destinationURL: URL
+                    if url.pathExtension.isEmpty {
+                        destinationURL = url.appendingPathExtension(isPNG ? "png" : "jpg")
+                    } else {
+                        destinationURL = url
+                    }
+
+                    try imageData.write(to: destinationURL)
                     print("Image saved successfully to \(url.path)")
                 }
                 catch {
@@ -148,5 +162,26 @@ struct ZoomableImageView: View {
                 }
             }
         }
+    }
+
+    private func defaultFileName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let timestamp = formatter.string(from: Date())
+
+        if let name = chatName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            // APFS forbids only "/" and control chars; Finder also blocks ":".
+            var sanitized = name
+            sanitized.unicodeScalars.removeAll { scalar in
+                CharacterSet(charactersIn: "/:").contains(scalar)
+                || CharacterSet.controlCharacters.contains(scalar)
+            }
+            sanitized = sanitized.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !sanitized.isEmpty {
+                return "\(sanitized)_\(timestamp).jpg"
+            }
+        }
+
+        return "chat_image_\(timestamp).jpg"
     }
 }

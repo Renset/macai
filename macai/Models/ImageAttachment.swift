@@ -316,12 +316,6 @@ class ImageAttachment: Identifiable, ObservableObject {
             return "jpeg"
         case .png:
             return "png"
-        case .webP:
-            return "webp"
-        case .heic:
-            return "heic"
-        case .heif:
-            return "heif"
         default:
             // Try to get the preferred filename extension
             return type.preferredFilenameExtension ?? "jpeg"
@@ -334,16 +328,9 @@ class ImageAttachment: Identifiable, ObservableObject {
             return bitmapImage.representation(using: .png, properties: [:])
         case .jpeg:
             return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-        case .webP:
-            // WebP is not directly supported by NSBitmapImageRep, fallback to PNG
-            return bitmapImage.representation(using: .png, properties: [:])
-        case .heic, .heif:
-            // HEIC/HEIF are not directly supported by NSBitmapImageRep, fallback to PNG
-            return bitmapImage.representation(using: .png, properties: [:])
         default:
-            // For unknown types, try PNG first
-            return bitmapImage.representation(using: .png, properties: [:])
-                ?? bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+            // For all other types (HEIC/HEIF/WEBP/unknown), prefer JPEG to keep size modest.
+            return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
         }
     }
 
@@ -436,31 +423,43 @@ extension ImageAttachment {
             return nil
         }
 
-        var targetFormat = getFormatString(from: originalFileType)
-        var imageData = getImageData(from: bitmapImage, using: originalFileType)
+        // Use PNG only when the original is PNG; otherwise force JPEG to avoid ballooning size.
+        let usePNG = (originalFileType == .png)
+        var targetFormat = usePNG ? "png" : "jpeg"
+        var imageData: Data?
 
-        if imageData == nil,
-            let jpegData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-        {
-            imageData = jpegData
-            targetFormat = "jpeg"
+        if usePNG {
+            imageData = bitmapImage.representation(using: .png, properties: [:])
+        } else {
+            imageData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
             if originalFileType != .jpeg {
                 convertedToJPEG = true
             }
+        }
+
+        if imageData == nil,
+           let jpegFallback = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+        {
+            imageData = jpegFallback
+            targetFormat = "jpeg"
         }
 
         guard var finalImageData = imageData else {
             return nil
         }
 
-        // CloudKit has a 1MB limit per binary field, compress further if needed
-        let cloudKitLimit = 1_000_000  // 1MB
+        // CloudKit stores binary data as CKAsset. Apple recommends keeping assets under ~250 MB for performance.
+        // Use a safety margin to avoid slow transfers or CKError.limitExceeded.
+        let cloudKitLimit = 250_000_000 // 250 MB safety threshold for CKAsset payloads
         if finalImageData.count > cloudKitLimit {
             finalImageData = compressForCloudKit(
                 image: imageToPersist,
                 currentData: finalImageData,
                 targetSize: cloudKitLimit
             )
+
+            // If still too large, fail the save so caller can handle/retry with a smaller image.
+            guard finalImageData.count <= cloudKitLimit else { return nil }
         }
 
         let thumbnailImage = self.thumbnail ?? generateThumbnailImage(from: imageToPersist)
