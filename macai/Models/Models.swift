@@ -9,9 +9,9 @@ import CoreData
 import Foundation
 import SwiftUI
 
-class ChatEntity: NSManagedObject, Identifiable {
+public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var id: UUID
-    @NSManaged public var messages: NSOrderedSet
+    @NSManaged public var messages: NSSet?
     @NSManaged public var requestMessages: [[String: String]]
     @NSManaged public var newChat: Bool
     @NSManaged public var temperature: Double
@@ -29,29 +29,33 @@ class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var isPinned: Bool
 
     public var messagesArray: [MessageEntity] {
-        let array = messages.array as? [MessageEntity] ?? []
-        return array
+        let set = messages as? Set<MessageEntity> ?? []
+        return set.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    public var messagesCount: Int {
+        return messages?.count ?? 0
     }
 
     public var lastMessage: MessageEntity? {
-        return messages.lastObject as? MessageEntity
+        return messagesArray.last
     }
 
     public func addToMessages(_ message: MessageEntity) {
-        let newMessages = NSMutableOrderedSet(orderedSet: messages)
-        newMessages.add(message)
-        messages = newMessages
+        let mutableSet = NSMutableSet(set: messages ?? NSSet())
+        mutableSet.add(message)
+        messages = mutableSet
     }
 
     public func removeFromMessages(_ message: MessageEntity) {
-        let newMessages = NSMutableOrderedSet(orderedSet: messages)
-        newMessages.remove(message)
-        messages = newMessages
+        let mutableSet = NSMutableSet(set: messages ?? NSSet())
+        mutableSet.remove(message)
+        messages = mutableSet
     }
 
 }
 
-class MessageEntity: NSManagedObject, Identifiable {
+public class MessageEntity: NSManagedObject, Identifiable {
     @NSManaged public var id: Int64
     @NSManaged public var name: String
     @NSManaged public var body: String
@@ -131,11 +135,11 @@ extension ChatEntity {
 
 extension ChatEntity {
     func clearMessages() {
-        let allMessages = self.messages.array as? [MessageEntity] ?? []
+        let allMessages = self.messages as? Set<MessageEntity> ?? []
         for message in allMessages {
             self.managedObjectContext?.delete(message)
         }
-        self.messages = NSOrderedSet()
+        self.messages = NSSet()
         self.newChat = true
     }
 }

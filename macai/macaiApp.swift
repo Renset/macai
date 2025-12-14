@@ -5,6 +5,8 @@
 //  Created by Renat Notfullin on 11.03.2023.
 //
 
+import CloudKit
+import CoreData
 import Sparkle
 import SwiftUI
 import UserNotifications
@@ -41,19 +43,55 @@ struct CheckForUpdatesView: View {
 
 class PersistenceController {
     static let shared = PersistenceController()
+    static let iCloudSyncEnabledKey = "iCloudSyncEnabled"
 
     let container: NSPersistentContainer
+    let isCloudKitEnabled: Bool
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "macaiDataModel")
+        let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
+        self.isCloudKitEnabled = iCloudEnabled && !inMemory
+
+        if isCloudKitEnabled {
+            container = NSPersistentCloudKitContainer(name: "macaiDataModel")
+        } else {
+            container = NSPersistentContainer(name: "macaiDataModel")
+        }
+
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
+
+        // Configure for CloudKit if enabled
+        if isCloudKitEnabled, let description = container.persistentStoreDescriptions.first {
+            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                containerIdentifier: "iCloud.notfullin.com.macai"
+            )
+
+            // Enable history tracking for CloudKit sync
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        }
+
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         })
+
+        // Configure view context
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+
+        // Initialize CloudSyncManager if CloudKit is enabled
+        if isCloudKitEnabled, let cloudKitContainer = container as? NSPersistentCloudKitContainer {
+            CloudSyncManager.shared.configure(with: cloudKitContainer)
+        }
+    }
+
+    static func requiresRestart(forNewSyncState newState: Bool) -> Bool {
+        let currentState = UserDefaults.standard.bool(forKey: iCloudSyncEnabledKey)
+        return currentState != newState
     }
 }
 
@@ -95,6 +133,7 @@ struct macaiApp: App {
 
         DatabasePatcher.applyPatches(context: persistenceController.container.viewContext)
         DatabasePatcher.migrateExistingConfiguration(context: persistenceController.container.viewContext)
+        TokenManager.reconcileTokensWithCurrentSyncSetting()
     }
 
     var body: some Scene {

@@ -306,7 +306,7 @@ struct ContentView: View {
     }
 
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
-        if chat.messages.count == 0 {
+        if chat.messagesCount == 0 {
             if let newDefaultPersona = newService.defaultPersona {
                 chat.persona = newDefaultPersona
                 if let newSystemMessage = chat.persona?.systemMessage,

@@ -35,7 +35,7 @@ struct ChatMessagesView: View {
                     )
                     .id("system_message")
 
-                    if chat.messages.count > 0 {
+                    if chat.messagesCount > 0 {
                         ForEach(chatViewModel.sortedMessages, id: \.objectID) { messageEntity in
                             let bubbleContent = ChatBubbleContent(
                                 message: messageEntity.body,
@@ -116,7 +116,7 @@ struct ChatMessagesView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
                     }
                 }
-                .onReceive([chat.messages.count].publisher) { newCount in
+                .onReceive([chat.messagesCount].publisher) { newCount in
                     DispatchQueue.main.async {
                         if chat.waitingForResponse || currentError != nil {
                             withAnimation {

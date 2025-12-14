@@ -346,6 +346,63 @@ class ImageAttachment: Identifiable, ObservableObject {
                 ?? bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
         }
     }
+
+    /// Progressively compress image to fit within CloudKit size limits
+    private func compressForCloudKit(image: NSImage, currentData: Data, targetSize: Int) -> Data {
+        var compressionFactor: CGFloat = 0.7
+        var resizedImage = image
+        var resultData = currentData
+
+        // First, try reducing compression quality
+        while resultData.count > targetSize && compressionFactor > 0.1 {
+            if let tiffData = resizedImage.tiffRepresentation,
+               let bitmapImage = NSBitmapImageRep(data: tiffData),
+               let compressedData = bitmapImage.representation(
+                   using: .jpeg,
+                   properties: [.compressionFactor: compressionFactor]
+               ) {
+                resultData = compressedData
+            }
+            compressionFactor -= 0.1
+        }
+
+        // If still too large, reduce image dimensions
+        if resultData.count > targetSize {
+            let scaleFactor: CGFloat = 0.75
+            var currentSize = resizedImage.size
+
+            while resultData.count > targetSize && currentSize.width > 200 {
+                currentSize = NSSize(
+                    width: currentSize.width * scaleFactor,
+                    height: currentSize.height * scaleFactor
+                )
+
+                let scaledImage = NSImage(size: currentSize)
+                scaledImage.lockFocus()
+                NSGraphicsContext.current?.imageInterpolation = .high
+                resizedImage.draw(
+                    in: NSRect(origin: .zero, size: currentSize),
+                    from: NSRect(origin: .zero, size: resizedImage.size),
+                    operation: .copy,
+                    fraction: 1.0
+                )
+                scaledImage.unlockFocus()
+
+                resizedImage = scaledImage
+
+                if let tiffData = resizedImage.tiffRepresentation,
+                   let bitmapImage = NSBitmapImageRep(data: tiffData),
+                   let compressedData = bitmapImage.representation(
+                       using: .jpeg,
+                       properties: [.compressionFactor: 0.6]
+                   ) {
+                    resultData = compressedData
+                }
+            }
+        }
+
+        return resultData
+    }
 }
 
 extension ImageAttachment {
@@ -392,8 +449,18 @@ extension ImageAttachment {
             }
         }
 
-        guard let finalImageData = imageData else {
+        guard var finalImageData = imageData else {
             return nil
+        }
+
+        // CloudKit has a 1MB limit per binary field, compress further if needed
+        let cloudKitLimit = 1_000_000  // 1MB
+        if finalImageData.count > cloudKitLimit {
+            finalImageData = compressForCloudKit(
+                image: imageToPersist,
+                currentData: finalImageData,
+                targetSize: cloudKitLimit
+            )
         }
 
         let thumbnailImage = self.thumbnail ?? generateThumbnailImage(from: imageToPersist)

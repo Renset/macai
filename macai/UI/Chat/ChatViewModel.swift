@@ -40,7 +40,7 @@ class ChatViewModel: ObservableObject {
         }
         return nil
     }
-    @Published var messages: NSOrderedSet
+    @Published var messages: NSSet?
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
     private var serviceChangesCancellable: AnyCancellable?

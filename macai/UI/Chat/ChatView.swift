@@ -81,7 +81,7 @@ struct ChatView: View {
                     newMessage = ""
                     attachedImages = []
                     
-                    if chat.messages.count == 1 { // First message just sent
+                    if chat.messagesCount == 1 { // First message just sent
                         withAnimation {
                             isBottomContainerExpanded = false
                         }

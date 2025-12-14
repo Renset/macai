@@ -226,6 +226,11 @@ class APIServiceDetailViewModel: ObservableObject {
 
     func deleteAPIService() {
         guard let serviceToDelete = apiService else { return }
+
+        if let serviceIDString = serviceToDelete.id?.uuidString {
+            try? TokenManager.deleteToken(for: serviceIDString)
+        }
+
         viewContext.delete(serviceToDelete)
         do {
             try viewContext.save()

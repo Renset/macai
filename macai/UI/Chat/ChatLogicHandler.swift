@@ -172,7 +172,7 @@ class ChatLogicHandler: ObservableObject {
     
     private func saveNewMessageInStore(with messageBody: String) {
         let newMessageEntity = MessageEntity(context: viewContext)
-        newMessageEntity.id = Int64(chat.messages.count + 1)
+        newMessageEntity.id = Int64(chat.messagesCount + 1)
         newMessageEntity.body = messageBody
         newMessageEntity.timestamp = Date()
         newMessageEntity.own = true

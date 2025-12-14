@@ -17,8 +17,8 @@ struct TabGeneralSettingsView: View {
         while 🧑‍🔬 > 0 {
             🍺 += 1/🧑‍🔬
             🧑‍🔬 *= 2
-            if 🍺 >= 2 { 
-                break 
+            if 🍺 >= 2 {
+                break
             }
         }
         return Int(🍺)
@@ -28,9 +28,14 @@ struct TabGeneralSettingsView: View {
     @AppStorage("chatFontSize") var chatFontSize: Double = 14.0
     @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
+    @AppStorage(PersistenceController.iCloudSyncEnabledKey) private var iCloudSyncEnabled: Bool = false
     @Environment(\.colorScheme) private var systemColorScheme
+    @StateObject private var cloudSyncManager = CloudSyncManager.shared
     @State private var selectedColorSchemeRaw: Int = 0
     @State private var codeResult: String = ""
+    @State private var showRestartAlert: Bool = false
+    @State private var pendingSyncState: Bool = false
+    @State private var showSyncDebugLog: Bool = false
 
     private var preferredColorScheme: Binding<ColorScheme?> {
         Binding(
@@ -74,7 +79,9 @@ struct TabGeneralSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Form {
+            // Use a plain VStack instead of Form so sections stretch to the full
+            // available width (macOS Form tends to hug intrinsic content).
+            VStack(alignment: .leading, spacing: 16) {
                 GroupBox {
                     Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
                         GridRow {
@@ -184,7 +191,56 @@ struct TabGeneralSettingsView: View {
                     }
                     .padding(8)
                 }
+
+                // iCloud Sync Section
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .center, spacing: 16) {
+                            Text("iCloud Sync")
+                                .fontWeight(.medium)
+
+                            Spacer()
+
+                            // Status indicator with label
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(syncStatusColor)
+                                    .frame(width: 8, height: 8)
+                                Text(syncStatusText)
+                                    .foregroundColor(.secondary)
+                                    .font(.callout)
+                            }
+
+                            Button(action: {
+                                pendingSyncState = !iCloudSyncEnabled
+                                showRestartAlert = true
+                            }) {
+                                Text(iCloudSyncEnabled ? "Turn Off" : "Turn On")
+                                    .frame(width: 60)
+                            }
+                        }
+
+                        Text("Syncs chats, messages, personas, and API services across your devices. API keys are synced securely via iCloud Keychain.")
+                            .foregroundColor(.secondary)
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if iCloudSyncEnabled {
+                            HStack {
+                                Spacer()
+                                Button("Show Debug Log") {
+                                    showSyncDebugLog = true
+                                }
+                                .font(.callout)
+                            }
+                        }
+                    }
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack {
                 Toggle("Automatically check for updates", isOn: $autoCheckForUpdates)
@@ -203,6 +259,199 @@ struct TabGeneralSettingsView: View {
         .padding()
         .onAppear {
             self.selectedColorSchemeRaw = self.preferredColorSchemeRaw
+        }
+        .alert("Restart Required", isPresented: $showRestartAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button(pendingSyncState ? "Enable & Quit" : "Disable & Quit") {
+                // Migrate tokens before changing the setting
+                TokenManager.migrateTokensForSyncChange(toSyncEnabled: pendingSyncState)
+                // Update the setting
+                iCloudSyncEnabled = pendingSyncState
+                // Quit the app
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    NSApplication.shared.terminate(nil)
+                }
+            }
+        } message: {
+            Text(pendingSyncState
+                 ? "Enabling iCloud sync requires restarting the app. Your existing data will be uploaded to iCloud."
+                 : "Disabling iCloud sync requires restarting the app. Your data will remain on this device but will no longer sync.")
+        }
+        .sheet(isPresented: $showSyncDebugLog) {
+            SyncDebugLogView(cloudSyncManager: cloudSyncManager)
+        }
+    }
+
+    private var syncStatusColor: Color {
+        if !iCloudSyncEnabled {
+            return .gray
+        }
+        switch cloudSyncManager.syncStatus {
+        case .inactive:
+            return .gray
+        case .syncing:
+            return .yellow
+        case .synced:
+            return .green
+        case .error:
+            return .red
+        }
+    }
+
+    private var syncStatusText: String {
+        if !iCloudSyncEnabled {
+            return "Off"
+        }
+        switch cloudSyncManager.syncStatus {
+        case .inactive:
+            return "Off"
+        case .syncing:
+            return "Syncing..."
+        case .synced:
+            return "Up to date"
+        case .error(let message):
+            return "Error: \(message)"
+        }
+    }
+}
+
+// MARK: - Sync Debug Log View
+
+struct SyncDebugLogView: View {
+    @ObservedObject var cloudSyncManager: CloudSyncManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var autoScroll = true
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("iCloud Sync Debug Log")
+                    .font(.headline)
+
+                Spacer()
+
+                // Status
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 8, height: 8)
+                    Text(cloudSyncManager.syncStatus.displayText)
+                        .foregroundColor(.secondary)
+                        .font(.callout)
+                }
+
+                Spacer()
+
+                Toggle("Auto-scroll", isOn: $autoScroll)
+                    .toggleStyle(.checkbox)
+
+                Button("Copy Log") {
+                    let logText = cloudSyncManager.exportLogsAsText()
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(logText, forType: .string)
+                }
+
+                Button("Clear") {
+                    cloudSyncManager.clearLogs()
+                }
+
+                Button("Close") {
+                    dismiss()
+                }
+            }
+            .padding()
+
+            Divider()
+
+            // Log entries
+            if cloudSyncManager.syncLogs.isEmpty {
+                VStack {
+                    Spacer()
+                    Text("No log entries yet")
+                        .foregroundColor(.secondary)
+                    Text("Sync events will appear here")
+                        .foregroundColor(.secondary)
+                        .font(.callout)
+                    Spacer()
+                }
+            } else {
+                ScrollViewReader { proxy in
+                    List(cloudSyncManager.syncLogs) { entry in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(entry.formattedTimestamp)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .frame(width: 90, alignment: .leading)
+
+                            Text(entry.type)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(typeColor(entry.type))
+                                .frame(width: 80, alignment: .leading)
+
+                            Text(entry.message)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(entry.isError ? .red : .primary)
+                                .textSelection(.enabled)
+                        }
+                        .id(entry.id)
+                    }
+                    .onChange(of: cloudSyncManager.syncLogs.count) { _ in
+                        if autoScroll, let lastEntry = cloudSyncManager.syncLogs.last {
+                            withAnimation {
+                                proxy.scrollTo(lastEntry.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            // Footer with stats
+            HStack {
+                Text("\(cloudSyncManager.syncLogs.count) entries")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if let lastSync = cloudSyncManager.lastSyncDate {
+                    Text("Last sync: \(lastSync.formatted(date: .abbreviated, time: .standard))")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+        }
+        .frame(minWidth: 700, minHeight: 400)
+    }
+
+    private var statusColor: Color {
+        switch cloudSyncManager.syncStatus {
+        case .inactive:
+            return .gray
+        case .syncing:
+            return .yellow
+        case .synced:
+            return .green
+        case .error:
+            return .red
+        }
+    }
+
+    private func typeColor(_ type: String) -> Color {
+        switch type {
+        case "Error", "CloudKit":
+            return .red
+        case "Setup":
+            return .blue
+        case "Event":
+            return .green
+        case "RemoteChange":
+            return .orange
+        default:
+            return .secondary
         }
     }
 }

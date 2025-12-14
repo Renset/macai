@@ -124,7 +124,7 @@ class ChatService {
                         let messageContent = content["content"] as? String
                     {
                         let receivedMessage = MessageEntity(context: self.viewContext)
-                        receivedMessage.id = Int64(self.chat.messages.count + 1)
+                        receivedMessage.id = Int64(self.chat.messagesCount + 1)
                         receivedMessage.name = "ChatGPT"
                         receivedMessage.body = messageContent.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         receivedMessage.timestamp = Date()

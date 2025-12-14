@@ -170,7 +170,7 @@ class MessageManager: ObservableObject {
     }
 
     func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
-        guard force || chat.name == "", chat.messages.count > 0 else {
+        guard force || chat.name == "", chat.messagesCount > 0 else {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
@@ -258,7 +258,7 @@ class MessageManager: ObservableObject {
 
     private func addMessageToChat(chat: ChatEntity, message: String, partsEnvelope: Data? = nil) {
         let newMessage = MessageEntity(context: self.viewContext)
-        newMessage.id = Int64(chat.messages.count + 1)
+        newMessage.id = Int64(chat.messagesCount + 1)
         newMessage.body = message
         newMessage.timestamp = Date()
         newMessage.own = false
