@@ -5,6 +5,7 @@
 //  Created by Renat on 31.01.2025.
 //
 
+import AppKit
 import Sparkle
 import SwiftUI
 import AttributedText
@@ -36,6 +37,8 @@ struct TabGeneralSettingsView: View {
     @State private var showRestartAlert: Bool = false
     @State private var pendingSyncState: Bool = false
     @State private var showSyncDebugLog: Bool = false
+    @State private var isPurgingCloudData: Bool = false
+    @State private var purgeError: String?
 
     private var preferredColorScheme: Binding<ColorScheme?> {
         Binding(
@@ -218,9 +221,10 @@ struct TabGeneralSettingsView: View {
                                 Text(iCloudSyncEnabled ? "Turn Off" : "Turn On")
                                     .frame(width: 60)
                             }
+                            .disabled(isPurgingCloudData)
                         }
 
-                        Text("Syncs chats, messages, personas, and API services across your devices. API keys are synced securely via iCloud Keychain.")
+                        Text("Syncs chats, messages, AI Assistants, and API Services across your devices. API keys are synced securely via iCloud Keychain.")
                             .foregroundColor(.secondary)
                             .font(.callout)
                             .fixedSize(horizontal: false, vertical: true)
@@ -228,9 +232,10 @@ struct TabGeneralSettingsView: View {
                         if iCloudSyncEnabled {
                             HStack {
                                 Spacer()
-                                Button("Show Debug Log") {
+                                Button("Show Log") {
                                     showSyncDebugLog = true
                                 }
+                                .buttonStyle(.link)
                                 .font(.callout)
                             }
                         }
@@ -262,23 +267,66 @@ struct TabGeneralSettingsView: View {
         }
         .alert("Restart Required", isPresented: $showRestartAlert) {
             Button("Cancel", role: .cancel) {}
-            Button(pendingSyncState ? "Enable & Quit" : "Disable & Quit") {
-                // Migrate tokens before changing the setting
-                TokenManager.migrateTokensForSyncChange(toSyncEnabled: pendingSyncState)
-                // Update the setting
-                iCloudSyncEnabled = pendingSyncState
-                // Quit the app
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    NSApplication.shared.terminate(nil)
+            if pendingSyncState {
+                Button("Enable & Restart") {
+                    // Cache tokens first, then restore to cloud after enabling sync
+                    let cachedTokens = TokenManager.cacheAllTokens()
+                    iCloudSyncEnabled = pendingSyncState
+                    TokenManager.restoreTokensToCloudKeychain(cachedTokens)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        restartApp()
+                    }
+                }
+            } else {
+                Button("Disable & Keep in iCloud") {
+                    // Cache tokens in memory first, then restore to local keychain
+                    let cachedTokens = TokenManager.cacheAllTokens()
+                    iCloudSyncEnabled = pendingSyncState
+                    TokenManager.restoreTokensToLocalKeychain(cachedTokens)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        restartApp()
+                    }
+                }
+                Button("Disable & Delete from iCloud", role: .destructive) {
+                    guard !isPurgingCloudData else { return }
+                    isPurgingCloudData = true
+                    // Cache all tokens in memory BEFORE any keychain operations
+                    let cachedTokens = TokenManager.cacheAllTokens()
+                    cloudSyncManager.purgeCloudData { result in
+                        DispatchQueue.main.async {
+                            isPurgingCloudData = false
+                            switch result {
+                            case .success:
+                                purgeError = nil
+                                TokenManager.clearCloudTokens()
+                                // Restore cached tokens to local keychain AFTER clearing cloud
+                                TokenManager.restoreTokensToLocalKeychain(cachedTokens)
+                                iCloudSyncEnabled = pendingSyncState
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    restartApp()
+                                }
+                            case .failure(let error):
+                                purgeError = error.localizedDescription
+                            }
+                        }
+                    }
                 }
             }
         } message: {
             Text(pendingSyncState
                  ? "Enabling iCloud sync requires restarting the app. Your existing data will be uploaded to iCloud."
-                 : "Disabling iCloud sync requires restarting the app. Your data will remain on this device but will no longer sync.")
+                 : "Disabling iCloud sync requires restarting the app. Choose to keep or delete your iCloud copy; local data stays on this Mac and will stop syncing.")
         }
         .sheet(isPresented: $showSyncDebugLog) {
             SyncDebugLogView(cloudSyncManager: cloudSyncManager)
+        }
+        .alert("Couldn't remove iCloud data", isPresented: Binding<Bool>(
+            get: { purgeError != nil },
+            set: { newValue in if !newValue { purgeError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(purgeError ?? "Unknown error")
         }
     }
 
@@ -312,6 +360,24 @@ struct TabGeneralSettingsView: View {
         case .error(let message):
             return "Error: \(message)"
         }
+    }
+
+    private func restartApp() {
+        let appPath = Bundle.main.bundlePath
+
+        // Spawn a detached shell process that waits for the app to quit, then relaunches it
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 1; open \"\(appPath)\""]
+
+        do {
+            try task.run()
+        } catch {
+            print("Failed to schedule relaunch: \(error.localizedDescription)")
+        }
+
+        // Terminate the current instance
+        NSApplication.shared.terminate(nil)
     }
 }
 

@@ -11,7 +11,9 @@ import Foundation
 class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext) {
         addDefaultPersonasIfNeeded(context: context)
+        patchMissingIDs(context: context)
         patchPersonaOrdering(context: context)
+        backfillMessageSequencesIfNeeded(context: context)
         patchImageUploadsForAPIServices(context: context)
         patchImageGenerationForAPIServices(context: context)
         //resetMigrationState()
@@ -238,10 +240,10 @@ class DatabasePatcher {
         }
 
         guard !legacyServices.isEmpty else {
-            defaults.set(true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
-            defaults.removeObject(forKey: AppConstants.chatCompletionsMigrationPendingNotificationKey)
-            return
-        }
+        defaults.set(true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
+        defaults.removeObject(forKey: AppConstants.chatCompletionsMigrationPendingNotificationKey)
+        return
+    }
 
         guard let targetURL = URL(string: AppConstants.apiUrlOpenAIResponses) else {
             print("Invalid OpenAI Responses URL: \(AppConstants.apiUrlOpenAIResponses)")
@@ -399,12 +401,12 @@ class DatabasePatcher {
             generateChatNames: useChatGptForNames
         )
 
-        if let token = defaults.string(forKey: "gptToken") {
+        if let token = defaults.string(forKey: "gptToken"),
+           token.isEmpty == false,
+           let serviceId = apiService.id {
             print("Token found: \(token)")
-            if token != "", let apiServiceId = apiService.id {
-                try? TokenManager.setToken(token, for: apiServiceId.uuidString)
-                defaults.set("", forKey: "gptToken")
-            }
+            try? TokenManager.setToken(token, for: serviceId.uuidString)
+            defaults.set("", forKey: "gptToken")
         }
 
         // Set Default Assistant as the default for default API service
@@ -449,5 +451,173 @@ class DatabasePatcher {
 
         // Migration completed
         defaults.set(true, forKey: "APIServiceMigrationCompleted")
+    }
+
+    // MARK: - ID backfill for non-optional UUIDs
+    static func patchMissingIDs(context: NSManagedObjectContext) {
+        let defaults = UserDefaults.standard
+        let key = "EntityIDBackfillCompleted"
+
+        if defaults.bool(forKey: key) {
+            return
+        }
+
+        var saveSucceeded = false
+
+        context.performAndWait {
+            let zeroUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+            var didChange = false
+
+            func refresh<T: NSManagedObject>(_ request: NSFetchRequest<T>, _ updater: (T) -> Void) {
+                if let results = try? context.fetch(request) {
+                    results.forEach(updater)
+                }
+            }
+
+            refresh(NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")) { service in
+                let currentID = service.value(forKey: "id") as? UUID
+                if currentID == nil || currentID == zeroUUID {
+                    service.id = UUID()
+                    didChange = true
+                }
+
+                if service.tokenIdentifier == nil || service.tokenIdentifier?.isEmpty == true {
+                    service.tokenIdentifier = UUID().uuidString
+                    didChange = true
+                }
+            }
+
+            refresh(NSFetchRequest<ChatEntity>(entityName: "ChatEntity")) { chat in
+                let currentID = (chat.value(forKey: "id") as? UUID) ?? chat.id
+                if currentID == zeroUUID {
+                    chat.id = UUID()
+                    didChange = true
+                }
+            }
+
+            refresh(NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")) { persona in
+                let currentID = persona.value(forKey: "id") as? UUID
+                if currentID == nil || currentID == zeroUUID {
+                    persona.id = UUID()
+                    didChange = true
+                }
+            }
+
+            refresh(NSFetchRequest<ImageEntity>(entityName: "ImageEntity")) { image in
+                let currentID = image.value(forKey: "id") as? UUID
+                if currentID == nil || currentID == zeroUUID {
+                    image.id = UUID()
+                    didChange = true
+                }
+            }
+
+            if didChange {
+                do {
+                    try context.save()
+                    saveSucceeded = true
+                }
+                catch {
+                    print("Error saving ID backfill: \(error)")
+                    context.rollback()
+                }
+            } else {
+                saveSucceeded = true
+            }
+        }
+
+        if saveSucceeded {
+            defaults.set(true, forKey: key)
+        }
+    }
+
+    // MARK: - Message sequencing migration
+    static func backfillMessageSequencesIfNeeded(context: NSManagedObjectContext) {
+        let defaults = UserDefaults.standard
+        let migrationKey = "MessageSequenceBackfillCompleted"
+
+        if defaults.bool(forKey: migrationKey) {
+            return
+        }
+
+        context.performAndWait {
+            let model = context.persistentStoreCoordinator?.managedObjectModel
+            let messageEntityDesc = model?.entitiesByName["MessageEntity"]
+            let chatEntityDesc = model?.entitiesByName["ChatEntity"]
+            let hasSequence = messageEntityDesc?.attributesByName["sequence"] != nil
+            let hasLastSequence = chatEntityDesc?.attributesByName["lastSequence"] != nil
+
+            // If the loaded model does not yet contain the new fields, skip to avoid KVC crashes.
+            guard hasSequence, hasLastSequence else {
+                print("Skipping sequence backfill: model missing sequence/lastSequence attributes")
+                defaults.set(true, forKey: migrationKey)
+                return
+            }
+
+            let chatRequest = NSFetchRequest<ChatEntity>(entityName: "ChatEntity")
+            chatRequest.sortDescriptors = [NSSortDescriptor(keyPath: \ChatEntity.createdDate, ascending: true)]
+
+            do {
+                let chats = try context.fetch(chatRequest)
+                var didChange = false
+
+                for chat in chats {
+                    let modelHasSequence = messageEntityDesc?.attributesByName["sequence"] != nil
+                    let messageRequest = NSFetchRequest<MessageEntity>(entityName: "MessageEntity")
+                    messageRequest.predicate = NSPredicate(format: "chat == %@", chat)
+                    messageRequest.sortDescriptors = [
+                        NSSortDescriptor(key: "timestamp", ascending: true),
+                    ]
+
+                    let fetchedMessages = try context.fetch(messageRequest)
+
+                    let messages = fetchedMessages.sorted { lhs, rhs in
+                        let lhsDate = lhs.timestamp
+                        let rhsDate = rhs.timestamp
+                        if lhsDate == rhsDate {
+                            return lhs.objectID.uriRepresentation().absoluteString
+                                < rhs.objectID.uriRepresentation().absoluteString
+                        }
+                        return lhsDate < rhsDate
+                    }
+
+                    var sequence: Int64 = 0
+                    for message in messages {
+                        sequence += 1
+
+                        if modelHasSequence {
+                            let currentSequence = (message.value(forKey: "sequence") as? Int64) ?? 0
+                            if currentSequence != sequence {
+                                message.setValue(sequence, forKey: "sequence")
+                                didChange = true
+                            }
+                        }
+
+                        if let currentId = message.value(forKey: "id") as? Int64, currentId == 0 {
+                            message.setValue(sequence, forKey: "id")
+                            didChange = true
+                        }
+                    }
+
+                    if let lastAttr = chatEntityDesc?.attributesByName["lastSequence"],
+                       lastAttr.attributeType == .integer64AttributeType
+                    {
+                        let currentLast = (chat.value(forKey: "lastSequence") as? Int64) ?? 0
+                        if currentLast != sequence {
+                            chat.setValue(sequence, forKey: "lastSequence")
+                            didChange = true
+                        }
+                    }
+                }
+
+                if didChange {
+                    context.saveWithRetry(attempts: 1)
+                }
+
+                defaults.set(true, forKey: migrationKey)
+            }
+            catch {
+                print("Error backfilling message sequences: \(error)")
+            }
+        }
     }
 }

@@ -150,6 +150,7 @@ struct MessageCell_Previews: PreviewProvider {
         chat.updatedDate = Date()
         chat.systemMessage = AppConstants.chatGptSystemMessage
         chat.gptModel = AppConstants.defaultPrimaryModel
+        chat.lastSequence = 0
         return chat
     }
 }

@@ -6,7 +6,7 @@
         <attribute name="defaultAgent" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="editedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="generateChatNames" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="imageGenerationSupported" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" renamingIdentifier="imageGenerationAllowed"/>
         <attribute name="model" optional="YES" attributeType="String"/>
@@ -15,7 +15,8 @@
         <attribute name="type" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="URI"/>
         <attribute name="useStreamResponse" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <relationship name="defaultPersona" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonaEntity"/>
+        <relationship name="chats" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ChatEntity" inverseName="apiService" inverseEntity="ChatEntity"/>
+        <relationship name="defaultPersona" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonaEntity" inverseName="apiServicesAsDefault" inverseEntity="PersonaEntity"/>
     </entity>
     <entity name="ChatEntity" representedClassName=".ChatEntity" syncable="YES">
         <attribute name="behavior" optional="YES" attributeType="String"/>
@@ -23,6 +24,7 @@
         <attribute name="gptModel" optional="YES" attributeType="String" defaultValueString="gpt-3.5-turbo"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO" preserveAfterDeletion="YES"/>
         <attribute name="isPinned" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="lastSequence" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
@@ -33,15 +35,15 @@
         <attribute name="top_p" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="updatedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="waitingForResponse" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <relationship name="apiService" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="APIServiceEntity"/>
-        <relationship name="messages" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="MessageEntity" inverseName="chat" inverseEntity="MessageEntity" spotlightIndexingEnabled="YES"/>
-        <relationship name="persona" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonaEntity"/>
+        <relationship name="apiService" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="APIServiceEntity" inverseName="chats" inverseEntity="APIServiceEntity"/>
+        <relationship name="messages" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MessageEntity" inverseName="chat" inverseEntity="MessageEntity" spotlightIndexingEnabled="YES"/>
+        <relationship name="persona" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonaEntity" inverseName="chats" inverseEntity="PersonaEntity"/>
     </entity>
     <entity name="ImageEntity" representedClassName="ImageEntity" syncable="YES" codeGenerationType="class">
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="image" attributeType="Binary"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="image" optional="YES" attributeType="Binary"/>
         <attribute name="imageFormat" optional="YES" attributeType="String" defaultValueString="jpeg"/>
-        <attribute name="thumbnail" attributeType="Binary"/>
+        <attribute name="thumbnail" optional="YES" attributeType="Binary"/>
     </entity>
     <entity name="MessageEntity" representedClassName=".MessageEntity" syncable="YES">
         <attribute name="body" optional="YES" attributeType="String" spotlightIndexingEnabled="YES"/>
@@ -49,18 +51,25 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="own" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="messageParts" optional="YES" attributeType="Transformable"/>
+        <attribute name="sequence" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="waitingForResponse" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <fetchIndex name="chat_sequence_idx">
+            <fetchIndexElement property="chat" type="Binary"/>
+            <fetchIndexElement property="sequence" type="Value"/>
+        </fetchIndex>
         <relationship name="chat" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ChatEntity" inverseName="messages" inverseEntity="ChatEntity" spotlightIndexingEnabled="YES"/>
     </entity>
     <entity name="PersonaEntity" representedClassName="PersonaEntity" syncable="YES" codeGenerationType="class">
         <attribute name="addedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="color" optional="YES" attributeType="String"/>
         <attribute name="editedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="order" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="systemMessage" optional="YES" attributeType="String"/>
         <attribute name="temperature" optional="YES" attributeType="Float" minValueString="0" maxValueString="1" defaultValueString="0.7" usesScalarValueType="YES"/>
+        <relationship name="apiServicesAsDefault" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="APIServiceEntity" inverseName="defaultPersona" inverseEntity="APIServiceEntity"/>
+        <relationship name="chats" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ChatEntity" inverseName="persona" inverseEntity="ChatEntity"/>
     </entity>
 </model>

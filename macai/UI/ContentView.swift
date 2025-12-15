@@ -237,6 +237,7 @@ struct ContentView: View {
         newChat.updatedDate = Date()
         newChat.systemMessage = systemMessage
         newChat.gptModel = gptModel
+        newChat.lastSequence = 0
 
         if let service = preferredService {
             newChat.apiService = service
@@ -306,7 +307,7 @@ struct ContentView: View {
     }
 
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
-        if chat.messagesCount == 0 {
+        if chat.messagesArray.isEmpty {
             if let newDefaultPersona = newService.defaultPersona {
                 chat.persona = newDefaultPersona
                 if let newSystemMessage = chat.persona?.systemMessage,

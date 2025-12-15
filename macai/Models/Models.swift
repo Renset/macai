@@ -27,14 +27,50 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var persona: PersonaEntity?
     @NSManaged public var apiService: APIServiceEntity?
     @NSManaged public var isPinned: Bool
+    @NSManaged public var lastSequence: Int64
+
+    private var supportsSequencing: Bool {
+        guard let model = self.managedObjectContext?.persistentStoreCoordinator?.managedObjectModel else { return true }
+        return model.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil
+    }
+
+    private var messageSortDescriptors: [NSSortDescriptor] {
+        if supportsSequencing {
+            return [
+                NSSortDescriptor(keyPath: \MessageEntity.sequence, ascending: true),
+                NSSortDescriptor(keyPath: \MessageEntity.timestamp, ascending: true),
+            ]
+        } else {
+            return [NSSortDescriptor(keyPath: \MessageEntity.timestamp, ascending: true)]
+        }
+    }
 
     public var messagesArray: [MessageEntity] {
-        let set = messages as? Set<MessageEntity> ?? []
-        return set.sorted { $0.timestamp < $1.timestamp }
+        guard let context = self.managedObjectContext else {
+            let set = messages as? Set<MessageEntity> ?? []
+            return set.sorted { lhs, rhs in
+                if supportsSequencing, lhs.sequence == rhs.sequence {
+                    return lhs.timestamp < rhs.timestamp
+                }
+                if supportsSequencing {
+                    return lhs.sequence < rhs.sequence
+                }
+                if lhs.timestamp == rhs.timestamp {
+                    return lhs.objectID.uriRepresentation().absoluteString < rhs.objectID.uriRepresentation().absoluteString
+                }
+                return lhs.timestamp < rhs.timestamp
+            }
+        }
+
+        let fetchRequest = NSFetchRequest<MessageEntity>(entityName: "MessageEntity")
+        fetchRequest.predicate = NSPredicate(format: "chat == %@", self)
+        fetchRequest.sortDescriptors = messageSortDescriptors
+
+        return (try? context.fetch(fetchRequest)) ?? []
     }
 
     public var messagesCount: Int {
-        return messages?.count ?? 0
+        return messagesArray.count
     }
 
     public var lastMessage: MessageEntity? {
@@ -42,6 +78,12 @@ public class ChatEntity: NSManagedObject, Identifiable {
     }
 
     public func addToMessages(_ message: MessageEntity) {
+        applySequenceIfNeeded(to: message)
+
+        if message.chat !== self {
+            message.chat = self
+        }
+
         let mutableSet = NSMutableSet(set: messages ?? NSSet())
         mutableSet.add(message)
         messages = mutableSet
@@ -53,6 +95,33 @@ public class ChatEntity: NSManagedObject, Identifiable {
         messages = mutableSet
     }
 
+    @discardableResult
+    public func nextSequence() -> Int64 {
+        guard supportsSequencing else {
+            return Int64(messagesArray.count + 1)
+        }
+        lastSequence += 1
+        return lastSequence
+    }
+
+    public func applySequenceIfNeeded(to message: MessageEntity) {
+        guard supportsSequencing else { return }
+        guard message.sequence <= 0 else {
+            if message.sequence > lastSequence {
+                lastSequence = message.sequence
+            }
+            if message.id == 0 {
+                message.id = message.sequence
+            }
+            return
+        }
+
+        let newSequence = nextSequence()
+        message.sequence = newSequence
+        if message.id == 0 {
+            message.id = newSequence
+        }
+    }
 }
 
 public class MessageEntity: NSManagedObject, Identifiable {
@@ -63,6 +132,7 @@ public class MessageEntity: NSManagedObject, Identifiable {
     @NSManaged public var own: Bool
     @NSManaged public var waitingForResponse: Bool
     @NSManaged public var messageParts: Data?
+    @NSManaged public var sequence: Int64
     @NSManaged public var chat: ChatEntity?
 }
 
@@ -141,6 +211,7 @@ extension ChatEntity {
         }
         self.messages = NSSet()
         self.newChat = true
+        self.lastSequence = 0
     }
 }
 
@@ -154,7 +225,11 @@ extension APIServiceEntity: NSCopying {
         copy.contextSize = self.contextSize
         copy.useStreamResponse = self.useStreamResponse
         copy.generateChatNames = self.generateChatNames
+        copy.imageUploadsAllowed = self.imageUploadsAllowed
+        copy.imageGenerationSupported = self.imageGenerationSupported
         copy.defaultPersona = self.defaultPersona
+        copy.id = UUID()
+        copy.tokenIdentifier = UUID().uuidString
         return copy
     }
 }

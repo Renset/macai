@@ -70,7 +70,8 @@ class APIServiceDetailViewModel: ObservableObject {
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
             selectedModel = model
 
-            if let serviceIDString = service.id?.uuidString {
+            if let serviceID = service.id {
+                let serviceIDString = serviceID.uuidString
                 do {
                     apiKey = try TokenManager.getToken(for: serviceIDString) ?? ""
                 }
@@ -188,23 +189,29 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.imageUploadsAllowed = imageUploadsAllowed
         serviceToSave.imageGenerationSupported = imageGenerationSupported
         serviceToSave.defaultPersona = defaultAiPersona
+        if serviceToSave.tokenIdentifier == nil || serviceToSave.tokenIdentifier?.isEmpty == true {
+            serviceToSave.tokenIdentifier = UUID().uuidString
+        }
 
         if apiService == nil {
             serviceToSave.addedDate = Date()
-            let serviceID = UUID()
-            serviceToSave.id = serviceID
+            serviceToSave.id = UUID()
         }
         else {
             serviceToSave.editedDate = Date()
         }
 
-        if let serviceIDString = serviceToSave.id?.uuidString {
-            do {
-                try TokenManager.setToken(apiKey, for: serviceIDString)
-            }
-            catch {
-                print("Failed to set token: \(error.localizedDescription)")
-            }
+        guard let serviceID = serviceToSave.id else {
+            print("Failed to set token: missing service id")
+            return
+        }
+
+        let serviceIDString = serviceID.uuidString
+        do {
+            try TokenManager.setToken(apiKey, for: serviceIDString)
+        }
+        catch {
+            print("Failed to set token: \(error.localizedDescription)")
         }
 
         if serviceToSave.objectID.isTemporaryID {
@@ -227,7 +234,8 @@ class APIServiceDetailViewModel: ObservableObject {
     func deleteAPIService() {
         guard let serviceToDelete = apiService else { return }
 
-        if let serviceIDString = serviceToDelete.id?.uuidString {
+        if let serviceID = serviceToDelete.id {
+            let serviceIDString = serviceID.uuidString
             try? TokenManager.deleteToken(for: serviceIDString)
         }
 

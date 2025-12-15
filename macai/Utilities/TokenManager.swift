@@ -94,27 +94,95 @@ final class TokenManager {
         }
     }
 
+    /// Remove all synchronizable (iCloud) tokens for this app from the keychain.
+    /// Local tokens are left intact so the user keeps access on the current device.
+    static func clearCloudTokens() {
+        _ = try? cloudKeychain.removeAll()
+    }
+
+    /// Cache all tokens into memory. Use this before any destructive keychain operations.
+    /// Returns a dictionary mapping key names to token values.
+    static func cacheAllTokens() -> [String: String] {
+        var tokens: [String: String] = [:]
+
+        // Collect all token keys from BOTH keychains
+        var allTokenKeys = Set<String>()
+
+        if let localKeys = try? localKeychain.allKeys() {
+            for key in localKeys where key.hasPrefix(tokenPrefix) {
+                allTokenKeys.insert(key)
+            }
+        }
+
+        if let cloudKeys = try? cloudKeychain.allKeys() {
+            for key in cloudKeys where key.hasPrefix(tokenPrefix) {
+                allTokenKeys.insert(key)
+            }
+        }
+
+        // Read all tokens into memory
+        for key in allTokenKeys {
+            if let token = try? cloudKeychain.get(key, ignoringAttributeSynchronizable: true) {
+                tokens[key] = token
+            } else if let token = try? localKeychain.get(key, ignoringAttributeSynchronizable: true) {
+                tokens[key] = token
+            }
+        }
+
+        return tokens
+    }
+
+    /// Restore cached tokens to local keychain.
+    /// Call this after clearing cloud tokens to ensure tokens are available locally.
+    static func restoreTokensToLocalKeychain(_ tokens: [String: String]) {
+        for (key, token) in tokens {
+            _ = try? localKeychain.set(token, key: key)
+        }
+    }
+
+    /// Restore cached tokens to cloud keychain.
+    /// Call this when enabling iCloud sync to ensure tokens are synced.
+    static func restoreTokensToCloudKeychain(_ tokens: [String: String]) {
+        for (key, token) in tokens {
+            _ = try? cloudKeychain.set(token, key: key)
+        }
+    }
+
     /// Migrate existing tokens when sync setting changes
     /// Call this after changing iCloud sync setting and before app restart
     static func migrateTokensForSyncChange(toSyncEnabled: Bool) {
-        let source = toSyncEnabled ? localKeychain : cloudKeychain
         let destination = toSyncEnabled ? cloudKeychain : localKeychain
 
-        // Pull everything we see from the source store—do not rely on the
-        // synchronizable flag because KeychainAccess can surface it in
-        // different representations across macOS versions.
-        guard let allItems = try? source.allItems() else { return }
+        // Collect all token keys from BOTH keychains to ensure we don't miss any.
+        // This handles edge cases where tokens might exist in one keychain but not the other.
+        var allTokenKeys = Set<String>()
 
-        for item in allItems {
-            guard let key = item["key"] as? String,
-                  key.hasPrefix(tokenPrefix) else { continue }
+        if let localKeys = try? localKeychain.allKeys() {
+            for key in localKeys where key.hasPrefix(tokenPrefix) {
+                allTokenKeys.insert(key)
+            }
+        }
 
-            guard let token = try? source.get(key, ignoringAttributeSynchronizable: false) else { continue }
+        if let cloudKeys = try? cloudKeychain.allKeys() {
+            for key in cloudKeys where key.hasPrefix(tokenPrefix) {
+                allTokenKeys.insert(key)
+            }
+        }
 
-            // Copy token into the destination store. If the write fails, keep the source copy intact.
-            _ = try? destination.set(token, key: key)
-            // Never delete the source during migration; keeping both copies prevents
-            // data loss if one keychain is temporarily unavailable.
+        // Migrate each token to the destination
+        for key in allTokenKeys {
+            // Try to get the token from either keychain, using ignoringAttributeSynchronizable
+            // to ensure we can read regardless of the synchronizable flag state
+            var token: String?
+            token = try? cloudKeychain.get(key, ignoringAttributeSynchronizable: true)
+            if token == nil {
+                token = try? localKeychain.get(key, ignoringAttributeSynchronizable: true)
+            }
+
+            guard let tokenValue = token else { continue }
+
+            // Write to destination
+            _ = try? destination.set(tokenValue, key: key)
         }
     }
 

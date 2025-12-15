@@ -748,7 +748,7 @@ class GeminiHandler: APIService {
     }
 
     private func saveImageData(_ data: Data, format: String) -> UUID? {
-        guard let image = NSImage(data: data) else { return nil }
+        guard !data.isEmpty, let image = NSImage(data: data) else { return nil }
         let uuid = UUID()
         let context = PersistenceController.shared.container.viewContext
         var saveSucceeded = false

@@ -170,7 +170,7 @@ class MessageManager: ObservableObject {
     }
 
     func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
-        guard force || chat.name == "", chat.messagesCount > 0 else {
+        guard force || chat.name == "", !chat.messagesArray.isEmpty else {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
@@ -258,7 +258,11 @@ class MessageManager: ObservableObject {
 
     private func addMessageToChat(chat: ChatEntity, message: String, partsEnvelope: Data? = nil) {
         let newMessage = MessageEntity(context: self.viewContext)
-        newMessage.id = Int64(chat.messagesCount + 1)
+        let sequence = chat.nextSequence()
+        newMessage.id = sequence
+        if chat.responds(to: #selector(getter: MessageEntity.sequence)) || (chat.managedObjectContext?.persistentStoreCoordinator?.managedObjectModel.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil) {
+            newMessage.sequence = sequence
+        }
         newMessage.body = message
         newMessage.timestamp = Date()
         newMessage.own = false
@@ -315,7 +319,6 @@ class MessageManager: ObservableObject {
         }
 
         let sortedMessages = chat.messagesArray
-            .sorted { $0.timestamp < $1.timestamp }
             .suffix(contextSize)
 
         // Add conversation history

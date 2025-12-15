@@ -172,7 +172,11 @@ class ChatLogicHandler: ObservableObject {
     
     private func saveNewMessageInStore(with messageBody: String) {
         let newMessageEntity = MessageEntity(context: viewContext)
-        newMessageEntity.id = Int64(chat.messagesCount + 1)
+        let sequence = chat.nextSequence()
+        newMessageEntity.id = sequence
+        if chat.managedObjectContext?.persistentStoreCoordinator?.managedObjectModel.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil {
+            newMessageEntity.sequence = sequence
+        }
         newMessageEntity.body = messageBody
         newMessageEntity.timestamp = Date()
         newMessageEntity.own = true

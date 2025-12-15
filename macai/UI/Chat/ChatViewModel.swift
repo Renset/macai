@@ -196,12 +196,17 @@ class ChatViewModel: ObservableObject {
             return nil
         }
 
+        guard let serviceID = apiService.id else {
+            print("Error extracting token: missing apiService.id")
+            return nil
+        }
+
         var apiKey = ""
         do {
-            apiKey = try TokenManager.getToken(for: apiService.id?.uuidString ?? "") ?? ""
+            apiKey = try TokenManager.getToken(for: serviceID.uuidString) ?? ""
         }
         catch {
-            print("Error extracting token: \(error) for \(apiService.id?.uuidString ?? "")")
+            print("Error extracting token: \(error) for \(serviceID.uuidString)")
         }
 
         return APIServiceConfig(

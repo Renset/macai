@@ -140,6 +140,7 @@ class ImageAttachment: Identifiable, ObservableObject {
 
         let persist: (ImagePersistencePayload) -> Void = { [weak self] payload in
             guard let self = self else { return }
+            guard !payload.imageData.isEmpty else { return }
 
             contextToUse.performAndWait {
                 if self.imageEntity == nil {
@@ -448,6 +449,9 @@ extension ImageAttachment {
             return nil
         }
 
+        // Avoid creating empty CKAssets; bail out if we somehow got zero bytes.
+        guard finalImageData.count > 0 else { return nil }
+
         // CloudKit stores binary data as CKAsset. Apple recommends keeping assets under ~250 MB for performance.
         // Use a safety margin to avoid slow transfers or CKError.limitExceeded.
         let cloudKitLimit = 250_000_000 // 250 MB safety threshold for CKAsset payloads
@@ -466,13 +470,16 @@ extension ImageAttachment {
         var thumbnailData: Data?
 
         if let thumbnailImage,
-            let thumbnailTiff = thumbnailImage.tiffRepresentation,
-            let thumbnailBitmap = NSBitmapImageRep(data: thumbnailTiff)
+           let thumbnailTiff = thumbnailImage.tiffRepresentation,
+           let thumbnailBitmap = NSBitmapImageRep(data: thumbnailTiff)
         {
             thumbnailData = thumbnailBitmap.representation(
                 using: .jpeg,
                 properties: [.compressionFactor: 0.7]
             )
+            if let data = thumbnailData, data.isEmpty {
+                thumbnailData = nil
+            }
         }
 
         return ImagePersistencePayload(

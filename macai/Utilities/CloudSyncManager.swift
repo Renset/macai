@@ -53,6 +53,7 @@ class CloudSyncManager: ObservableObject {
     private var eventSubscription: AnyCancellable?
     private var container: NSPersistentCloudKitContainer?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "macai", category: "CloudSync")
+    private let cloudContainerIdentifier = "iCloud.notfullin.com.macai"
 
     struct SyncLogEntry: Identifiable {
         let id = UUID()
@@ -125,6 +126,45 @@ class CloudSyncManager: ObservableObject {
         }
 
         return output
+    }
+
+    /// Deletes the Core Data CloudKit zone in the user's private database.
+    /// Leaves local data intact so the user can keep a copy on this device.
+    func purgeCloudData(completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let container = container else {
+            completion(.failure(NSError(domain: "CloudSync", code: -1, userInfo: [NSLocalizedDescriptionKey: "Cloud container unavailable"])))
+            return
+        }
+
+        // Core Data mirrors into a dedicated zone named below.
+        let zoneID = CKRecordZone.ID(zoneName: "com.apple.coredata.cloudkit.zone", ownerName: CKCurrentUserDefaultName)
+
+        syncStatus = .syncing
+        log("Starting CloudKit purge for zone \(zoneID.zoneName)", type: "Setup")
+
+        let privateDB = CKContainer(identifier: cloudContainerIdentifier).privateCloudDatabase
+        privateDB.delete(withRecordZoneID: zoneID) { [weak self] (_: CKRecordZone.ID?, error: Error?) in
+            DispatchQueue.main.async {
+                if let error = error {
+                    // Treat zone-not-found as success so the UI doesn't block.
+                    let nsError = error as NSError
+                    if nsError.domain == CKErrorDomain, CKError.Code(rawValue: nsError.code) == .zoneNotFound {
+                        self?.log("CloudKit zone already missing; treating as purged", type: "Setup")
+                        self?.syncStatus = .inactive
+                        completion(.success(()))
+                        return
+                    }
+
+                    self?.logError(error)
+                    self?.syncStatus = .error(self?.simplifyErrorMessage(error) ?? error.localizedDescription)
+                    completion(.failure(error))
+                } else {
+                    self?.log("CloudKit zone deleted successfully", type: "Setup")
+                    self?.syncStatus = .inactive
+                    completion(.success(()))
+                }
+            }
+        }
     }
 
     private func log(_ message: String, type: String, isError: Bool = false) {
