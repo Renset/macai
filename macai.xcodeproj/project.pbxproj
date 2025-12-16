@@ -34,7 +34,6 @@
 		4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */; };
 		4A2D3CEB2D5794B10082A262 /* ThemeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */; };
 		4A315DB22C8CD8410095ABD1 /* TabAIPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */; };
-		4A366F642EEFFA9300128E19 /* v1tov3.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4A366F632EEFFA9300128E19 /* v1tov3.xcmappingmodel */; };
 		4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A37B8542C2A399800F36CC4 /* Credits.rtf */; };
 		4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
 		4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9A29BC8FEF00E98796 /* ContentView.swift */; };
@@ -62,6 +61,7 @@
 		4A79A0762CEA9FB900CB41D8 /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
 		4A7AFF182B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
+		4A8560DC2EF0C429007A5E42 /* V1ToV3Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */; };
 		4A885C522CEA3B130018BBED /* HTMLPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */; };
 		4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C532CEA3D960018BBED /* PreviewStateManager.swift */; };
 		4A885C562CEA3F6C0018BBED /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C552CEA3F6C0018BBED /* ChatListView.swift */; };
@@ -161,7 +161,6 @@
 		4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAIPersonasView.swift; sourceTree = "<group>"; };
 		4A366F612EEFFA5E00128E19 /* macaiDataModel 2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "macaiDataModel 2.xcdatamodel"; sourceTree = "<group>"; };
 		4A366F622EEFFA5E00128E19 /* macaiDataModel 3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "macaiDataModel 3.xcdatamodel"; sourceTree = "<group>"; };
-		4A366F632EEFFA9300128E19 /* v1tov3.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = v1tov3.xcmappingmodel; sourceTree = "<group>"; };
 		4A37B8542C2A399800F36CC4 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A399C9829BC8FEF00E98796 /* macaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiApp.swift; sourceTree = "<group>"; };
@@ -187,6 +186,7 @@
 		4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = macaiDataModel.xcdatamodel; sourceTree = "<group>"; };
 		4A775A032C1486F3004301D3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTestApiTokenAndModel.swift; sourceTree = "<group>"; };
+		4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V1ToV3Migration.swift; sourceTree = "<group>"; };
 		4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLPreviewView.swift; sourceTree = "<group>"; };
 		4A885C532CEA3D960018BBED /* PreviewStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewStateManager.swift; sourceTree = "<group>"; };
 		4A885C552CEA3F6C0018BBED /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
@@ -348,8 +348,8 @@
 		4A272A6A29F5CD5E00F93D0D /* Store */ = {
 			isa = PBXGroup;
 			children = (
+				4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */,
 				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
-				4A366F632EEFFA9300128E19 /* v1tov3.xcmappingmodel */,
 				4A399CC529BCF02500E98796 /* ChatStore.swift */,
 			);
 			path = Store;
@@ -679,11 +679,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A2D3CEB2D5794B10082A262 /* ThemeMode.swift in Sources */,
+				4A8560DC2EF0C429007A5E42 /* V1ToV3Migration.swift in Sources */,
 				4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */,
 				4ABB867B2CFC79ED004EC7B1 /* ErrorBubbleView.swift in Sources */,
 				4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */,
 				B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */,
-				4A366F642EEFFA9300128E19 /* v1tov3.xcmappingmodel in Sources */,
 				B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */,
 				4AFEE7232C472FA1006F99FB /* ChatGPTHandler.swift in Sources */,
 				4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */,
@@ -1213,7 +1213,7 @@
 				4A366F612EEFFA5E00128E19 /* macaiDataModel 2.xcdatamodel */,
 				4A366F622EEFFA5E00128E19 /* macaiDataModel 3.xcdatamodel */,
 			);
-			currentVersion = 4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */;
+			currentVersion = 4A366F622EEFFA5E00128E19 /* macaiDataModel 3.xcdatamodel */;
 			path = macaiDataModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

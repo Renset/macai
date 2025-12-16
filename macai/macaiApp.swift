@@ -9,6 +9,7 @@ import AppKit
 import CloudKit
 import CoreData
 import Sparkle
+import SQLite3
 import SwiftUI
 import UserNotifications
 
@@ -48,6 +49,7 @@ class PersistenceController {
 
     let container: NSPersistentContainer
     let isCloudKitEnabled: Bool
+    private let migrator = ProgrammaticMigrator(containerName: "macaiDataModel")
 
     init(inMemory: Bool = false) {
         let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
@@ -59,9 +61,11 @@ class PersistenceController {
             container = NSPersistentContainer(name: "macaiDataModel")
         }
 
+        // We handle migration manually by exporting/importing data, so no Core Data migration needed
+        // Set to true for any future lightweight migrations that Core Data can handle automatically
         for description in container.persistentStoreDescriptions {
             description.shouldMigrateStoreAutomatically = true
-            description.shouldInferMappingModelAutomatically = false
+            description.shouldInferMappingModelAutomatically = true
         }
 
         if inMemory {
@@ -79,17 +83,37 @@ class PersistenceController {
             description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
 
-        // One-time local backup before migrating to Core Data model v3
-        CoreDataBackupManager.backupBeforeV3IfNeeded(
-            containerName: "macaiDataModel",
-            isCloudKitEnabled: isCloudKitEnabled
-        )
+        // Programmatic migration (export/import) only
+        let migrationState = migrator.prepareIfNeeded()
+
+        print("Starting to load persistent stores...")
+        let startTime = Date()
+        var migrationError: Error?
 
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            let elapsed = Date().timeIntervalSince(startTime)
             if let error = error {
-                print("Failed to load persistent store: \(error)")
+                print("Failed to load persistent store after \(elapsed)s: \(error)")
+                migrationError = error
+            } else {
+                print("Successfully loaded persistent store in \(elapsed)s: \(storeDescription.url?.lastPathComponent ?? "unknown")")
             }
         })
+
+        // Handle any store loading errors
+        if let error = migrationError {
+            migrator.handleStoreLoadError(error, state: migrationState)
+        }
+
+        // Import exported data if we have it (migration scenario)
+        migrator.importIfNeeded(state: migrationState, into: container)
+
+        print("Persistent stores loaded, performing WAL checkpoint...")
+
+        // Perform WAL checkpoint to flush changes to main sqlite file
+        performWALCheckpoint()
+
+        print("Migration complete")
 
         // Configure view context
         container.viewContext.automaticallyMergesChangesFromParent = true
@@ -99,100 +123,36 @@ class PersistenceController {
         if isCloudKitEnabled, let cloudKitContainer = container as? NSPersistentCloudKitContainer {
             CloudSyncManager.shared.configure(with: cloudKitContainer)
         }
+    }
 
+    private func performWALCheckpoint() {
+        let storeCoordinator = container.persistentStoreCoordinator
+        guard let store = storeCoordinator.persistentStores.first,
+              let storeURL = store.url else {
+            return
+        }
+
+        // Perform WAL checkpoint using raw SQL
+        var db: OpaquePointer?
+
+        if sqlite3_open(storeURL.path, &db) == SQLITE_OK {
+            var errMsg: UnsafeMutablePointer<CChar>?
+            let result = sqlite3_exec(db, "PRAGMA wal_checkpoint(TRUNCATE);", nil, nil, &errMsg)
+            if result != SQLITE_OK {
+                if let errMsg = errMsg {
+                    print("WAL checkpoint failed: \(String(cString: errMsg))")
+                    sqlite3_free(errMsg)
+                }
+            } else {
+                print("WAL checkpoint completed successfully")
+            }
+            sqlite3_close(db)
+        }
     }
 
     static func requiresRestart(forNewSyncState newState: Bool) -> Bool {
         let currentState = UserDefaults.standard.bool(forKey: iCloudSyncEnabledKey)
         return currentState != newState
-    }
-}
-
-// MARK: - Core Data backup helper
-private enum CoreDataBackupManager {
-    private static let backupCompletedKey = "CoreDataBackupBeforeV3Completed"
-    private static let backupNoticeShownKey = "CoreDataBackupBeforeV3NoticeShown"
-    private static let targetModelVersionName = "macaiDataModel 3"
-
-    static func backupBeforeV3IfNeeded(containerName: String, isCloudKitEnabled: Bool) {
-        let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: backupCompletedKey) else { return }
-
-        guard let storeBaseURL = defaultStoreURL(for: containerName) else { return }
-        let sqliteURL = storeBaseURL.appendingPathExtension("sqlite")
-        guard FileManager.default.fileExists(atPath: sqliteURL.path) else {
-            defaults.set(true, forKey: backupCompletedKey) // nothing to back up yet
-            return
-        }
-
-        let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-        let backupsFolder = backupsDirectoryURL()
-            .appendingPathComponent("Before-\(targetModelVersionName)-\(timestamp)", isDirectory: true)
-
-        do {
-            try FileManager.default.createDirectory(at: backupsFolder, withIntermediateDirectories: true)
-            try copyStoreFiles(from: storeBaseURL, to: backupsFolder)
-            defaults.set(true, forKey: backupCompletedKey)
-            defaults.set(backupsFolder.path, forKey: "CoreDataBackupBeforeV3Path")
-            defaults.set(false, forKey: backupNoticeShownKey)
-            print("Backup before v3 created at: \(backupsFolder.path)")
-            NotificationPresenter.shared.scheduleNotification(
-                identifier: "CoreDataBackupCompleted",
-                title: "Database updated",
-                body: "We created a local backup before migrating to \(targetModelVersionName). Location: \(backupsFolder.path)"
-            )
-        }
-        catch {
-            print("Backup before v3 failed: \(error)")
-        }
-    }
-
-    /// Returns the Backups directory URL, matching DatabaseBackupManager in TabBackupRestoreView
-    static func backupsDirectoryURL() -> URL {
-        let base = NSPersistentContainer.defaultDirectoryURL()
-        let bundleID = Bundle.main.bundleIdentifier ?? "macai"
-        return base
-            .appendingPathComponent(bundleID, isDirectory: true)
-            .appendingPathComponent("Backups", isDirectory: true)
-    }
-
-    private static func defaultStoreURL(for containerName: String) -> URL? {
-        // Core Data stores at: <Application Support>/<containerName>.sqlite
-        let base = NSPersistentContainer.defaultDirectoryURL()
-        return base.appendingPathComponent(containerName)
-    }
-
-    private static func copyStoreFiles(from baseURL: URL, to backupFolder: URL) throws {
-        let fm = FileManager.default
-        for ext in ["sqlite", "sqlite-wal", "sqlite-shm"] {
-            let source = baseURL.appendingPathExtension(ext)
-            guard fm.fileExists(atPath: source.path) else { continue }
-            let destination = backupFolder.appendingPathComponent(source.lastPathComponent)
-            if fm.fileExists(atPath: destination.path) {
-                try fm.removeItem(at: destination)
-            }
-            try fm.copyItem(at: source, to: destination)
-        }
-    }
-
-    private static func presentPreMigrationAlert(storeURL: URL) {
-        // Only present if an AppKit application is running; otherwise log and continue.
-        guard NSApp != nil else {
-            print("Skipping pre-migration alert (NSApp not initialized). Backup will proceed.")
-            return
-        }
-
-        DispatchQueue.main.async {
-            let alert = NSAlert()
-            alert.messageText = "Preparing database upgrade"
-            alert.informativeText = """
-We will back up your chat database before migrating to the new Core Data model (v3).
-Backup location: \(storeURL.deletingLastPathComponent().appendingPathComponent("Backups").path)
-This happens once and keeps your data safe in case of issues.
-"""
-            alert.addButton(withTitle: "Proceed")
-            alert.runModal()
-        }
     }
 }
 
