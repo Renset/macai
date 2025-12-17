@@ -108,10 +108,13 @@ class PersistenceController {
         // Import exported data if we have it (migration scenario)
         migrator.importIfNeeded(state: migrationState, into: container)
 
-        print("Persistent stores loaded, performing WAL checkpoint...")
+        print("Persistent stores loaded, scheduling WAL checkpoint...")
 
-        // Perform WAL checkpoint to flush changes to main sqlite file
-        performWALCheckpoint()
+        // Perform WAL checkpoint on background thread to avoid blocking app launch
+        // For large databases (>100MB), this can take seconds
+        DispatchQueue.global(qos: .utility).async { [weak container] in
+            self.performWALCheckpoint(container: container)
+        }
 
         print("Migration complete")
 
@@ -125,7 +128,12 @@ class PersistenceController {
         }
     }
 
-    private func performWALCheckpoint() {
+    private func performWALCheckpoint(container: NSPersistentContainer?) {
+        guard let container = container else {
+            print("WAL checkpoint skipped: container deallocated")
+            return
+        }
+        
         let storeCoordinator = container.persistentStoreCoordinator
         guard let store = storeCoordinator.persistentStores.first,
               let storeURL = store.url else {

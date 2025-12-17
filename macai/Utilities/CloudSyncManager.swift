@@ -171,9 +171,10 @@ class CloudSyncManager: ObservableObject {
         let entry = SyncLogEntry(timestamp: Date(), type: type, message: message, isError: isError)
         DispatchQueue.main.async {
             self.syncLogs.append(entry)
-            // Keep only last 500 entries
-            if self.syncLogs.count > 500 {
-                self.syncLogs.removeFirst(self.syncLogs.count - 500)
+            // Keep only last 300 entries (reduced from 500 for memory efficiency)
+            // Using suffix is more efficient than removeFirst for large arrays
+            if self.syncLogs.count > 300 {
+                self.syncLogs = Array(self.syncLogs.suffix(300))
             }
         }
 

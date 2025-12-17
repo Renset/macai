@@ -336,13 +336,21 @@ class ImageAttachment: Identifiable, ObservableObject {
     }
 
     /// Progressively compress image to fit within CloudKit size limits
+    /// Optimized with iteration limits to prevent excessive encoding passes
     private func compressForCloudKit(image: NSImage, currentData: Data, targetSize: Int) -> Data {
         var compressionFactor: CGFloat = 0.7
         var resizedImage = image
         var resultData = currentData
+        
+        // Maximum iterations to prevent runaway loops
+        let maxCompressionIterations = 7
+        let maxResizeIterations = 10
+        var compressionIterations = 0
 
         // First, try reducing compression quality
-        while resultData.count > targetSize && compressionFactor > 0.1 {
+        while resultData.count > targetSize && compressionFactor > 0.1 && compressionIterations < maxCompressionIterations {
+            compressionIterations += 1
+            
             if let tiffData = resizedImage.tiffRepresentation,
                let bitmapImage = NSBitmapImageRep(data: tiffData),
                let compressedData = bitmapImage.representation(
@@ -350,6 +358,11 @@ class ImageAttachment: Identifiable, ObservableObject {
                    properties: [.compressionFactor: compressionFactor]
                ) {
                 resultData = compressedData
+                
+                // Early exit if we've reached the target
+                if resultData.count <= targetSize {
+                    break
+                }
             }
             compressionFactor -= 0.1
         }
@@ -358,8 +371,11 @@ class ImageAttachment: Identifiable, ObservableObject {
         if resultData.count > targetSize {
             let scaleFactor: CGFloat = 0.75
             var currentSize = resizedImage.size
+            var resizeIterations = 0
 
-            while resultData.count > targetSize && currentSize.width > 200 {
+            while resultData.count > targetSize && currentSize.width > 200 && resizeIterations < maxResizeIterations {
+                resizeIterations += 1
+                
                 currentSize = NSSize(
                     width: currentSize.width * scaleFactor,
                     height: currentSize.height * scaleFactor
@@ -385,6 +401,11 @@ class ImageAttachment: Identifiable, ObservableObject {
                        properties: [.compressionFactor: 0.6]
                    ) {
                     resultData = compressedData
+                    
+                    // Early exit if we've reached the target
+                    if resultData.count <= targetSize {
+                        break
+                    }
                 }
             }
         }

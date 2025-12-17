@@ -29,9 +29,23 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var isPinned: Bool
     @NSManaged public var lastSequence: Int64
 
+    // Cache for supportsSequencing check - computed once per app lifecycle
+    private static var _supportsSequencingCache: Bool?
+    
     private var supportsSequencing: Bool {
-        guard let model = self.managedObjectContext?.persistentStoreCoordinator?.managedObjectModel else { return true }
-        return model.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil
+        // Return cached value if available
+        if let cached = ChatEntity._supportsSequencingCache {
+            return cached
+        }
+        
+        // Compute and cache the value
+        guard let context = self.managedObjectContext,
+              let model = context.persistentStoreCoordinator?.managedObjectModel else {
+            return true // Default to true if we can't check, but don't cache yet
+        }
+        let supports = model.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil
+        ChatEntity._supportsSequencingCache = supports
+        return supports
     }
 
     private var messageSortDescriptors: [NSSortDescriptor] {
@@ -65,16 +79,53 @@ public class ChatEntity: NSManagedObject, Identifiable {
         let fetchRequest = NSFetchRequest<MessageEntity>(entityName: "MessageEntity")
         fetchRequest.predicate = NSPredicate(format: "chat == %@", self)
         fetchRequest.sortDescriptors = messageSortDescriptors
+        fetchRequest.fetchBatchSize = 20  // Avoid materializing all objects at once
 
         return (try? context.fetch(fetchRequest)) ?? []
     }
 
+    /// Optimized count that doesn't materialize all message objects
     public var messagesCount: Int {
-        return messagesArray.count
+        guard let context = self.managedObjectContext else {
+            return (messages as? Set<MessageEntity>)?.count ?? 0
+        }
+        
+        let fetchRequest = NSFetchRequest<MessageEntity>(entityName: "MessageEntity")
+        fetchRequest.predicate = NSPredicate(format: "chat == %@", self)
+        return (try? context.count(for: fetchRequest)) ?? 0
     }
 
+    /// Optimized fetch that only retrieves the last message
     public var lastMessage: MessageEntity? {
-        return messagesArray.last
+        guard let context = self.managedObjectContext else {
+            let set = messages as? Set<MessageEntity> ?? []
+            return set.max { lhs, rhs in
+                if supportsSequencing {
+                    if lhs.sequence == rhs.sequence {
+                        return lhs.timestamp < rhs.timestamp
+                    }
+                    return lhs.sequence < rhs.sequence
+                }
+                return lhs.timestamp < rhs.timestamp
+            }
+        }
+        
+        // Use a limit-1 fetch with descending sort to get only the last message
+        let fetchRequest = NSFetchRequest<MessageEntity>(entityName: "MessageEntity")
+        fetchRequest.predicate = NSPredicate(format: "chat == %@", self)
+        
+        // Reverse the sort descriptors to get the last message first
+        if supportsSequencing {
+            fetchRequest.sortDescriptors = [
+                NSSortDescriptor(keyPath: \MessageEntity.sequence, ascending: false),
+                NSSortDescriptor(keyPath: \MessageEntity.timestamp, ascending: false),
+            ]
+        } else {
+            fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \MessageEntity.timestamp, ascending: false)]
+        }
+        fetchRequest.fetchLimit = 1
+        
+        return (try? context.fetch(fetchRequest))?.first
     }
 
     public func addToMessages(_ message: MessageEntity) {
@@ -169,10 +220,13 @@ struct Chat: Codable {
         self.apiServiceType = chatEntity.apiService?.type
         self.personaName = chatEntity.persona?.name
         
-        self.messages = chatEntity.messagesArray.map { Message(messageEntity: $0) }
+        // Fetch messagesArray once and reuse for both messages and messagePreview
+        let fetchedMessages = chatEntity.messagesArray
+        self.messages = fetchedMessages.map { Message(messageEntity: $0) }
 
-        if chatEntity.lastMessage != nil {
-            self.messagePreview = Message(messageEntity: chatEntity.lastMessage!)
+        // Use the last element from already-fetched messages instead of calling lastMessage again
+        if let lastMsg = fetchedMessages.last {
+            self.messagePreview = Message(messageEntity: lastMsg)
         }
     }
 }

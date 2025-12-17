@@ -105,27 +105,22 @@ final class TokenManager {
     static func cacheAllTokens() -> [String: String] {
         var tokens: [String: String] = [:]
 
-        // Collect all token keys from BOTH keychains
-        var allTokenKeys = Set<String>()
-
+        // Read tokens from local keychain first (single pass - read values during enumeration)
         if let localKeys = try? localKeychain.allKeys() {
             for key in localKeys where key.hasPrefix(tokenPrefix) {
-                allTokenKeys.insert(key)
+                if let token = try? localKeychain.get(key, ignoringAttributeSynchronizable: true) {
+                    tokens[key] = token
+                }
             }
         }
 
+        // Read tokens from cloud keychain, overwriting local if cloud has a value
+        // (cloud takes precedence)
         if let cloudKeys = try? cloudKeychain.allKeys() {
             for key in cloudKeys where key.hasPrefix(tokenPrefix) {
-                allTokenKeys.insert(key)
-            }
-        }
-
-        // Read all tokens into memory
-        for key in allTokenKeys {
-            if let token = try? cloudKeychain.get(key, ignoringAttributeSynchronizable: true) {
-                tokens[key] = token
-            } else if let token = try? localKeychain.get(key, ignoringAttributeSynchronizable: true) {
-                tokens[key] = token
+                if let token = try? cloudKeychain.get(key, ignoringAttributeSynchronizable: true) {
+                    tokens[key] = token
+                }
             }
         }
 
@@ -153,36 +148,23 @@ final class TokenManager {
     static func migrateTokensForSyncChange(toSyncEnabled: Bool) {
         let destination = toSyncEnabled ? cloudKeychain : localKeychain
 
-        // Collect all token keys from BOTH keychains to ensure we don't miss any.
-        // This handles edge cases where tokens might exist in one keychain but not the other.
-        var allTokenKeys = Set<String>()
-
+        // First pass: migrate tokens from local keychain
         if let localKeys = try? localKeychain.allKeys() {
             for key in localKeys where key.hasPrefix(tokenPrefix) {
-                allTokenKeys.insert(key)
+                if let token = try? localKeychain.get(key, ignoringAttributeSynchronizable: true) {
+                    _ = try? destination.set(token, key: key)
+                }
             }
         }
 
+        // Second pass: migrate tokens from cloud keychain (only if not already migrated)
+        // Cloud tokens take precedence, so overwrite any local values
         if let cloudKeys = try? cloudKeychain.allKeys() {
             for key in cloudKeys where key.hasPrefix(tokenPrefix) {
-                allTokenKeys.insert(key)
+                if let token = try? cloudKeychain.get(key, ignoringAttributeSynchronizable: true) {
+                    _ = try? destination.set(token, key: key)
+                }
             }
-        }
-
-        // Migrate each token to the destination
-        for key in allTokenKeys {
-            // Try to get the token from either keychain, using ignoringAttributeSynchronizable
-            // to ensure we can read regardless of the synchronizable flag state
-            var token: String?
-            token = try? cloudKeychain.get(key, ignoringAttributeSynchronizable: true)
-            if token == nil {
-                token = try? localKeychain.get(key, ignoringAttributeSynchronizable: true)
-            }
-
-            guard let tokenValue = token else { continue }
-
-            // Write to destination
-            _ = try? destination.set(tokenValue, key: key)
         }
     }
 

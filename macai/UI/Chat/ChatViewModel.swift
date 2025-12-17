@@ -33,6 +33,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - Search State
     @Published var searchOccurrences: [SearchOccurrence] = []
     @Published var currentSearchIndex: Int? = nil
+    @Published var sortedMessages: [MessageEntity] = []
 
     var currentSearchOccurrence: SearchOccurrence? {
         if let index = currentSearchIndex, searchOccurrences.indices.contains(index) {
@@ -66,6 +67,7 @@ class ChatViewModel: ObservableObject {
         self.chat = chat
         self.messages = chat.messages
         self.viewContext = viewContext
+        self.sortedMessages = chat.messagesArray
 
         observeAPIServiceChanges()
     }
@@ -109,11 +111,10 @@ class ChatViewModel: ObservableObject {
 
     func reloadMessages() {
         messages = self.messages
+        sortedMessages = chat.messagesArray
     }
 
-    var sortedMessages: [MessageEntity] {
-        return self.chat.messagesArray
-    }
+    // sortedMessages is now a @Published property initialized in init() and updated in reloadMessages()
 
     private func createMessageManager() -> MessageManager {
         guard let config = self.loadCurrentAPIConfig() else {
@@ -236,16 +237,24 @@ class ChatViewModel: ObservableObject {
         }
         
         searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: AppConstants.searchDebounceTime, repeats: false) { [weak self] _ in
-            self?.performSearch(searchText: searchText)
+            guard let self = self else { return }
+            
+            // To ensure thread safety when accessing Core Data objects on background thread,
+            // we capture the necessary data on the main thread first.
+            let messagesData = self.sortedMessages.map { (id: $0.objectID, body: $0.body) }
+            
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.performSearch(searchText: searchText, messagesData: messagesData)
+            }
         }
     }
     
-    private func performSearch(searchText: String) {
+    private func performSearch(searchText: String, messagesData: [(id: NSManagedObjectID, body: String)]) {
         var occurrences: [SearchOccurrence] = []
         if !searchText.isEmpty {
             let parser = MessageParser(colorScheme: .light) // Color scheme doesn't matter for parsing
             
-            for message in sortedMessages {
+            for message in messagesData {
                 let parsedElements = parser.parseMessageFromString(input: message.body)
                 
                 for (elementIndex, element) in parsedElements.enumerated() {
@@ -260,7 +269,7 @@ class ChatViewModel: ObservableObject {
                                 let nsRange = NSRange(range, in: headerCell)
                                 let adjustedRange = NSRange(location: nsRange.location + columnIndex * 10000, length: nsRange.length)
                                 let occurrence = SearchOccurrence(
-                                    messageID: message.objectID,
+                                    messageID: message.id,
                                     range: adjustedRange,
                                     elementIndex: elementIndex,
                                     elementType: "table"
@@ -290,7 +299,7 @@ class ChatViewModel: ObservableObject {
                                     let cellPosition = (rowIndex + 1) * 1000 + columnIndex // FIXME: bit tricky, but this is needed to properly handle search occurrences in tables
                                     let adjustedRange = NSRange(location: nsRange.location + cellPosition * 10000, length: nsRange.length)
                                     let occurrence = SearchOccurrence(
-                                        messageID: message.objectID,
+                                        messageID: message.id,
                                         range: adjustedRange,
                                         elementIndex: elementIndex,
                                         elementType: "table"
@@ -318,7 +327,7 @@ class ChatViewModel: ObservableObject {
                             
                             let nsRange = NSRange(range, in: content)
                             let occurrence = SearchOccurrence(
-                                messageID: message.objectID,
+                                messageID: message.id,
                                 range: nsRange,
                                 elementIndex: elementIndex,
                                 elementType: elementType

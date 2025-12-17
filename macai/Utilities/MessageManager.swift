@@ -160,6 +160,9 @@ class MessageManager: ObservableObject {
                     role: AppConstants.defaultRole,
                     geminiParts: decodePartsEnvelopeToBase64(geminiParts)
                 )
+
+                // Save once at the end of the stream
+                try? self.viewContext.save()
                 completion(.success(()))
             }
             catch {
@@ -280,7 +283,6 @@ class MessageManager: ObservableObject {
             message["message_parts"] = geminiParts
         }
         chat.requestMessages.append(message)
-        self.viewContext.saveWithRetry(attempts: 1)
     }
 
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
@@ -291,12 +293,6 @@ class MessageManager: ObservableObject {
         lastMessage.waitingForResponse = false
 
         chat.objectWillChange.send()
-
-        Task {
-            await MainActor.run {
-                self.viewContext.saveWithRetry(attempts: 1)
-            }
-        }
     }
 
     private func constructRequestMessages(chat: ChatEntity, forUserMessage userMessage: String?, contextSize: Int)
