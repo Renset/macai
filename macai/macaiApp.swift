@@ -88,20 +88,29 @@ class PersistenceController {
 
         print("Starting to load persistent stores...")
         let startTime = Date()
-        var migrationError: Error?
+        let semaphore = DispatchSemaphore(value: 0)
+        var loadError: Error?
 
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             let elapsed = Date().timeIntervalSince(startTime)
             if let error = error {
                 print("Failed to load persistent store after \(elapsed)s: \(error)")
-                migrationError = error
+                loadError = error
             } else {
                 print("Successfully loaded persistent store in \(elapsed)s: \(storeDescription.url?.lastPathComponent ?? "unknown")")
+                
+                // Configure view context only after store is loaded
+                self.container.viewContext.automaticallyMergesChangesFromParent = true
+                self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
             }
+            semaphore.signal()
         })
 
+        // Wait for persistent stores to load (with timeout)
+        _ = semaphore.wait(timeout: .now() + 10)
+
         // Handle any store loading errors
-        if let error = migrationError {
+        if let error = loadError {
             migrator.handleStoreLoadError(error, state: migrationState)
         }
 
@@ -116,11 +125,7 @@ class PersistenceController {
             self.performWALCheckpoint(container: container)
         }
 
-        print("Migration complete")
-
-        // Configure view context
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        print("Initialization complete")
 
         // Initialize CloudSyncManager if CloudKit is enabled
         if isCloudKitEnabled, let cloudKitContainer = container as? NSPersistentCloudKitContainer {
