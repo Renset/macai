@@ -48,7 +48,7 @@ public class ChatEntity: NSManagedObject, Identifiable {
         return supports
     }
 
-    private var messageSortDescriptors: [NSSortDescriptor] {
+    public var messageSortDescriptors: [NSSortDescriptor] {
         if supportsSequencing {
             return [
                 NSSortDescriptor(keyPath: \MessageEntity.sequence, ascending: true),
@@ -151,8 +151,38 @@ public class ChatEntity: NSManagedObject, Identifiable {
         guard supportsSequencing else {
             return Int64(messagesArray.count + 1)
         }
+        
+        // Ensure lastSequence is up to date with the actual messages in the database
+        let dbMax = fetchMaxSequence()
+        if dbMax > lastSequence {
+            lastSequence = dbMax
+        }
+        
         lastSequence += 1
         return lastSequence
+    }
+
+    private func fetchMaxSequence() -> Int64 {
+        guard let context = self.managedObjectContext else { return 0 }
+        
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "MessageEntity")
+        fetchRequest.predicate = NSPredicate(format: "chat == %@", self)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "sequence", ascending: false)]
+        fetchRequest.fetchLimit = 1
+        fetchRequest.resultType = .dictionaryResultType
+        fetchRequest.propertiesToFetch = ["sequence"]
+        
+        do {
+            if let results = try context.fetch(fetchRequest) as? [[String: Any]],
+               let first = results.first,
+               let maxSeq = first["sequence"] as? Int64 {
+                return maxSeq
+            }
+        } catch {
+            print("Error fetching max sequence: \(error)")
+        }
+        
+        return 0
     }
 
     public func applySequenceIfNeeded(to message: MessageEntity) {

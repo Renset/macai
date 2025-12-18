@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import SwiftUI
+import CoreData
 
 struct SearchOccurrence: Equatable {
     let messageID: NSManagedObjectID
@@ -29,7 +30,7 @@ struct SearchOccurrence: Equatable {
     }
 }
 
-class ChatViewModel: ObservableObject {
+class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
     // MARK: - Search State
     @Published var searchOccurrences: [SearchOccurrence] = []
     @Published var currentSearchIndex: Int? = nil
@@ -45,6 +46,7 @@ class ChatViewModel: ObservableObject {
     private let chat: ChatEntity
     private let viewContext: NSManagedObjectContext
     private var serviceChangesCancellable: AnyCancellable?
+    private let fetchedResultsController: NSFetchedResultsController<MessageEntity>
 
     private var _messageManager: MessageManager?
     private var messageManager: MessageManager {
@@ -67,9 +69,38 @@ class ChatViewModel: ObservableObject {
         self.chat = chat
         self.messages = chat.messages
         self.viewContext = viewContext
-        self.sortedMessages = chat.messagesArray
+
+        let fetchRequest: NSFetchRequest<MessageEntity> = MessageEntity.fetchRequest() as! NSFetchRequest<MessageEntity>
+        fetchRequest.predicate = NSPredicate(format: "chat == %@", chat)
+        fetchRequest.sortDescriptors = chat.messageSortDescriptors
+
+        self.fetchedResultsController = NSFetchedResultsController(
+            fetchRequest: fetchRequest,
+            managedObjectContext: viewContext,
+            sectionNameKeyPath: nil,
+            cacheName: nil
+        )
+
+        super.init()
+
+        self.fetchedResultsController.delegate = self
+
+        do {
+            try fetchedResultsController.performFetch()
+            self.sortedMessages = fetchedResultsController.fetchedObjects ?? []
+        }
+        catch {
+            print("Error performing fetch: \(error)")
+        }
 
         observeAPIServiceChanges()
+    }
+
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        DispatchQueue.main.async {
+            self.sortedMessages = self.fetchedResultsController.fetchedObjects ?? []
+            self.messages = self.chat.messages
+        }
     }
 
     func sendMessage(
@@ -98,7 +129,6 @@ class ChatViewModel: ObservableObject {
             case .success:
                 self?.chat.objectWillChange.send()
                 completion(.success(()))
-                self?.reloadMessages()
             case .failure(let error):
                 completion(.failure(error))
             }
@@ -110,8 +140,8 @@ class ChatViewModel: ObservableObject {
     }
 
     func reloadMessages() {
-        messages = self.messages
-        sortedMessages = chat.messagesArray
+        self.sortedMessages = fetchedResultsController.fetchedObjects ?? []
+        self.messages = chat.messages
     }
 
     // sortedMessages is now a @Published property initialized in init() and updated in reloadMessages()
