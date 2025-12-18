@@ -28,8 +28,6 @@ struct ChatListView: View {
     @Binding var selectedChat: ChatEntity?
     @Binding var searchText: String
 
-
-
     private var filteredChats: [ChatEntity] {
         if debouncedSearchText.isEmpty {
             return Array(chats)
@@ -71,18 +69,22 @@ struct ChatListView: View {
     }
 
     var body: some View {
-        List {
-            ForEach(filteredChats, id: \.id) { chat in
-                ChatListRow(
-                    chat: chat,
-                    selectedChat: $selectedChat,
-                    viewContext: viewContext,
-                    searchText: debouncedSearchText
-                )
-                .id(chat.id)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(filteredChats, id: \.id) { chat in
+                        ChatListRow(
+                            chat: chat,
+                            selectedChat: $selectedChat,
+                            viewContext: viewContext,
+                            searchText: debouncedSearchText
+                        )
+                        .id(chat.id)
+                    }
+                }
+                .padding(12)
             }
         }
-        .listStyle(.sidebar)
         .onChange(of: searchText) { newValue in
             debounceTimer?.invalidate()
             
