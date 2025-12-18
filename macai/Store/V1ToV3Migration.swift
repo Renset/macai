@@ -12,8 +12,10 @@ struct MigrationState {
 /// into a freshly created store. Built-in mapping-model based migration is intentionally avoided.
 final class ProgrammaticMigrator {
     private let containerName: String
-    private static let restoreURL = URL(string: "https://renset.dev/macai/v2.3.0-update-problem")!
+    private static let restoreURL = URL(string: "https://macai.chat/update_2.3.x_issue/")!
     private static var restoreLinkOpened = false
+    private var activeProgressWindow: MigrationProgressWindow?
+    private var attemptedMigrationThisRun = false
 
     init(containerName: String) {
         self.containerName = containerName
@@ -28,10 +30,14 @@ final class ProgrammaticMigrator {
 
         let window = MigrationProgressWindow()
         window.show()
+        window.setTotalSteps(MigrationProgressWindow.totalSteps, initialMessage: "Starting update...")
+        activeProgressWindow = window
+        attemptedMigrationThisRun = true
 
         let storeURL = Self.storeURL(for: containerName)
-        guard let export = MigrationDataExport.exportFromStore(at: storeURL) else {
+        guard let export = MigrationDataExport.exportFromStore(at: storeURL, progressWindow: window) else {
             window.close()
+            activeProgressWindow = nil
             Self.presentFatalAlert(
                 messageText: "Database Migration Failed",
                 informativeText: "Failed to export your data for migration. Your data backup is available in the Backups folder.",
@@ -59,20 +65,81 @@ final class ProgrammaticMigrator {
             return
         }
 
-        let importSuccess = data.importIntoContext(container.viewContext)
-        state.progressWindow?.close()
+        let importSuccess = data.importIntoContext(container.viewContext, progressWindow: state.progressWindow)
 
         if importSuccess {
             if state.needsMigration {
                 CoreDataBackupManager.markMigrationCompleted()
             }
+            state.progressWindow?.showSuccessAndClose(after: 2)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) { [weak self] in
+                self?.activeProgressWindow = nil
+            }
         } else {
+            state.progressWindow?.close()
+            activeProgressWindow = nil
             Self.presentFatalAlert(
                 messageText: "Data Import Failed",
                 informativeText: "Failed to import your data after migration. Your data backup is available in the Backups folder.",
                 includeBackupsButton: true
             )
         }
+    }
+
+    func recoverFromLoadFailure(container: NSPersistentContainer) -> Bool {
+        guard !attemptedMigrationThisRun else { return false }
+
+        attemptedMigrationThisRun = true
+        let window = MigrationProgressWindow()
+        window.show()
+        window.setTotalSteps(MigrationProgressWindow.totalSteps, initialMessage: "Starting update...")
+        activeProgressWindow = window
+
+        let storeURL = Self.storeURL(for: containerName)
+        guard let export = MigrationDataExport.exportFromStore(at: storeURL, progressWindow: window) else {
+            window.close()
+            activeProgressWindow = nil
+            return false
+        }
+
+        Self.deleteLegacyStores(for: containerName)
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var loadError: Error?
+
+        container.loadPersistentStores { storeDescription, error in
+            if let error = error {
+                loadError = error
+            } else {
+                container.viewContext.automaticallyMergesChangesFromParent = true
+                container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                print("Recovered persistent store: \(storeDescription.url?.lastPathComponent ?? "unknown")")
+            }
+            semaphore.signal()
+        }
+
+        _ = semaphore.wait(timeout: .now() + 10)
+
+        if let error = loadError {
+            print("Recovery load failed: \(error)")
+            window.close()
+            activeProgressWindow = nil
+            return false
+        }
+
+        let importSuccess = export.importIntoContext(container.viewContext, progressWindow: window)
+        if importSuccess {
+            CoreDataBackupManager.markMigrationCompleted()
+            window.showSuccessAndClose(after: 2)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) { [weak self] in
+                self?.activeProgressWindow = nil
+            }
+            return true
+        }
+
+        window.close()
+        activeProgressWindow = nil
+        return false
     }
 
     private static func storeURL(for containerName: String) -> URL {
@@ -132,41 +199,85 @@ final class ProgrammaticMigrator {
 // MARK: - Migration Progress Window
 
 final class MigrationProgressWindow {
+    enum Step: Int {
+        case readAPIServices = 1
+        case readPersonas = 2
+        case readChats = 3
+        case readMessages = 4
+        case readImages = 5
+        case writeAPIServices = 6
+        case writePersonas = 7
+        case writeChats = 8
+        case writeMessages = 9
+        case writeImages = 10
+        case finalizing = 11
+    }
+
+    static let totalSteps = Step.finalizing.rawValue
     private var window: NSWindow?
     private var progressIndicator: NSProgressIndicator?
+    private var statusLabel: NSTextField?
+    private var descLabel: NSTextField?
+    private var successImageView: NSImageView?
+    private var totalStepsValue: Double = 0
+    private var currentStepValue: Double = 0
+    private var pendingTotalSteps: Int?
+    private var pendingInitialMessage: String?
 
     func show() {
-        DispatchQueue.main.async { [weak self] in
-            self?.createAndShowWindow()
+        if Thread.isMainThread {
+            createAndShowWindow()
+        } else {
+            DispatchQueue.main.sync { [weak self] in
+                self?.createAndShowWindow()
+            }
         }
         // Small delay to ensure window is displayed before migration starts
         RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
     }
 
     private func createAndShowWindow() {
-        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 340, height: 120))
+        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 170))
+        contentView.wantsLayer = true
 
-        let titleLabel = NSTextField(labelWithString: "Updating Database")
+        let titleLabel = NSTextField(labelWithString: "Updating Application")
         titleLabel.font = NSFont.boldSystemFont(ofSize: 14)
-        titleLabel.frame = NSRect(x: 20, y: 80, width: 300, height: 20)
+        titleLabel.frame = NSRect(x: 20, y: 130, width: 340, height: 20)
         contentView.addSubview(titleLabel)
 
-        let descLabel = NSTextField(labelWithString: "Please wait while your data is being migrated.\nDo not close the application.")
+        let descLabel = NSTextField(labelWithString: "Application is updating now. Please don't close the window until finished.")
         descLabel.font = NSFont.systemFont(ofSize: 12)
         descLabel.textColor = .secondaryLabelColor
-        descLabel.frame = NSRect(x: 20, y: 45, width: 300, height: 35)
+        descLabel.frame = NSRect(x: 20, y: 92, width: 340, height: 36)
         descLabel.maximumNumberOfLines = 2
+        descLabel.lineBreakMode = .byWordWrapping
         contentView.addSubview(descLabel)
+        self.descLabel = descLabel
 
-        let progress = NSProgressIndicator(frame: NSRect(x: 20, y: 15, width: 300, height: 20))
+        let statusLabel = NSTextField(labelWithString: "Preparing...")
+        statusLabel.font = NSFont.systemFont(ofSize: 12)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.frame = NSRect(x: 44, y: 62, width: 316, height: 18)
+        contentView.addSubview(statusLabel)
+        self.statusLabel = statusLabel
+
+        let successImageView = NSImageView(frame: NSRect(x: 20, y: 60, width: 18, height: 18))
+        successImageView.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: "Update successful")
+        successImageView.contentTintColor = .systemGreen
+        successImageView.isHidden = true
+        contentView.addSubview(successImageView)
+        self.successImageView = successImageView
+
+        let progress = NSProgressIndicator(frame: NSRect(x: 20, y: 28, width: 340, height: 20))
         progress.style = .bar
-        progress.isIndeterminate = true
-        progress.startAnimation(nil)
+        progress.isIndeterminate = false
+        progress.minValue = 0
+        progress.doubleValue = 0
         contentView.addSubview(progress)
         self.progressIndicator = progress
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 120),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 170),
             styleMask: [.titled],
             backing: .buffered,
             defer: false
@@ -179,11 +290,95 @@ final class MigrationProgressWindow {
         window.makeKeyAndOrderFront(nil)
 
         self.window = window
+
+        if let pendingTotalSteps {
+            setTotalSteps(pendingTotalSteps, initialMessage: pendingInitialMessage)
+            self.pendingTotalSteps = nil
+            self.pendingInitialMessage = nil
+        }
+    }
+
+    func setTotalSteps(_ totalSteps: Int, initialMessage: String? = nil) {
+        let update = { [weak self] in
+            guard let self else { return }
+            guard self.progressIndicator != nil else {
+                self.pendingTotalSteps = totalSteps
+                self.pendingInitialMessage = initialMessage
+                return
+            }
+            self.totalStepsValue = Double(totalSteps)
+            self.currentStepValue = 0
+            self.progressIndicator?.maxValue = 100
+            self.progressIndicator?.doubleValue = 0
+            if let message = initialMessage {
+                self.statusLabel?.stringValue = message
+            }
+            self.window?.displayIfNeeded()
+            self.window?.contentView?.displayIfNeeded()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
+
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.sync(execute: update)
+        }
+    }
+
+    func setProgress(step: Step, message: String) {
+        let update = { [weak self] in
+            guard let self else { return }
+            if self.totalStepsValue == 0 || self.totalStepsValue < Double(Self.totalSteps) {
+                self.totalStepsValue = Double(Self.totalSteps)
+                self.progressIndicator?.maxValue = 100
+            }
+            self.currentStepValue = min(Double(step.rawValue), self.totalStepsValue)
+            let percent = (self.currentStepValue / max(self.totalStepsValue, 1)) * 100
+            self.progressIndicator?.doubleValue = percent
+            self.statusLabel?.stringValue = message
+            self.window?.displayIfNeeded()
+            self.window?.contentView?.displayIfNeeded()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
+
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.sync(execute: update)
+        }
+    }
+
+    func showSuccessAndClose(after delaySeconds: TimeInterval) {
+        let update = { [weak self] in
+            guard let self else { return }
+            if self.totalStepsValue == 0 || self.totalStepsValue < Double(Self.totalSteps) {
+                self.totalStepsValue = Double(Self.totalSteps)
+            }
+            self.progressIndicator?.maxValue = 100
+            self.currentStepValue = self.totalStepsValue
+            self.progressIndicator?.doubleValue = 100
+            self.successImageView?.isHidden = false
+            self.statusLabel?.stringValue = "Update successful"
+            self.statusLabel?.textColor = .systemGreen
+            self.descLabel?.stringValue = "This popup will now close automatically."
+            self.window?.displayIfNeeded()
+            self.window?.contentView?.displayIfNeeded()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
+
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.sync(execute: update)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + delaySeconds) { [weak self] in
+            self?.close()
+        }
     }
 
     func close() {
         let closeWork = { [weak self] in
-            self?.progressIndicator?.stopAnimation(nil)
             self?.window?.close()
             self?.window = nil
         }
@@ -206,7 +401,7 @@ struct MigrationDataExport {
     var images: [[String: Any]] = []
 
     /// Export data from an old SQLite store using raw SQL queries
-    static func exportFromStore(at storeURL: URL) -> MigrationDataExport? {
+    static func exportFromStore(at storeURL: URL, progressWindow: MigrationProgressWindow?) -> MigrationDataExport? {
         guard FileManager.default.fileExists(atPath: storeURL.path) else {
             print("Store not found at \(storeURL.path)")
             return nil
@@ -221,24 +416,28 @@ struct MigrationDataExport {
 
         var export = MigrationDataExport()
 
+        progressWindow?.setProgress(step: .readAPIServices, message: "Reading API services...")
         print("Reading API services...")
         if let results = executeQuery(db: db, query: "SELECT * FROM ZAPISERVICEENTITY") {
             export.apiServices = results
             print("Found \(export.apiServices.count) API services")
         }
 
+        progressWindow?.setProgress(step: .readPersonas, message: "Reading personas...")
         print("Reading personas...")
         if let results = executeQuery(db: db, query: "SELECT * FROM ZPERSONAENTITY") {
             export.personas = results
             print("Found \(export.personas.count) personas")
         }
 
+        progressWindow?.setProgress(step: .readChats, message: "Reading chats...")
         print("Reading chats...")
         if let results = executeQuery(db: db, query: "SELECT * FROM ZCHATENTITY") {
             export.chats = results
             print("Found \(export.chats.count) chats")
         }
 
+        progressWindow?.setProgress(step: .readMessages, message: "Reading messages...")
         print("Reading messages...")
         if let results = executeQuery(db: db, query: """
             SELECT m.*, o.Z_FOK_MESSAGES as ZORDER_INDEX
@@ -253,6 +452,7 @@ struct MigrationDataExport {
             print("Found \(export.messages.count) messages (ordered by timestamp)")
         }
 
+        progressWindow?.setProgress(step: .readImages, message: "Reading images...")
         print("Reading images...")
         if let results = executeQuery(db: db, query: "SELECT * FROM ZIMAGEENTITY") {
             export.images = results
@@ -263,13 +463,14 @@ struct MigrationDataExport {
     }
 
     /// Import exported data into a fresh Core Data context
-    func importIntoContext(_ context: NSManagedObjectContext) -> Bool {
+    func importIntoContext(_ context: NSManagedObjectContext, progressWindow: MigrationProgressWindow?) -> Bool {
         print("Starting data import...")
 
         var apiServiceMap: [Int64: NSManagedObject] = [:]
         var personaMap: [Int64: NSManagedObject] = [:]
         var chatMap: [Int64: NSManagedObject] = [:]
 
+        progressWindow?.setProgress(step: .writeAPIServices, message: "Writing API services...")
         print("Importing \(apiServices.count) API services...")
         for data in apiServices {
             let entity = NSEntityDescription.insertNewObject(forEntityName: "APIServiceEntity", into: context)
@@ -277,6 +478,7 @@ struct MigrationDataExport {
             Self.setAttributes(on: entity, from: data, excluding: ["Z_PK", "Z_ENT", "Z_OPT", "ZDEFAULTPERSONA"])
         }
 
+        progressWindow?.setProgress(step: .writePersonas, message: "Writing personas...")
         print("Importing \(personas.count) personas...")
         for data in personas {
             let entity = NSEntityDescription.insertNewObject(forEntityName: "PersonaEntity", into: context)
@@ -293,6 +495,7 @@ struct MigrationDataExport {
             }
         }
 
+        progressWindow?.setProgress(step: .writeChats, message: "Writing chats...")
         print("Importing \(chats.count) chats...")
         for data in chats {
             let entity = NSEntityDescription.insertNewObject(forEntityName: "ChatEntity", into: context)
@@ -308,6 +511,7 @@ struct MigrationDataExport {
             }
         }
 
+        progressWindow?.setProgress(step: .writeMessages, message: "Writing messages...")
         print("Importing \(messages.count) messages...")
         var chatSequences: [Int64: Int64] = [:]
         for data in messages {
@@ -331,12 +535,14 @@ struct MigrationDataExport {
             }
         }
 
+        progressWindow?.setProgress(step: .writeImages, message: "Writing images...")
         print("Importing \(images.count) images...")
         for data in images {
             let entity = NSEntityDescription.insertNewObject(forEntityName: "ImageEntity", into: context)
             Self.setAttributes(on: entity, from: data, excluding: ["Z_PK", "Z_ENT", "Z_OPT"])
         }
 
+        progressWindow?.setProgress(step: .finalizing, message: "Finalizing update...")
         print("Saving imported data...")
         do {
             try context.save()
@@ -469,12 +675,21 @@ struct MigrationDataExport {
 // MARK: - Core Data backup helper
 
 enum CoreDataBackupManager {
-    private static let backupCompletedKey = "CoreDataBackupBeforeV3Completed"
+    private static let backupCompletedKey = "CoreDataMigrationToV3Completed"
+    private static let legacyBackupCompletedKey = "CoreDataBackupBeforeV3Completed"
     private static let backupNoticeShownKey = "CoreDataBackupBeforeV3NoticeShown"
+    private static let migrationRetrySkipBackupKey = "CoreDataMigrationRetrySkipBackup"
     private static let targetModelVersionName = "macai_v2.3.0"
 
     static func needsMigrationBackup(containerName: String) -> Bool {
         let defaults = UserDefaults.standard
+        if defaults.bool(forKey: migrationRetrySkipBackupKey) {
+            return false
+        }
+        if defaults.bool(forKey: legacyBackupCompletedKey) {
+            defaults.set(true, forKey: backupCompletedKey)
+            return false
+        }
         if defaults.bool(forKey: backupCompletedKey) {
             return false
         }
@@ -485,6 +700,11 @@ enum CoreDataBackupManager {
     }
 
     static func createPreMigrationBackup(containerName: String) {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: migrationRetrySkipBackupKey) {
+            print("Skipping pre-migration backup by request")
+            return
+        }
         guard let storeBaseURL = defaultStoreURL(for: containerName) else { return }
 
         let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
@@ -505,13 +725,14 @@ enum CoreDataBackupManager {
 
     static func markMigrationCompleted() {
         UserDefaults.standard.set(true, forKey: backupCompletedKey)
+        UserDefaults.standard.set(false, forKey: migrationRetrySkipBackupKey)
         print("Migration marked as completed")
 
-        if let backupPath = UserDefaults.standard.string(forKey: "CoreDataBackupBeforeV3Path") {
+        if UserDefaults.standard.string(forKey: "CoreDataBackupBeforeV3Path") != nil {
             NotificationPresenter.shared.scheduleNotification(
                 identifier: "CoreDataBackupCompleted",
-                title: "Database updated",
-                body: "Database migrated successfully. Backup location: \(backupPath)"
+                title: "Update complete",
+                body: "Application updated successfully. An automatic backup was created."
             )
         }
     }
@@ -524,6 +745,10 @@ enum CoreDataBackupManager {
             let parentDir = backupsDir.deletingLastPathComponent()
             NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: parentDir.path)
         }
+    }
+
+    static func clearMigrationRetrySkipBackupFlag() {
+        UserDefaults.standard.set(false, forKey: migrationRetrySkipBackupKey)
     }
 
     static func backupsDirectoryURL() -> URL {

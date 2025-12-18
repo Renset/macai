@@ -52,6 +52,10 @@ struct AppConstants {
     ]
     static let firaCode = "FiraCodeRoman-Regular"
     static let ptMono = "PTMono-Regular"
+    static let cloudKitContainerIdentifier: String? = {
+        let value = Bundle.main.object(forInfoDictionaryKey: "CloudKitContainerIdentifier") as? String
+        return value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? value : nil
+    }()
 
     struct Persona {
         let name: String

@@ -213,16 +213,12 @@ enum DatabaseBackupManager {
 
     // MARK: - Restore Backup
 
-    static func restoreBackup(_ backup: DatabaseBackupInfo, createSafetyBackup: Bool = true) throws {
+    static func restoreBackup(_ backup: DatabaseBackupInfo) throws {
         let fm = FileManager.default
         let base = NSPersistentContainer.defaultDirectoryURL()
         let storeBaseURL = base.appendingPathComponent("macaiDataModel")
 
-        // Create a safety backup before restore
-        if createSafetyBackup {
-            let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-            _ = try? createBackup(named: "Before-Restore-\(timestamp)")
-        }
+        UserDefaults.standard.set(true, forKey: "CoreDataMigrationRetrySkipBackup")
 
         // Copy backup files to store location
         for ext in ["sqlite", "sqlite-wal", "sqlite-shm"] {
@@ -399,7 +395,8 @@ struct BackupRestoreView: View {
     @State private var isCreatingBackup = false
     @State private var alertMessage = ""
     @State private var showAlert = false
-    @State private var showRestartAlert = false
+    @AppStorage(SettingsIndicatorKeys.backupSeen) private var backupSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.backupSectionSeen) private var backupSectionSeen: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -407,8 +404,13 @@ struct BackupRestoreView: View {
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Database Backups")
+                        Text("Data Backups")
                             .fontWeight(.medium)
+
+                        if !backupSectionSeen {
+                            SettingsIndicatorBadge(text: "New")
+                                .transition(.opacity)
+                        }
 
                         Button {
                         } label: {
@@ -416,7 +418,7 @@ struct BackupRestoreView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
-                        .help("Full database backups contain ALL your data including chats, messages, images, API services, personas, and settings. These are created automatically before major database updates, or can be created manually.")
+                        .help("Full data backups include chats, messages, images, API services, personas, and settings. Automatic backups are created when the app makes significant data changes, and you can create or restore a backup anytime.")
 
                         Spacer()
 
@@ -431,7 +433,7 @@ struct BackupRestoreView: View {
                                 } else {
                                     Image(systemName: "plus")
                                 }
-                                Text("Create Backup")
+                                Text("Create")
                             }
                         }
                         .disabled(isCreatingBackup)
@@ -447,14 +449,14 @@ struct BackupRestoreView: View {
                         .help("Import a backup from a .zip file")
                     }
 
-                    Text("Full backups are created automatically before database migrations")
+                    Text("Automatic backups are created when the app makes significant data changes. You can also create or restore a backup anytime.")
                         .foregroundColor(.secondary)
                         .font(.callout)
 
                     if databaseBackups.isEmpty {
                         HStack {
                             Spacer()
-                            Text("No database backups found")
+                            Text("No data backups found")
                                 .foregroundColor(.secondary)
                                 .font(.callout)
                                 .padding(.vertical, 8)
@@ -463,43 +465,65 @@ struct BackupRestoreView: View {
                     } else {
                         Divider()
 
-                        ForEach(databaseBackups) { backup in
-                            BackupRowView(
-                                backup: backup,
-                                onReveal: {
-                                    DatabaseBackupManager.revealInFinder(url: backup.url)
-                                },
-                                onExport: {
-                                    exportBackupAsZip(backup)
-                                },
-                                onRestore: {
-                                    selectedBackup = backup
-                                    showRestoreConfirmation = true
-                                },
-                                onDelete: {
-                                    selectedBackup = backup
-                                    showDeleteConfirmation = true
-                                }
-                            )
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(databaseBackups) { backup in
+                                    BackupRowView(
+                                        backup: backup,
+                                        onReveal: {
+                                            DatabaseBackupManager.revealInFinder(url: backup.url)
+                                        },
+                                        onExport: {
+                                            exportBackupAsZip(backup)
+                                        },
+                                        onRestore: {
+                                            selectedBackup = backup
+                                            showRestoreConfirmation = true
+                                        },
+                                        onDelete: {
+                                            selectedBackup = backup
+                                            showDeleteConfirmation = true
+                                        }
+                                    )
 
-                            if backup.id != databaseBackups.last?.id {
-                                Divider()
+                                    if backup.id != databaseBackups.last?.id {
+                                        Divider()
+                                    }
+                                }
                             }
                         }
+                        .frame(maxHeight: 240)
                     }
 
-                    Divider()
 
-                    HStack {
-                        Button("Open Backups Folder") {
-                            DatabaseBackupManager.revealBackupsFolder()
-                        }
-                        .buttonStyle(.link)
-
-                        Spacer()
-                    }
                 }
                 .padding(8)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(
+                        !backupSectionSeen
+                        ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.9)
+                        : Color.clear,
+                        lineWidth: 1.2
+                    )
+                    .opacity(backupSectionSeen ? 0 : 1)
+            )
+            .shadow(
+                color: !backupSectionSeen
+                ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.35)
+                : Color.clear,
+                radius: 12,
+                x: 0,
+                y: 0
+            )
+            .animation(.easeOut(duration: 0.35), value: backupSectionSeen)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        backupSectionSeen = true
+                    }
+                }
             }
 
             // JSON Export/Import Section
@@ -515,7 +539,7 @@ struct BackupRestoreView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
-                        .help("JSON export contains only chat text and basic metadata. It does NOT include:\n• Images and attachments\n• API service configurations\n• API tokens/credentials\n• Personas\n• App settings\n\nUse this for sharing chats or lightweight backups. For complete backups, use Database Backups above.")
+                        .help("JSON export contains only chat text and basic metadata. It does NOT include:\n• Images and attachments\n• API service configurations\n• API tokens/credentials\n• Personas\n• App settings\n\nUse this for sharing chats or lightweight backups. For complete backups, use Data Backups above.")
                     }
 
                     Text("Export chats as JSON (text only, no images or settings)")
@@ -544,7 +568,11 @@ struct BackupRestoreView: View {
             }
         }
         .padding()
+        .frame(minHeight: 420, maxHeight: 480)
         .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                backupSettingsSeen = true
+            }
             refreshBackups()
         }
         .alert("Delete Backup", isPresented: $showDeleteConfirmation) {
@@ -565,20 +593,12 @@ struct BackupRestoreView: View {
                 }
             }
         } message: {
-            Text("Restoring this backup will replace your current database. A safety backup will be created automatically. The app will need to restart after restoration.")
+            Text("Restoring this backup will replace your current data. The app will restart to load the restored data.")
         }
         .alert("Backup", isPresented: $showAlert) {
             Button("OK") { }
         } message: {
             Text(alertMessage)
-        }
-        .alert("Restart Required", isPresented: $showRestartAlert) {
-            Button("Restart Now") {
-                restartApp()
-            }
-            Button("Later", role: .cancel) { }
-        } message: {
-            Text("The backup has been restored. Please restart the app to load the restored data.")
         }
     }
 
@@ -624,7 +644,7 @@ struct BackupRestoreView: View {
             do {
                 try DatabaseBackupManager.restoreBackup(backup)
                 DispatchQueue.main.async {
-                    showRestartAlert = true
+                    restartApp()
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -744,13 +764,19 @@ struct BackupRestoreView: View {
     }
 
     private func restartApp() {
-        let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
-        let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
+        let appPath = Bundle.main.bundlePath
+
         let task = Process()
-        task.launchPath = "/usr/bin/open"
-        task.arguments = [path]
-        task.launch()
-        NSApp.terminate(nil)
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 1; open \"\(appPath)\""]
+
+        do {
+            try task.run()
+        } catch {
+            print("Failed to schedule relaunch: \(error.localizedDescription)")
+        }
+
+        NSApplication.shared.terminate(nil)
     }
 }
 
@@ -783,7 +809,7 @@ struct BackupRowView: View {
                 .font(.callout)
                 .foregroundColor(.secondary)
 
-            HStack(spacing: 4) {
+            HStack(spacing: 10) {
                 Button {
                     onReveal()
                 } label: {

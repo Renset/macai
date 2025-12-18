@@ -34,6 +34,10 @@ struct ContentView: View {
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlOpenAIResponses
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
+    @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.backupSeen) private var backupSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.iCloudSectionSeen) private var iCloudSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.backupSectionSeen) private var backupSectionSeen: Bool = false
     @StateObject private var previewStateManager = PreviewStateManager()
 
     @State private var windowRef: NSWindow?
@@ -191,14 +195,14 @@ struct ContentView: View {
 
                 if #available(macOS 14.0, *) {
                     SettingsLink {
-                        Image(systemName: "gear")
+                        settingsGearIcon
                     }
                 }
                 else {
                     Button(action: {
                         openPreferencesView()
                     }) {
-                        Image(systemName: "gear")
+                        settingsGearIcon
                     }
                 }
             }
@@ -217,6 +221,21 @@ struct ContentView: View {
             }
         }
         .environmentObject(previewStateManager)
+    }
+
+    private var settingsGearIcon: some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: "gear")
+            if SettingsIndicatorState.needsAttention(
+                generalSeen: generalSettingsSeen,
+                backupSeen: backupSettingsSeen,
+                iCloudSectionSeen: iCloudSettingsSeen,
+                backupSectionSeen: backupSectionSeen
+            ) {
+                SettingsIndicatorDot()
+                    .offset(x: 6, y: -6)
+            }
+        }
     }
 
     func newChat() {

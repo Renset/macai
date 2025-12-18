@@ -30,6 +30,8 @@ struct TabGeneralSettingsView: View {
     @AppStorage("preferredColorScheme") private var preferredColorSchemeRaw: Int = 0
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     @AppStorage(PersistenceController.iCloudSyncEnabledKey) private var iCloudSyncEnabled: Bool = false
+    @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.iCloudSectionSeen) private var iCloudSectionSeen: Bool = false
     @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var cloudSyncManager = CloudSyncManager.shared
     @State private var selectedColorSchemeRaw: Int = 0
@@ -198,9 +200,16 @@ struct TabGeneralSettingsView: View {
                 // iCloud Sync Section
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .center, spacing: 16) {
+                        HStack(alignment: .center, spacing: 8) {
                             Text("iCloud Sync")
                                 .fontWeight(.medium)
+
+                            SettingsIndicatorBadge(text: "Beta", color: .gray)
+
+                            if !iCloudSectionSeen {
+                                SettingsIndicatorBadge(text: "New")
+                                    .transition(.opacity)
+                            }
 
                             Spacer()
 
@@ -244,6 +253,32 @@ struct TabGeneralSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(
+                            !iCloudSectionSeen
+                            ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.9)
+                            : Color.clear,
+                            lineWidth: 1.2
+                        )
+                        .opacity(iCloudSectionSeen ? 0 : 1)
+                )
+                .shadow(
+                    color: !iCloudSectionSeen
+                    ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.35)
+                    : Color.clear,
+                    radius: 12,
+                    x: 0,
+                    y: 0
+                )
+                .animation(.easeOut(duration: 0.35), value: iCloudSectionSeen)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        withAnimation(.easeOut(duration: 0.5)) {
+                            iCloudSectionSeen = true
+                        }
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -264,6 +299,9 @@ struct TabGeneralSettingsView: View {
         .padding()
         .onAppear {
             self.selectedColorSchemeRaw = self.preferredColorSchemeRaw
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                generalSettingsSeen = true
+            }
         }
         .alert("Restart Required", isPresented: $showRestartAlert) {
             Button("Cancel", role: .cancel) {}

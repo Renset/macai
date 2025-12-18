@@ -74,9 +74,11 @@ class PersistenceController {
 
         // Configure for CloudKit if enabled
         if isCloudKitEnabled, let description = container.persistentStoreDescriptions.first {
-            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-                containerIdentifier: "iCloud.notfullin.com.macai"
-            )
+            if let containerIdentifier = AppConstants.cloudKitContainerIdentifier {
+                description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: containerIdentifier
+                )
+            }
 
             // Enable history tracking for CloudKit sync
             description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
@@ -102,6 +104,7 @@ class PersistenceController {
                 // Configure view context only after store is loaded
                 self.container.viewContext.automaticallyMergesChangesFromParent = true
                 self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                CoreDataBackupManager.clearMigrationRetrySkipBackupFlag()
             }
             semaphore.signal()
         })
@@ -111,7 +114,11 @@ class PersistenceController {
 
         // Handle any store loading errors
         if let error = loadError {
-            migrator.handleStoreLoadError(error, state: migrationState)
+            if !migrator.recoverFromLoadFailure(container: container) {
+                migrator.handleStoreLoadError(error, state: migrationState)
+            } else {
+                loadError = nil
+            }
         }
 
         // Import exported data if we have it (migration scenario)

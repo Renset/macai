@@ -53,7 +53,7 @@ class CloudSyncManager: ObservableObject {
     private var eventSubscription: AnyCancellable?
     private var container: NSPersistentCloudKitContainer?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "macai", category: "CloudSync")
-    private let cloudContainerIdentifier = "iCloud.notfullin.com.macai"
+    private let cloudContainerIdentifier = AppConstants.cloudKitContainerIdentifier
 
     struct SyncLogEntry: Identifiable {
         let id = UUID()
@@ -131,7 +131,7 @@ class CloudSyncManager: ObservableObject {
     /// Deletes the Core Data CloudKit zone in the user's private database.
     /// Leaves local data intact so the user can keep a copy on this device.
     func purgeCloudData(completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let container = container else {
+        guard container != nil else {
             completion(.failure(NSError(domain: "CloudSync", code: -1, userInfo: [NSLocalizedDescriptionKey: "Cloud container unavailable"])))
             return
         }
@@ -142,7 +142,8 @@ class CloudSyncManager: ObservableObject {
         syncStatus = .syncing
         log("Starting CloudKit purge for zone \(zoneID.zoneName)", type: "Setup")
 
-        let privateDB = CKContainer(identifier: cloudContainerIdentifier).privateCloudDatabase
+        let ckContainer = cloudContainerIdentifier.map { CKContainer(identifier: $0) } ?? CKContainer.default()
+        let privateDB = ckContainer.privateCloudDatabase
         privateDB.delete(withRecordZoneID: zoneID) { [weak self] (_: CKRecordZone.ID?, error: Error?) in
             DispatchQueue.main.async {
                 if let error = error {
@@ -510,7 +511,8 @@ class CloudSyncManager: ObservableObject {
     private func checkiCloudAccountStatus() {
         log("Checking iCloud account status...", type: "Setup")
 
-        CKContainer(identifier: "iCloud.notfullin.com.macai").accountStatus { [weak self] status, error in
+        let container = cloudContainerIdentifier.map { CKContainer(identifier: $0) } ?? CKContainer.default()
+        container.accountStatus { [weak self] status, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self?.log("iCloud account check failed: \(error.localizedDescription)", type: "Setup", isError: true)

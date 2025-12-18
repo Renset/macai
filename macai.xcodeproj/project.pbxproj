@@ -88,6 +88,7 @@
 		4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
 		4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */; };
 		4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
+		4AFAC2022EF496C3004B125E /* SettingsIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
 		4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */; };
 		4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7202C472F53006F99FB /* APIProtocol.swift */; };
@@ -213,6 +214,7 @@
 		4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailView.swift; sourceTree = "<group>"; };
 		4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandler.swift; sourceTree = "<group>"; };
 		4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcher.swift; sourceTree = "<group>"; };
+		4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsIndicators.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
 		4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabDangerZoneView.swift; sourceTree = "<group>"; };
 		4AFEE7202C472F53006F99FB /* APIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIProtocol.swift; sourceTree = "<group>"; };
@@ -334,6 +336,7 @@
 		4A272A6929F5CD4700F93D0D /* Preferences */ = {
 			isa = PBXGroup;
 			children = (
+				4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */,
 				4A8A78C72D4C41980057A6CC /* TabGeneralSettingsView.swift */,
 				4A164BB82C95CC450060ECFE /* TabAPIServices */,
 				4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */,
@@ -734,6 +737,7 @@
 				4A54E85B2ED6500F0068C25E /* CloudSyncManager.swift in Sources */,
 				4A775A042C1486F3004301D3 /* Extensions.swift in Sources */,
 				4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */,
+				4AFAC2022EF496C3004B125E /* SettingsIndicators.swift in Sources */,
 				4A27FF8F2DA1C41B0075D730 /* ZoomableImageView.swift in Sources */,
 				4A194C062C9633BC003C8782 /* EntityListView.swift in Sources */,
 				4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */,
