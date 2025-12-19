@@ -124,7 +124,11 @@ class ChatService {
                         let messageContent = content["content"] as? String
                     {
                         let receivedMessage = MessageEntity(context: self.viewContext)
-                        receivedMessage.id = Int64(self.chat.messages.count + 1)
+                        let sequence = self.chat.nextSequence()
+                        receivedMessage.id = sequence
+                        if self.chat.managedObjectContext?.persistentStoreCoordinator?.managedObjectModel.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil {
+                            receivedMessage.sequence = sequence
+                        }
                         receivedMessage.name = "ChatGPT"
                         receivedMessage.body = messageContent.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         receivedMessage.timestamp = Date()

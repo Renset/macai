@@ -4,6 +4,8 @@
 <dict>
 	<key>ATSApplicationFontsPath</key>
 	<string>fonts</string>
+	<key>CloudKitContainerIdentifier</key>
+	<string>iCloud.notfullin.com.macai</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>macai uses notifications to inform you about new features, important updates, and new messages from chats</string>
 	<key>SUAllowsAutomaticUpdates</key>

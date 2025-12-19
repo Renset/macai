@@ -308,6 +308,7 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             service = APIServiceEntity(context: viewContext)
             service.addedDate = Date()
             service.id = UUID()
+            service.tokenIdentifier = UUID().uuidString
             isNewService = true
         }
 
@@ -321,15 +322,16 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
         service.imageUploadsAllowed = imageUploadsAllowed
         service.imageGenerationSupported = imageGenerationSupported
         service.defaultPersona = selectedPersona
+        if service.tokenIdentifier == nil || service.tokenIdentifier?.isEmpty == true {
+            service.tokenIdentifier = UUID().uuidString
+        }
+        if service.id == nil {
+            service.id = UUID()
+        }
 
         do {
-            if service.id == nil {
-                service.id = UUID()
-            }
-
-            guard let identifier = service.id?.uuidString else {
-                throw TokenManager.TokenError.setFailed
-            }
+            let identifier = service.id?.uuidString ?? UUID().uuidString
+            service.id = UUID(uuidString: identifier) ?? service.id
 
             try TokenManager.setToken(trimmedKey, for: identifier)
             try viewContext.save()

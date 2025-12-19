@@ -267,10 +267,13 @@ struct MessageContentView: View {
                 selectedImage = IdentifiableImage(image: image)
             }
             .sheet(item: $selectedImage) { identifiableImage in
-                ZoomableImageView(image: identifiableImage.image, imageAspectRatio: aspectRatio)
+                ZoomableImageView(
+                    image: identifiableImage.image,
+                    imageAspectRatio: aspectRatio,
+                    chatName: message?.chat?.name
+                )
 
             }
     }
 
 }
-

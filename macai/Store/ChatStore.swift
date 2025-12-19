@@ -114,9 +114,14 @@ class ChatStore: ObservableObject {
                         }
                     }
 
+                    var nextSequence: Int64 = 0
+
                     for oldMessage in oldChat.messages {
+                        nextSequence += 1
                         let messageEntity = MessageEntity(context: viewContext)
-                        messageEntity.id = Int64(oldMessage.id)
+                        let legacyId = Int64(oldMessage.id)
+                        messageEntity.id = legacyId
+                        messageEntity.sequence = nextSequence
                         messageEntity.name = oldMessage.name
                         messageEntity.body = oldMessage.body
                         messageEntity.timestamp = oldMessage.timestamp
@@ -124,8 +129,11 @@ class ChatStore: ObservableObject {
                         messageEntity.waitingForResponse = oldMessage.waitingForResponse ?? false
                         messageEntity.chat = chatEntity
 
+                        chatEntity.applySequenceIfNeeded(to: messageEntity)
                         chatEntity.addToMessages(messageEntity)
                     }
+
+                    chatEntity.lastSequence = max(chatEntity.lastSequence, nextSequence)
                 }
             }
 

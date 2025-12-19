@@ -153,16 +153,17 @@ struct TabAPIServicesView: View {
             // Generate new UUID and copy the token
             let newServiceID = UUID()
             newService.id = newServiceID
+            newService.tokenIdentifier = UUID().uuidString
 
-            if let oldServiceIDString = selectedService.id?.uuidString {
-                do {
-                    if let token = try TokenManager.getToken(for: oldServiceIDString) {
-                        try TokenManager.setToken(token, for: newServiceID.uuidString)
-                    }
+            guard let oldServiceID = selectedService.id else { return }
+            let oldServiceIDString = oldServiceID.uuidString
+            do {
+                if let token = try TokenManager.getToken(for: oldServiceIDString) {
+                    try TokenManager.setToken(token, for: newServiceID.uuidString)
                 }
-                catch {
-                    print("Error copying API token: \(error)")
-                }
+            }
+            catch {
+                print("Error copying API token: \(error)")
             }
 
             do {

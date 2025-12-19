@@ -34,6 +34,10 @@ struct ContentView: View {
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlOpenAIResponses
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
+    @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.backupSeen) private var backupSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.iCloudSectionSeen) private var iCloudSettingsSeen: Bool = false
+    @AppStorage(SettingsIndicatorKeys.backupSectionSeen) private var backupSectionSeen: Bool = false
     @StateObject private var previewStateManager = PreviewStateManager()
 
     @State private var windowRef: NSWindow?
@@ -191,14 +195,14 @@ struct ContentView: View {
 
                 if #available(macOS 14.0, *) {
                     SettingsLink {
-                        Image(systemName: "gear")
+                        settingsGearIcon
                     }
                 }
                 else {
                     Button(action: {
                         openPreferencesView()
                     }) {
-                        Image(systemName: "gear")
+                        settingsGearIcon
                     }
                 }
             }
@@ -219,6 +223,21 @@ struct ContentView: View {
         .environmentObject(previewStateManager)
     }
 
+    private var settingsGearIcon: some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: "gear")
+            if SettingsIndicatorState.needsAttention(
+                generalSeen: generalSettingsSeen,
+                backupSeen: backupSettingsSeen,
+                iCloudSectionSeen: iCloudSettingsSeen,
+                backupSectionSeen: backupSectionSeen
+            ) {
+                SettingsIndicatorDot()
+                    .offset(x: 1, y: -1)
+            }
+        }
+    }
+
     func newChat() {
         newChat(using: nil)
     }
@@ -237,6 +256,7 @@ struct ContentView: View {
         newChat.updatedDate = Date()
         newChat.systemMessage = systemMessage
         newChat.gptModel = gptModel
+        newChat.lastSequence = 0
 
         if let service = preferredService {
             newChat.apiService = service
@@ -306,7 +326,7 @@ struct ContentView: View {
     }
 
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
-        if chat.messages.count == 0 {
+        if chat.messagesArray.isEmpty {
             if let newDefaultPersona = newService.defaultPersona {
                 chat.persona = newDefaultPersona
                 if let newSystemMessage = chat.persona?.systemMessage,

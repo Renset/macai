@@ -46,7 +46,7 @@ struct MessageCell: View, Equatable {
             isActive = true
         } label: {
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 4) {
                     if let personaName = chat.persona?.name {
                         HighlightedText(personaName, highlight: searchText, elementType: "chatlist")
                             .font(.caption)
@@ -150,6 +150,7 @@ struct MessageCell_Previews: PreviewProvider {
         chat.updatedDate = Date()
         chat.systemMessage = AppConstants.chatGptSystemMessage
         chat.gptModel = AppConstants.defaultPrimaryModel
+        chat.lastSequence = 0
         return chat
     }
 }

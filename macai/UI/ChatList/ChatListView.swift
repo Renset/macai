@@ -28,29 +28,37 @@ struct ChatListView: View {
     @Binding var selectedChat: ChatEntity?
     @Binding var searchText: String
 
-
-
     private var filteredChats: [ChatEntity] {
         if debouncedSearchText.isEmpty {
             return Array(chats)
         } else {
             return chats.filter { chat in
+                // Check chat name first (most likely match)
                 if chat.name.localizedCaseInsensitiveContains(debouncedSearchText) {
                     return true
                 }
                 
+                // Check persona name
                 if let personaName = chat.persona?.name,
                    personaName.localizedCaseInsensitiveContains(debouncedSearchText) {
                     return true
                 }
                 
-                for message in chat.messagesArray {
-                    if message.body.localizedCaseInsensitiveContains(debouncedSearchText) {
-                        return true
-                    }
+                // Use a Core Data fetch with predicate for message search
+                // This is more efficient than iterating through messagesArray
+                // because Core Data can use indexes and limit results
+                guard let context = chat.managedObjectContext else {
+                    return false
                 }
                 
-                return false
+                let fetchRequest = NSFetchRequest<MessageEntity>(entityName: "MessageEntity")
+                fetchRequest.predicate = NSPredicate(
+                    format: "chat == %@ AND body CONTAINS[cd] %@",
+                    chat, debouncedSearchText
+                )
+                
+                let count = (try? context.count(for: fetchRequest)) ?? 0
+                return count > 0
             }.sorted { first, second in
                 if first.isPinned != second.isPinned {
                     return first.isPinned && !second.isPinned
@@ -61,18 +69,22 @@ struct ChatListView: View {
     }
 
     var body: some View {
-        List {
-            ForEach(filteredChats, id: \.id) { chat in
-                ChatListRow(
-                    chat: chat,
-                    selectedChat: $selectedChat,
-                    viewContext: viewContext,
-                    searchText: debouncedSearchText
-                )
-                .id(chat.id)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(filteredChats, id: \.id) { chat in
+                        ChatListRow(
+                            chat: chat,
+                            selectedChat: $selectedChat,
+                            viewContext: viewContext,
+                            searchText: debouncedSearchText
+                        )
+                        .id(chat.id)
+                    }
+                }
+                .padding(12)
             }
         }
-        .listStyle(.sidebar)
         .onChange(of: searchText) { newValue in
             debounceTimer?.invalidate()
             

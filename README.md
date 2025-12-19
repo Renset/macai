@@ -23,6 +23,16 @@ Install macai cask with homebrew:
 ### Build from source
 Checkout main branch and open project in Xcode 14.3 or later
 
+### iCloud Sync (Forks / Custom Builds)
+If you want iCloud Sync to work in a fork or custom build, you must use your own CloudKit container.
+
+1. Create a CloudKit container in your Apple Developer account.
+2. Enable the iCloud capability for the macai target in Xcode, and add your container.
+3. Update the `CloudKitContainerIdentifier` value in `macai/Info.plist` to your container ID.
+4. Ensure your app’s bundle identifier matches the one you registered for the container.
+
+If `CloudKitContainerIdentifier` is missing, the app falls back to the default container.
+
 ## Contributions
 Contributions are welcome. Take a look at [Issues page](https://github.com/Renset/macai/issues) to see already added features/bugs before creating new one. 
 You can also support project by funding. This support is very important for me and allows to focus more on macai development.

@@ -5,7 +5,11 @@
 //  Created by Renat Notfullin on 11.03.2023.
 //
 
+import AppKit
+import CloudKit
+import CoreData
 import Sparkle
+import SQLite3
 import SwiftUI
 import UserNotifications
 
@@ -41,19 +45,134 @@ struct CheckForUpdatesView: View {
 
 class PersistenceController {
     static let shared = PersistenceController()
+    static let iCloudSyncEnabledKey = "iCloudSyncEnabled"
 
     let container: NSPersistentContainer
+    let isCloudKitEnabled: Bool
+    private let migrator = ProgrammaticMigrator(containerName: "macaiDataModel")
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "macaiDataModel")
+        let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
+        self.isCloudKitEnabled = iCloudEnabled && !inMemory
+
+        if isCloudKitEnabled {
+            container = NSPersistentCloudKitContainer(name: "macaiDataModel")
+        } else {
+            container = NSPersistentContainer(name: "macaiDataModel")
+        }
+
+        // We handle migration manually by exporting/importing data, so no Core Data migration needed
+        // Set to true for any future lightweight migrations that Core Data can handle automatically
+        for description in container.persistentStoreDescriptions {
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
+        }
+
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+
+        // Configure for CloudKit if enabled
+        if isCloudKitEnabled, let description = container.persistentStoreDescriptions.first {
+            if let containerIdentifier = AppConstants.cloudKitContainerIdentifier {
+                description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: containerIdentifier
+                )
             }
+
+            // Enable history tracking for CloudKit sync
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        }
+
+        // Programmatic migration (export/import) only
+        let migrationState = migrator.prepareIfNeeded()
+
+        print("Starting to load persistent stores...")
+        let startTime = Date()
+        let semaphore = DispatchSemaphore(value: 0)
+        var loadError: Error?
+
+        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            let elapsed = Date().timeIntervalSince(startTime)
+            if let error = error {
+                print("Failed to load persistent store after \(elapsed)s: \(error)")
+                loadError = error
+            } else {
+                print("Successfully loaded persistent store in \(elapsed)s: \(storeDescription.url?.lastPathComponent ?? "unknown")")
+                
+                // Configure view context only after store is loaded
+                self.container.viewContext.automaticallyMergesChangesFromParent = true
+                self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                CoreDataBackupManager.clearMigrationRetrySkipBackupFlag()
+            }
+            semaphore.signal()
         })
+
+        // Wait for persistent stores to load (with timeout)
+        _ = semaphore.wait(timeout: .now() + 10)
+
+        // Handle any store loading errors
+        if let error = loadError {
+            if !migrator.recoverFromLoadFailure(container: container) {
+                migrator.handleStoreLoadError(error, state: migrationState)
+            } else {
+                loadError = nil
+            }
+        }
+
+        // Import exported data if we have it (migration scenario)
+        migrator.importIfNeeded(state: migrationState, into: container)
+
+        print("Persistent stores loaded, scheduling WAL checkpoint...")
+
+        // Perform WAL checkpoint on background thread to avoid blocking app launch
+        // For large databases (>100MB), this can take seconds
+        DispatchQueue.global(qos: .utility).async { [weak container] in
+            self.performWALCheckpoint(container: container)
+        }
+
+        print("Initialization complete")
+
+        // Initialize CloudSyncManager if CloudKit is enabled
+        if isCloudKitEnabled, let cloudKitContainer = container as? NSPersistentCloudKitContainer {
+            CloudSyncManager.shared.configure(with: cloudKitContainer)
+        }
+    }
+
+    private func performWALCheckpoint(container: NSPersistentContainer?) {
+        guard let container = container else {
+            print("WAL checkpoint skipped: container deallocated")
+            return
+        }
+        
+        let storeCoordinator = container.persistentStoreCoordinator
+        guard let store = storeCoordinator.persistentStores.first,
+              let storeURL = store.url else {
+            return
+        }
+
+        // Perform WAL checkpoint using raw SQL
+        var db: OpaquePointer?
+
+        if sqlite3_open(storeURL.path, &db) == SQLITE_OK {
+            var errMsg: UnsafeMutablePointer<CChar>?
+            let result = sqlite3_exec(db, "PRAGMA wal_checkpoint(TRUNCATE);", nil, nil, &errMsg)
+            if result != SQLITE_OK {
+                if let errMsg = errMsg {
+                    print("WAL checkpoint failed: \(String(cString: errMsg))")
+                    sqlite3_free(errMsg)
+                }
+            } else {
+                print("WAL checkpoint completed successfully")
+            }
+            sqlite3_close(db)
+        }
+    }
+
+    static func requiresRestart(forNewSyncState newState: Bool) -> Bool {
+        let currentState = UserDefaults.standard.bool(forKey: iCloudSyncEnabledKey)
+        return currentState != newState
     }
 }
 
@@ -95,6 +214,7 @@ struct macaiApp: App {
 
         DatabasePatcher.applyPatches(context: persistenceController.container.viewContext)
         DatabasePatcher.migrateExistingConfiguration(context: persistenceController.container.viewContext)
+        TokenManager.reconcileTokensWithCurrentSyncSetting()
     }
 
     var body: some Scene {

@@ -41,7 +41,7 @@ struct ChatBottomContainerView: View {
         self.onAddImage = onAddImage
         self.onExpandedStateChange = onExpandedStateChange
 
-        if chat.messages.count == 0 {
+        if chat.messagesArray.isEmpty {
             DispatchQueue.main.async {
                 isExpanded.wrappedValue = true
             }

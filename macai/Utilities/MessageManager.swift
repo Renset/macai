@@ -160,6 +160,9 @@ class MessageManager: ObservableObject {
                     role: AppConstants.defaultRole,
                     geminiParts: decodePartsEnvelopeToBase64(geminiParts)
                 )
+
+                // Save once at the end of the stream
+                try? self.viewContext.save()
                 completion(.success(()))
             }
             catch {
@@ -170,7 +173,7 @@ class MessageManager: ObservableObject {
     }
 
     func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
-        guard force || chat.name == "", chat.messages.count > 0 else {
+        guard force || chat.name == "", !chat.messagesArray.isEmpty else {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
@@ -258,7 +261,11 @@ class MessageManager: ObservableObject {
 
     private func addMessageToChat(chat: ChatEntity, message: String, partsEnvelope: Data? = nil) {
         let newMessage = MessageEntity(context: self.viewContext)
-        newMessage.id = Int64(chat.messages.count + 1)
+        let sequence = chat.nextSequence()
+        newMessage.id = sequence
+        if chat.responds(to: #selector(getter: MessageEntity.sequence)) || (chat.managedObjectContext?.persistentStoreCoordinator?.managedObjectModel.entitiesByName["MessageEntity"]?.attributesByName["sequence"] != nil) {
+            newMessage.sequence = sequence
+        }
         newMessage.body = message
         newMessage.timestamp = Date()
         newMessage.own = false
@@ -276,7 +283,6 @@ class MessageManager: ObservableObject {
             message["message_parts"] = geminiParts
         }
         chat.requestMessages.append(message)
-        self.viewContext.saveWithRetry(attempts: 1)
     }
 
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
@@ -287,12 +293,6 @@ class MessageManager: ObservableObject {
         lastMessage.waitingForResponse = false
 
         chat.objectWillChange.send()
-
-        Task {
-            await MainActor.run {
-                self.viewContext.saveWithRetry(attempts: 1)
-            }
-        }
     }
 
     private func constructRequestMessages(chat: ChatEntity, forUserMessage userMessage: String?, contextSize: Int)
@@ -315,7 +315,6 @@ class MessageManager: ObservableObject {
         }
 
         let sortedMessages = chat.messagesArray
-            .sorted { $0.timestamp < $1.timestamp }
             .suffix(contextSize)
 
         // Add conversation history

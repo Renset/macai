@@ -51,6 +51,7 @@
 		4A4F204C2D62651900D1F57F /* FiraCode-VF.ttf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
 		4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
 		4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
+		4A54E85B2ED6500F0068C25E /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */; };
 		4A55DCA729C264BC00A3800C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
 		4A5C395229D8765200BCB534 /* OmenTextField in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5C395129D8765200BCB534 /* OmenTextField */; };
 		4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */; };
@@ -60,6 +61,7 @@
 		4A79A0762CEA9FB900CB41D8 /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
 		4A7AFF182B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
+		4A8560DC2EF0C429007A5E42 /* V1ToV3Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */; };
 		4A885C522CEA3B130018BBED /* HTMLPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */; };
 		4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C532CEA3D960018BBED /* PreviewStateManager.swift */; };
 		4A885C562CEA3F6C0018BBED /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C552CEA3F6C0018BBED /* ChatListView.swift */; };
@@ -86,6 +88,7 @@
 		4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
 		4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */; };
 		4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
+		4AFAC2022EF496C3004B125E /* SettingsIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
 		4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */; };
 		4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7202C472F53006F99FB /* APIProtocol.swift */; };
@@ -157,6 +160,8 @@
 		4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestMessagesTransformer.swift; sourceTree = "<group>"; };
 		4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeMode.swift; sourceTree = "<group>"; };
 		4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAIPersonasView.swift; sourceTree = "<group>"; };
+		4A366F612EEFFA5E00128E19 /* macaiDataModel 2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "macaiDataModel 2.xcdatamodel"; sourceTree = "<group>"; };
+		4A366F622EEFFA5E00128E19 /* macaiDataModel 3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "macaiDataModel 3.xcdatamodel"; sourceTree = "<group>"; };
 		4A37B8542C2A399800F36CC4 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		4A399C9529BC8FEF00E98796 /* macai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A399C9829BC8FEF00E98796 /* macaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiApp.swift; sourceTree = "<group>"; };
@@ -174,6 +179,7 @@
 		4A4918772D9F3C54007EB4A2 /* MessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageContentView.swift; sourceTree = "<group>"; };
 		4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarButton.swift; sourceTree = "<group>"; };
 		4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "FiraCode-VF.ttf"; sourceTree = "<group>"; };
+		4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncManager.swift; sourceTree = "<group>"; };
 		4A55DCA629C264BC00A3800C /* TableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableView.swift; sourceTree = "<group>"; };
 		4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
 		4A5F64B929C64F9D000403F7 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -181,6 +187,7 @@
 		4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = macaiDataModel.xcdatamodel; sourceTree = "<group>"; };
 		4A775A032C1486F3004301D3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTestApiTokenAndModel.swift; sourceTree = "<group>"; };
+		4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V1ToV3Migration.swift; sourceTree = "<group>"; };
 		4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLPreviewView.swift; sourceTree = "<group>"; };
 		4A885C532CEA3D960018BBED /* PreviewStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewStateManager.swift; sourceTree = "<group>"; };
 		4A885C552CEA3F6C0018BBED /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
@@ -207,6 +214,7 @@
 		4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailView.swift; sourceTree = "<group>"; };
 		4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandler.swift; sourceTree = "<group>"; };
 		4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcher.swift; sourceTree = "<group>"; };
+		4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsIndicators.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
 		4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabDangerZoneView.swift; sourceTree = "<group>"; };
 		4AFEE7202C472F53006F99FB /* APIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIProtocol.swift; sourceTree = "<group>"; };
@@ -328,6 +336,7 @@
 		4A272A6929F5CD4700F93D0D /* Preferences */ = {
 			isa = PBXGroup;
 			children = (
+				4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */,
 				4A8A78C72D4C41980057A6CC /* TabGeneralSettingsView.swift */,
 				4A164BB82C95CC450060ECFE /* TabAPIServices */,
 				4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */,
@@ -342,6 +351,7 @@
 		4A272A6A29F5CD5E00F93D0D /* Store */ = {
 			isa = PBXGroup;
 			children = (
+				4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */,
 				4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */,
 				4A399CC529BCF02500E98796 /* ChatStore.swift */,
 			);
@@ -403,6 +413,7 @@
 		4A272A7029F5D9C200F93D0D /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */,
 				4ACE2FB72D61656000DEEA6D /* SwipeModifier.swift */,
 				4AADD98B2C924FB400242D20 /* APIServiceManager.swift */,
 				4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */,
@@ -420,8 +431,8 @@
 		4A399C8C29BC8FEF00E98796 = {
 			isa = PBXGroup;
 			children = (
-				4A37B8542C2A399800F36CC4 /* Credits.rtf */,
 				4A399C9729BC8FEF00E98796 /* macai */,
+				4A37B8542C2A399800F36CC4 /* Credits.rtf */,
 				4A399CA929BC8FF200E98796 /* macaiTests */,
 				4A399CB329BC8FF200E98796 /* macaiUITests */,
 				4A399C9629BC8FEF00E98796 /* Products */,
@@ -671,6 +682,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A2D3CEB2D5794B10082A262 /* ThemeMode.swift in Sources */,
+				4A8560DC2EF0C429007A5E42 /* V1ToV3Migration.swift in Sources */,
 				4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */,
 				4ABB867B2CFC79ED004EC7B1 /* ErrorBubbleView.swift in Sources */,
 				4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */,
@@ -722,8 +734,10 @@
 				4A49187A2D9F4186007EB4A2 /* ToolbarButton.swift in Sources */,
 				4A270AE329D4AFE7005E063C /* AppConstants.swift in Sources */,
 				4A399C9929BC8FEF00E98796 /* macaiApp.swift in Sources */,
+				4A54E85B2ED6500F0068C25E /* CloudSyncManager.swift in Sources */,
 				4A775A042C1486F3004301D3 /* Extensions.swift in Sources */,
 				4AFDEB7E2AFF90FB00BA8642 /* TabDangerZoneView.swift in Sources */,
+				4AFAC2022EF496C3004B125E /* SettingsIndicators.swift in Sources */,
 				4A27FF8F2DA1C41B0075D730 /* ZoomableImageView.swift in Sources */,
 				4A194C062C9633BC003C8782 /* EntityListView.swift in Sources */,
 				4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */,
@@ -906,7 +920,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.2.5;
+				CURRENT_PROJECT_VERSION = 2.3.0;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -925,7 +939,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.5;
+				MARKETING_VERSION = 2.3.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -948,7 +962,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.2.5;
+				CURRENT_PROJECT_VERSION = 2.3.0;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -967,7 +981,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.5;
+				MARKETING_VERSION = 2.3.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1200,8 +1214,10 @@
 			isa = XCVersionGroup;
 			children = (
 				4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */,
+				4A366F612EEFFA5E00128E19 /* macaiDataModel 2.xcdatamodel */,
+				4A366F622EEFFA5E00128E19 /* macaiDataModel 3.xcdatamodel */,
 			);
-			currentVersion = 4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */;
+			currentVersion = 4A366F622EEFFA5E00128E19 /* macaiDataModel 3.xcdatamodel */;
 			path = macaiDataModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

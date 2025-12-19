@@ -140,6 +140,7 @@ class ImageAttachment: Identifiable, ObservableObject {
 
         let persist: (ImagePersistencePayload) -> Void = { [weak self] payload in
             guard let self = self else { return }
+            guard !payload.imageData.isEmpty else { return }
 
             contextToUse.performAndWait {
                 if self.imageEntity == nil {
@@ -316,12 +317,6 @@ class ImageAttachment: Identifiable, ObservableObject {
             return "jpeg"
         case .png:
             return "png"
-        case .webP:
-            return "webp"
-        case .heic:
-            return "heic"
-        case .heif:
-            return "heif"
         default:
             // Try to get the preferred filename extension
             return type.preferredFilenameExtension ?? "jpeg"
@@ -334,17 +329,88 @@ class ImageAttachment: Identifiable, ObservableObject {
             return bitmapImage.representation(using: .png, properties: [:])
         case .jpeg:
             return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-        case .webP:
-            // WebP is not directly supported by NSBitmapImageRep, fallback to PNG
-            return bitmapImage.representation(using: .png, properties: [:])
-        case .heic, .heif:
-            // HEIC/HEIF are not directly supported by NSBitmapImageRep, fallback to PNG
-            return bitmapImage.representation(using: .png, properties: [:])
         default:
-            // For unknown types, try PNG first
-            return bitmapImage.representation(using: .png, properties: [:])
-                ?? bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+            // For all other types (HEIC/HEIF/WEBP/unknown), prefer JPEG to keep size modest.
+            return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
         }
+    }
+
+    /// Progressively compress image to fit within CloudKit size limits
+    /// Optimized with iteration limits to prevent excessive encoding passes
+    private func compressForCloudKit(image: NSImage, currentData: Data, targetSize: Int) -> Data {
+        var compressionFactor: CGFloat = 0.7
+        var resizedImage = image
+        var resultData = currentData
+        
+        // Maximum iterations to prevent runaway loops
+        let maxCompressionIterations = 7
+        let maxResizeIterations = 10
+        var compressionIterations = 0
+
+        // First, try reducing compression quality
+        while resultData.count > targetSize && compressionFactor > 0.1 && compressionIterations < maxCompressionIterations {
+            compressionIterations += 1
+            
+            if let tiffData = resizedImage.tiffRepresentation,
+               let bitmapImage = NSBitmapImageRep(data: tiffData),
+               let compressedData = bitmapImage.representation(
+                   using: .jpeg,
+                   properties: [.compressionFactor: compressionFactor]
+               ) {
+                resultData = compressedData
+                
+                // Early exit if we've reached the target
+                if resultData.count <= targetSize {
+                    break
+                }
+            }
+            compressionFactor -= 0.1
+        }
+
+        // If still too large, reduce image dimensions
+        if resultData.count > targetSize {
+            let scaleFactor: CGFloat = 0.75
+            var currentSize = resizedImage.size
+            var resizeIterations = 0
+
+            while resultData.count > targetSize && currentSize.width > 200 && resizeIterations < maxResizeIterations {
+                resizeIterations += 1
+                
+                currentSize = NSSize(
+                    width: currentSize.width * scaleFactor,
+                    height: currentSize.height * scaleFactor
+                )
+
+                let scaledImage = NSImage(size: currentSize)
+                scaledImage.lockFocus()
+                NSGraphicsContext.current?.imageInterpolation = .high
+                resizedImage.draw(
+                    in: NSRect(origin: .zero, size: currentSize),
+                    from: NSRect(origin: .zero, size: resizedImage.size),
+                    operation: .copy,
+                    fraction: 1.0
+                )
+                scaledImage.unlockFocus()
+
+                resizedImage = scaledImage
+
+                if let tiffData = resizedImage.tiffRepresentation,
+                   let bitmapImage = NSBitmapImageRep(data: tiffData),
+                   let compressedData = bitmapImage.representation(
+                       using: .jpeg,
+                       properties: [.compressionFactor: 0.6]
+                   ) {
+                    resultData = compressedData
+                    
+                    // Early exit if we've reached the target
+                    if resultData.count <= targetSize {
+                        break
+                    }
+                }
+            }
+        }
+
+        return resultData
     }
 }
 
@@ -379,34 +445,62 @@ extension ImageAttachment {
             return nil
         }
 
-        var targetFormat = getFormatString(from: originalFileType)
-        var imageData = getImageData(from: bitmapImage, using: originalFileType)
+        // Use PNG only when the original is PNG; otherwise force JPEG to avoid ballooning size.
+        let usePNG = (originalFileType == .png)
+        var targetFormat = usePNG ? "png" : "jpeg"
+        var imageData: Data?
 
-        if imageData == nil,
-            let jpegData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-        {
-            imageData = jpegData
-            targetFormat = "jpeg"
+        if usePNG {
+            imageData = bitmapImage.representation(using: .png, properties: [:])
+        } else {
+            imageData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
             if originalFileType != .jpeg {
                 convertedToJPEG = true
             }
         }
 
-        guard let finalImageData = imageData else {
+        if imageData == nil,
+           let jpegFallback = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+        {
+            imageData = jpegFallback
+            targetFormat = "jpeg"
+        }
+
+        guard var finalImageData = imageData else {
             return nil
+        }
+
+        // Avoid creating empty CKAssets; bail out if we somehow got zero bytes.
+        guard finalImageData.count > 0 else { return nil }
+
+        // CloudKit stores binary data as CKAsset. Apple recommends keeping assets under ~250 MB for performance.
+        // Use a safety margin to avoid slow transfers or CKError.limitExceeded.
+        let cloudKitLimit = 250_000_000 // 250 MB safety threshold for CKAsset payloads
+        if finalImageData.count > cloudKitLimit {
+            finalImageData = compressForCloudKit(
+                image: imageToPersist,
+                currentData: finalImageData,
+                targetSize: cloudKitLimit
+            )
+
+            // If still too large, fail the save so caller can handle/retry with a smaller image.
+            guard finalImageData.count <= cloudKitLimit else { return nil }
         }
 
         let thumbnailImage = self.thumbnail ?? generateThumbnailImage(from: imageToPersist)
         var thumbnailData: Data?
 
         if let thumbnailImage,
-            let thumbnailTiff = thumbnailImage.tiffRepresentation,
-            let thumbnailBitmap = NSBitmapImageRep(data: thumbnailTiff)
+           let thumbnailTiff = thumbnailImage.tiffRepresentation,
+           let thumbnailBitmap = NSBitmapImageRep(data: thumbnailTiff)
         {
             thumbnailData = thumbnailBitmap.representation(
                 using: .jpeg,
                 properties: [.compressionFactor: 0.7]
             )
+            if let data = thumbnailData, data.isEmpty {
+                thumbnailData = nil
+            }
         }
 
         return ImagePersistencePayload(
