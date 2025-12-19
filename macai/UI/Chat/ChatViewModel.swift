@@ -244,7 +244,9 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             name: getApiServiceName(),
             apiUrl: apiServiceUrl,
             apiKey: apiKey,
-            model: chat.gptModel
+            model: chat.gptModel,
+            gcpProjectId: apiService.gcpProjectId,
+            gcpRegion: apiService.gcpRegion
         )
     }
 
