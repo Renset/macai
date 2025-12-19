@@ -259,6 +259,9 @@ class CloudSyncManager: ObservableObject {
 
         let nsError = error as NSError
         log("Error domain: \(nsError.domain), code: \(nsError.code)", type: "Error", isError: true)
+        if let containerId = cloudContainerIdentifier {
+            log("CloudKit container: \(containerId)", type: "Error", isError: false)
+        }
 
         if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
             log("Underlying error: \(underlying.domain), code: \(underlying.code)", type: "Error", isError: true)
@@ -277,15 +280,30 @@ class CloudSyncManager: ObservableObject {
             }
         }
 
-        // Check for partial errors (common in CloudKit batch operations)
-        if let partialErrors = nsError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error] {
-            log("Partial errors count: \(partialErrors.count)", type: "Error", isError: true)
-            for (itemID, itemError) in partialErrors.prefix(10) {
-                log("Partial error for \(itemID): \(itemError.localizedDescription)", type: "Error", isError: true)
+        logPartialErrors(from: nsError, label: "Direct")
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+            logPartialErrors(from: underlying, label: "Underlying")
+        }
+    }
+
+    private func logPartialErrors(from error: NSError, label: String) {
+        guard let partialErrors = error.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error] else {
+            return
+        }
+        log("\(label) partial errors count: \(partialErrors.count)", type: "Error", isError: true)
+        for (itemID, itemError) in partialErrors.prefix(20) {
+            let nsItemError = itemError as NSError
+            var itemDescription = "\(itemID)"
+            if let recordID = itemID as? CKRecord.ID {
+                itemDescription = "\(recordID.recordName)"
+            } else if let zoneID = itemID as? CKRecordZone.ID {
+                itemDescription = "\(zoneID.zoneName)"
             }
-            if partialErrors.count > 10 {
-                log("... and \(partialErrors.count - 10) more partial errors", type: "Error", isError: true)
-            }
+            log("Partial error for \(itemDescription): \(itemError.localizedDescription)", type: "Error", isError: true)
+            log("Partial error domain: \(nsItemError.domain), code: \(nsItemError.code)", type: "Error", isError: true)
+        }
+        if partialErrors.count > 20 {
+            log("... and \(partialErrors.count - 20) more partial errors", type: "Error", isError: true)
         }
     }
 
