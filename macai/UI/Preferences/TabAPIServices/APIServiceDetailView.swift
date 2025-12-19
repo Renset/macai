@@ -69,21 +69,82 @@ struct APIServiceDetailView: View {
                     }
                     .padding(.bottom, 8)
 
-                    HStack {
-                        Text("API URL:")
-                            .frame(width: 100, alignment: .leading)
+                    if viewModel.isVertexAI {
+                        // Vertex AI URL is computed from project ID and region
+                        HStack {
+                            Text("API URL:")
+                                .frame(width: 100, alignment: .leading)
 
-                        TextField("Paste your URL here", text: $viewModel.url)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            Text(viewModel.url)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(Color(NSColor.controlBackgroundColor))
+                                .cornerRadius(5)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                                )
+                        }
+                    }
+                    else {
+                        HStack {
+                            Text("API URL:")
+                                .frame(width: 100, alignment: .leading)
 
-                        Button(action: {
-                            viewModel.url = viewModel.defaultApiConfiguration!.url
-                        }) {
-                            Text("Default")
+                            TextField("Paste your URL here", text: $viewModel.url)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                            Button(action: {
+                                viewModel.url = viewModel.defaultApiConfiguration!.url
+                            }) {
+                                Text("Default")
+                            }
                         }
                     }
 
-                    if (viewModel.defaultApiConfiguration?.apiKeyRef ?? "") != "" {
+                    if viewModel.isVertexAI {
+                        // Vertex AI specific fields
+                        HStack {
+                            Text("Project ID:")
+                                .frame(width: 100, alignment: .leading)
+
+                            TextField("your-gcp-project-id", text: $viewModel.gcpProjectId)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+
+                        HStack {
+                            Text("Region:")
+                                .frame(width: 100, alignment: .leading)
+
+                            TextField("us-central1", text: $viewModel.gcpRegion)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+
+                        HStack {
+                            Spacer()
+                            Button("Import ADC Credentials…") {
+                                viewModel.importVertexADCCredentialsButtonTapped()
+                            }
+                        }
+
+                        if let adcStatus = viewModel.adcImportStatus {
+                            Text(adcStatus)
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+
+                        HStack {
+                            Spacer()
+                            Text("Run `gcloud auth application-default login` to authenticate")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    else if (viewModel.defaultApiConfiguration?.apiKeyRef ?? "") != "" {
                         HStack {
                             Text("API Key:")
                                 .frame(width: 100, alignment: .leading)
@@ -172,7 +233,9 @@ struct APIServiceDetailView: View {
                             gptModel: viewModel.model,
                             apiUrl: viewModel.url,
                             apiType: viewModel.type,
-                            imageGenerationSupported: viewModel.imageGenerationSupported
+                            imageGenerationSupported: viewModel.imageGenerationSupported,
+                            gcpProjectId: viewModel.isVertexAI ? viewModel.gcpProjectId : nil,
+                            gcpRegion: viewModel.isVertexAI ? viewModel.gcpRegion : nil
                         )
                     }
                 }

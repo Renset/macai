@@ -180,7 +180,7 @@ struct AppConstants {
             apiModelRef: "https://platform.openai.com/docs/models",
             defaultModel: "gpt-5",
             models: [
-                "gpt-5",
+                "gpt-5"
             ],
             imageUploadsSupported: true,
             imageGenerationSupported: true
@@ -303,11 +303,36 @@ struct AppConstants {
                 "deepseek/deepseek-r1:free",
             ]
         ),
+        "vertex": defaultApiConfiguration(
+            name: "Google Vertex AI",
+            url: "https://us-central1-aiplatform.googleapis.com/v1",
+            apiKeyRef: "",
+            apiModelRef: "https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models",
+            defaultModel: "gemini-2.5-pro",
+            models: [
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+                "gemini-1.5-pro",
+                "gemini-1.5-flash",
+                "claude-sonnet-4-5@20250929",
+                "claude-3-5-sonnet-v2@20241022",
+                "claude-3-opus@20240229",
+                "claude-3-haiku@20240307",
+            ],
+            modelsFetching: false,
+            imageUploadsSupported: true,
+            imageGenerationSupported: true,
+            autoEnableImageGenerationModels: ["gemini-2.0-flash-image-generation"]
+        ),
     ]
 
     static let apiTypes = [
         "openai-responses", "chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter",
+        "vertex",
     ]
+
+    static let defaultGcpRegion = "us-central1"
     static let newChatNotification = Notification.Name("newChatNotification")
     static let largeMessageSymbolsThreshold = 25000
     static let thumbnailSize: CGFloat = 300

@@ -11,6 +11,8 @@
 		1001F81047D94F5484238553 /* APIServiceTemplateAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */; };
 		16E55B88D2D449948BD6C60F /* APIServiceTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */; };
 		2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
+		3B03E8032EF4FA180067D667 /* VertexAIHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B03E8022EF4FA180067D667 /* VertexAIHandler.swift */; };
+		3B924AFB2EF5B6F500FA7608 /* ADCCredentialsAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B924AFA2EF5B6F500FA7608 /* ADCCredentialsAccess.swift */; };
 		4A0BCBBC2D5199140033AB96 /* ButtonWithStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */; };
 		4A0E02852D0F571000D2FAF3 /* PerplexityHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */; };
 		4A1614112D430AE300A1EF8D /* ThinkingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */; };
@@ -139,6 +141,8 @@
 		14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPresenter.swift; sourceTree = "<group>"; };
 		16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProviderTests.swift; sourceTree = "<group>"; };
 		25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddViewModel.swift; sourceTree = "<group>"; };
+		3B03E8022EF4FA180067D667 /* VertexAIHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexAIHandler.swift; sourceTree = "<group>"; };
+		3B924AFA2EF5B6F500FA7608 /* ADCCredentialsAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADCCredentialsAccess.swift; sourceTree = "<group>"; };
 		3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProvider.swift; sourceTree = "<group>"; };
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
@@ -531,8 +535,10 @@
 				B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */,
 				4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */,
 				4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */,
+				3B03E8022EF4FA180067D667 /* VertexAIHandler.swift */,
 				4AA6EF582C565F90003B6D41 /* APIServiceConfig.swift */,
 				4AA6EF5A2C565FDF003B6D41 /* APIServiceFactory.swift */,
+				3B924AFA2EF5B6F500FA7608 /* ADCCredentialsAccess.swift */,
 			);
 			path = APIHandlers;
 			sourceTree = "<group>";
@@ -707,6 +713,7 @@
 				4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */,
 				4A885C522CEA3B130018BBED /* HTMLPreviewView.swift in Sources */,
 				4A55DCA729C264BC00A3800C /* TableView.swift in Sources */,
+				3B924AFB2EF5B6F500FA7608 /* ADCCredentialsAccess.swift in Sources */,
 				4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */,
 				0BA0FF405FC14D3FABF82621 /* APIServiceTemplateProvider.swift in Sources */,
 				4ACE2FB82D61656000DEEA6D /* SwipeModifier.swift in Sources */,
@@ -762,6 +769,7 @@
 				4A8A78C82D4C41A00057A6CC /* TabGeneralSettingsView.swift in Sources */,
 				4A1E16852E16DB4500E5CBA3 /* ChatInputView.swift in Sources */,
 				4A1E16862E16DB4500E5CBA3 /* ChatMessagesView.swift in Sources */,
+				3B03E8032EF4FA180067D667 /* VertexAIHandler.swift in Sources */,
 				4A1E16872E16DB4600E5CBA3 /* ChatLogicHandler.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
 				4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */,
