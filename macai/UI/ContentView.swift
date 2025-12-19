@@ -233,7 +233,7 @@ struct ContentView: View {
                 backupSectionSeen: backupSectionSeen
             ) {
                 SettingsIndicatorDot()
-                    .offset(x: 6, y: -6)
+                    .offset(x: 1, y: -1)
             }
         }
     }
