@@ -418,7 +418,7 @@ struct BackupRestoreView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
-                        .help("Full data backups include chats, messages, images, API services, personas, and settings. Automatic backups are created when the app makes significant data changes, and you can create or restore a backup anytime.")
+                        .help("Full data backups include chats, messages, images, API services, personas, and settings. API tokens are not saved in backups; they are stored securely in the Apple Keychain. Automatic backups are created when the app makes significant database changes, and you can create or restore a backup anytime.")
 
                         Spacer()
 
@@ -449,7 +449,7 @@ struct BackupRestoreView: View {
                         .help("Import a backup from a .zip file")
                     }
 
-                    Text("Automatic backups are created when the app makes significant data changes. You can also create or restore a backup anytime.")
+                    Text("Automatic backups are created when the app makes significant database changes. You can also create or restore a backup anytime.")
                         .foregroundColor(.secondary)
                         .font(.callout)
 
@@ -539,10 +539,19 @@ struct BackupRestoreView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
-                        .help("JSON export contains only chat text and basic metadata. It does NOT include:\n• Images and attachments\n• API service configurations\n• API tokens/credentials\n• Personas\n• App settings\n\nUse this for sharing chats or lightweight backups. For complete backups, use Data Backups above.")
+                        .help("""
+                        JSON export contains only chat text and basic metadata. It does NOT include:
+                        - Images and attachments
+                        - API service configurations
+                        - API tokens/credentials
+                        - Personas
+                        - App settings
+
+                        This is not recommended for backup purposes, but you can use it to export data to other systems.
+                        """)
                     }
 
-                    Text("Export chats as JSON (text only, no images or settings)")
+                    Text("Export chats as JSON (no images, attachments, or settings)")
                         .foregroundColor(.secondary)
                         .font(.callout)
 

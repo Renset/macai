@@ -44,7 +44,8 @@ You can also support project by funding. This support is very important for me a
 - **macOS-native and lightweight**
 - **User-friendly**: simple setup, minimalist light/dark UI
 - **Feature-rich**: vision, image generation, search, reasoning, import/export and more
-- **Private and secure**: no telemetry or usage tracking
+- **iCloud Sync**: keep chats, messages, and settings in sync across devices
+- **Private and secure**: no telemetry or usage tracking by macai (Note: Apple may collect anonymized telemetry when iCloud Sync is enabled)
 
 
 ## Run with ChatGPT, Claude, xAI or Google Gemini

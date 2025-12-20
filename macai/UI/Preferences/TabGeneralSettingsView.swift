@@ -204,6 +204,15 @@ struct TabGeneralSettingsView: View {
                             Text("iCloud Sync")
                                 .fontWeight(.medium)
 
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.secondary)
+                                .font(.callout)
+                                .help("""
+                                - Your data is transmitted securely to iCloud and stored by Apple; it is not accessible to the macai developer.
+                                - You can enable Advanced Data Protection in iCloud settings to encrypt your data so even Apple can't read your chats and messages.
+                                - Apple collects telemetry data, but it is anonymized.
+                                """)
+
                             SettingsIndicatorBadge(text: "Beta", color: .gray)
 
                             if !iCloudSectionSeen {
