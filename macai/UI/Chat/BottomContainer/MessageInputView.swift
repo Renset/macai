@@ -5,7 +5,6 @@
 //  Created by Renat on 2024-07-15
 //
 
-import OmenTextField
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -17,9 +16,8 @@ struct MessageInputView: View {
     var onEnter: () -> Void
     var onAddImage: () -> Void
 
-    @State var frontReturnKeyType = OmenTextField.ReturnKeyType.next
+    private let frontReturnKeyType: MacaiTextField.ReturnKeyType = .next
     @State var isFocused: Focus?
-    @State var dynamicHeight: CGFloat = 16
     private let inputPlaceholderText: String
     private let cornerRadius: Double
     @State private var isHoveringDropZone = false
@@ -98,55 +96,34 @@ struct MessageInputView: View {
                     .help("Add image")
                 }
                 
-                ZStack {
-                    Text(text == "" ? effectivePlaceholderText : text)
-                        .font(.system(size: effectiveFontSize))
-                        .lineLimit(10)
-                        .background(
-                            GeometryReader { geometryText in
-                                Color.clear
-                                    .onAppear {
-                                        dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
-                                    }
-                                    .onChange(of: geometryText.size) { _ in
-                                        dynamicHeight = calculateDynamicHeight(using: geometryText.size.height)
-                                    }
-                            }
+                MacaiTextField(
+                    effectivePlaceholderText,
+                    text: $text,
+                    isFocused: $isFocused.equalTo(.focused),
+                    returnKeyType: frontReturnKeyType,
+                    fontSize: effectiveFontSize,
+                    minHeight: initialInputSize,
+                    maxHeight: maxInputHeight,
+                    onCommit: {
+                        onEnter()
+                    }
+                )
+                .padding(inputPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.clear)
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(
+                            isHoveringDropZone
+                                ? Color.green.opacity(0.8)
+                                : (isFocused == .focused ? lineColorOnFocus : lineColorOnBlur),
+                            lineWidth: isHoveringDropZone
+                                ? 6 : (isFocused == .focused ? lineWidthOnFocus : lineWidthOnBlur)
                         )
-                        .padding(inputPadding)
-                        .hidden()
-
-                    ScrollView {
-                        VStack {
-                            OmenTextField(
-                                effectivePlaceholderText,
-                                text: $text,
-                                isFocused: $isFocused.equalTo(.focused),
-                                returnKeyType: frontReturnKeyType,
-                                fontSize: effectiveFontSize,
-                                onCommit: {
-                                    onEnter()
-                                }
-                            )
-                        }
-                    }
-                    .padding(inputPadding)
-                    .frame(height: dynamicHeight)
-                    .background(Color.clear)
-                    .background(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .stroke(
-                                isHoveringDropZone
-                                    ? Color.green.opacity(0.8)
-                                    : (isFocused == .focused ? lineColorOnFocus : lineColorOnBlur),
-                                lineWidth: isHoveringDropZone
-                                    ? 6 : (isFocused == .focused ? lineWidthOnFocus : lineWidthOnBlur)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                    )
-                    .onTapGesture {
-                        isFocused = .focused
-                    }
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                )
+                .onTapGesture {
+                    isFocused = .focused
                 }
             }
         }
@@ -159,11 +136,6 @@ struct MessageInputView: View {
                 isFocused = .focused
             }
         }
-    }
-
-    private func calculateDynamicHeight(using height: CGFloat? = nil) -> CGFloat {
-        let newHeight = height ?? dynamicHeight
-        return min(max(newHeight, initialInputSize), maxInputHeight) + inputPadding * 2
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {

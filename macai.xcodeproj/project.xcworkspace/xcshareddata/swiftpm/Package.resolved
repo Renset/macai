@@ -1,5 +1,5 @@
 {
-  "originHash" : "b8203d59b545ed96dacf988eb61c0951489942c9307ec684ab077df46bff9f8e",
+  "originHash" : "d070fef2f64af06e20606fc1c2f79b65b560cf76e83eda752a69e276d4467416",
   "pins" : [
     {
       "identity" : "attributedtext",
@@ -26,15 +26,6 @@
       "state" : {
         "branch" : "master",
         "revision" : "e0c7eebc5a4465a3c4680764f26b7a61f567cdaf"
-      }
-    },
-    {
-      "identity" : "omentextfield",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Renset/OmenTextField",
-      "state" : {
-        "branch" : "main",
-        "revision" : "4e077092b140241d7b3448352ade33a839478892"
       }
     },
     {

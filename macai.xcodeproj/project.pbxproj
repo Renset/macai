@@ -53,7 +53,6 @@
 		4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
 		4A54E85B2ED6500F0068C25E /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */; };
 		4A55DCA729C264BC00A3800C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
-		4A5C395229D8765200BCB534 /* OmenTextField in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5C395129D8765200BCB534 /* OmenTextField */; };
 		4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */; };
 		4A5F64BA29C64F9D000403F7 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B929C64F9D000403F7 /* ChatView.swift */; };
 		4A5F64C129C78B64000403F7 /* SceneKitParticlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */; };
@@ -100,6 +99,7 @@
 		B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
 		B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
 		F595CD3876D345D794C42AFF /* APIServiceTemplateAddViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */; };
+		2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -138,6 +138,7 @@
 		25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddViewModel.swift; sourceTree = "<group>"; };
 		3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProvider.swift; sourceTree = "<group>"; };
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
+		04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacaiTextField.swift; sourceTree = "<group>"; };
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
 		4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinkingProcessView.swift; sourceTree = "<group>"; };
 		4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMessageBubbleView.swift; sourceTree = "<group>"; };
@@ -233,7 +234,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */,
-				4A5C395229D8765200BCB534 /* OmenTextField in Frameworks */,
 				4A2842492C87014800E5C920 /* KeychainAccess in Frameworks */,
 				4A471B862C29C56800C66926 /* SwiftMath in Frameworks */,
 				4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */,
@@ -299,6 +299,7 @@
 				4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */,
 				4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */,
 				4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */,
+				04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */,
 				4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */,
 				4A194C052C9633BC003C8782 /* EntityListView.swift */,
 			);
@@ -551,7 +552,6 @@
 				4A51EC6129C32AF700973D83 /* Highlightr */,
 				4A51EC6429C32B0B00973D83 /* AttributedText */,
 				4A7E1BDA29C910F900E57DC2 /* Sparkle */,
-				4A5C395129D8765200BCB534 /* OmenTextField */,
 				4A471B852C29C56800C66926 /* SwiftMath */,
 				4A2842482C87014800E5C920 /* KeychainAccess */,
 			);
@@ -631,7 +631,6 @@
 				4A51EC6029C32AF600973D83 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */,
 				4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */,
-				4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */,
 				4A471B842C29C56800C66926 /* XCRemoteSwiftPackageReference "SwiftMath" */,
 				4A2842472C87014800E5C920 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 			);
@@ -704,6 +703,7 @@
 				0BA0FF405FC14D3FABF82621 /* APIServiceTemplateProvider.swift in Sources */,
 				4ACE2FB82D61656000DEEA6D /* SwipeModifier.swift in Sources */,
 				4A0BCBBC2D5199140033AB96 /* ButtonWithStatusIndicator.swift in Sources */,
+				2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */,
 				4A885C582CEA3F7B0018BBED /* ChatListRow.swift in Sources */,
 				4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */,
 				4ADCA45B2C9B74E8005664A6 /* APIServiceDetailViewModel.swift in Sources */,
@@ -1158,14 +1158,6 @@
 				minimumVersion = 1.0.0;
 			};
 		};
-		4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Renset/OmenTextField";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -1196,11 +1188,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */;
 			productName = AttributedText;
-		};
-		4A5C395129D8765200BCB534 /* OmenTextField */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4A5C395029D8765200BCB534 /* XCRemoteSwiftPackageReference "OmenTextField" */;
-			productName = OmenTextField;
 		};
 		4A7E1BDA29C910F900E57DC2 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
