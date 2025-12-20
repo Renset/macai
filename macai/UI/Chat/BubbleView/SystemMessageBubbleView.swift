@@ -20,8 +20,8 @@ struct SystemMessageBubbleView: View {
             ),
             color: color,
             onEdit: {
-                newMessage = message
                 editSystemMessage = true
+                newMessage = message
             },
             searchText: $searchText
         )

@@ -23,6 +23,7 @@ struct ChatView: View {
     @State private var attachedImages: [ImageAttachment] = []
     @State private var isBottomContainerExpanded = false
     @State private var renderTime: Double = 0
+    @State private var draftSaveWorkItem: DispatchWorkItem?
     
     // View models and logic
     @StateObject private var chatViewModel: ChatViewModel
@@ -80,6 +81,8 @@ struct ChatView: View {
                     )
                     newMessage = ""
                     attachedImages = []
+                    chat.newMessage = ""
+                    store.saveInCoreData()
                     
                     if chatViewModel.sortedMessages.count == 1 { // First message just sent
                         withAnimation {
@@ -104,12 +107,18 @@ struct ChatView: View {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
             Self._printChanges()
+            if newMessage.isEmpty {
+                newMessage = chat.newMessage ?? ""
+            }
             DispatchQueue.main.asyncAfter(deadline: .now()) {
                 let startTime = CFAbsoluteTimeGetCurrent()
                 _ = self.body
                 renderTime = CFAbsoluteTimeGetCurrent() - startTime
             }
         })
+        .onDisappear {
+            persistDraftImmediately()
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RecreateMessageManager"))) { notification in
             if let chatId = notification.userInfo?["chatId"] as? UUID,
                 chatId == chat.id
@@ -142,6 +151,32 @@ struct ChatView: View {
         .onChange(of: searchText) { newSearchText in
             chatViewModel.updateSearchOccurrences(searchText: newSearchText)
         }
+        .onChange(of: newMessage) { updatedMessage in
+            guard !editSystemMessage else { return }
+            scheduleDraftSave(updatedMessage)
+        }
+        .onChange(of: editSystemMessage) { isEditing in
+            if !isEditing, newMessage.isEmpty {
+                newMessage = chat.newMessage ?? ""
+            }
+        }
+    }
+
+    private func scheduleDraftSave(_ message: String) {
+        draftSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [chat, store] in
+            chat.newMessage = message
+            store.saveInCoreData()
+        }
+        draftSaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
+    }
+
+    private func persistDraftImmediately() {
+        guard !editSystemMessage else { return }
+        draftSaveWorkItem?.cancel()
+        chat.newMessage = newMessage
+        store.saveInCoreData()
     }
 }
 
