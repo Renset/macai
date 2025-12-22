@@ -109,7 +109,8 @@ class DeepseekHandler: ChatGPTHandler {
                 stream: true
             )
 
-            Task {
+            let streamTask = Task {
+                defer { self.activeStreamTask = nil }
                 var accumulatedReasoning = ""
                 var isInReasoningBlock = false
                 
@@ -174,6 +175,11 @@ class DeepseekHandler: ChatGPTHandler {
                 catch {
                     continuation.finish(throwing: error)
                 }
+            }
+            activeStreamTask?.cancel()
+            activeStreamTask = streamTask
+            continuation.onTermination = { _ in
+                streamTask.cancel()
             }
         }
     }

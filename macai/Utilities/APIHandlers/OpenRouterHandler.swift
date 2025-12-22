@@ -101,7 +101,8 @@ class OpenRouterHandler: ChatGPTHandler {
                 stream: true
             )
 
-            Task {
+            let streamTask = Task {
+                defer { self.activeStreamTask = nil }
                 var isInReasoningBlock = false
                 
                 do {
@@ -165,6 +166,11 @@ class OpenRouterHandler: ChatGPTHandler {
                 catch {
                     continuation.finish(throwing: error)
                 }
+            }
+            activeStreamTask?.cancel()
+            activeStreamTask = streamTask
+            continuation.onTermination = { _ in
+                streamTask.cancel()
             }
         }
     }

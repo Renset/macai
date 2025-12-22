@@ -110,6 +110,8 @@ class GeminiHandler: APIService {
     let model: String
     private let session: URLSession
     private let modelsEndpoint: URL
+    private var activeDataTask: URLSessionDataTask?
+    private var activeStreamTask: Task<Void, Never>?
     private var lastResponseParts: [GeminiPartResponse]?
 
     init(config: APIServiceConfiguration, session: URLSession) {
@@ -176,8 +178,10 @@ class GeminiHandler: APIService {
             return
 
         case .success(let request):
-            session.dataTask(with: request) { data, response, error in
+            activeDataTask?.cancel()
+            let task = session.dataTask(with: request) { data, response, error in
                 DispatchQueue.main.async {
+                    self.activeDataTask = nil
                     let result = self.handleAPIResponse(response, data: data, error: error)
 
                     switch result {
@@ -212,7 +216,9 @@ class GeminiHandler: APIService {
                         completion(.failure(error))
                     }
                 }
-            }.resume()
+            }
+            activeDataTask = task
+            task.resume()
         }
     }
 
@@ -231,7 +237,8 @@ class GeminiHandler: APIService {
 
         case .success(let request):
             return AsyncThrowingStream { continuation in
-                Task {
+                let streamTask = Task {
+                    defer { self.activeStreamTask = nil }
                     do {
                         let (stream, response) = try await session.bytes(for: request)
                         let responseCheck = self.handleAPIResponse(response, data: nil, error: nil)
@@ -295,6 +302,11 @@ class GeminiHandler: APIService {
                     catch {
                         continuation.finish(throwing: APIError.requestFailed(error))
                     }
+                }
+                activeStreamTask?.cancel()
+                activeStreamTask = streamTask
+                continuation.onTermination = { _ in
+                    streamTask.cancel()
                 }
             }
         }
@@ -854,5 +866,10 @@ class GeminiHandler: APIService {
         default:
             return "image/jpeg"
         }
+    }
+
+    func cancelCurrentRequest() {
+        activeDataTask?.cancel()
+        activeStreamTask?.cancel()
     }
 }

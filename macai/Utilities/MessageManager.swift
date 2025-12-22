@@ -13,6 +13,8 @@ class MessageManager: ObservableObject {
     private var viewContext: NSManagedObjectContext
     private var lastUpdateTime = Date()
     private let updateInterval = AppConstants.streamedResponseUpdateUIInterval
+    private var streamTask: Task<Void, Never>?
+    private var cancelRequested = false
 
     init(apiService: APIService, viewContext: NSManagedObjectContext) {
         self.apiService = apiService
@@ -60,6 +62,7 @@ class MessageManager: ObservableObject {
                 completion(.success(()))
 
             case .failure(let error):
+                chat.waitingForResponse = false
                 completion(.failure(error))
             }
         }
@@ -76,12 +79,15 @@ class MessageManager: ObservableObject {
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        cancelRequested = false
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
 
-        Task {
+        streamTask?.cancel()
+        streamTask = Task { [weak self] in
+            guard let self = self else { return }
+            defer { self.streamTask = nil }
             do {
-
                 let stream = try await apiService.sendMessageStream(requestMessages, temperature: temperature)
                 var accumulatedResponse = ""
                 var deferImageResponse = false
@@ -89,6 +95,9 @@ class MessageManager: ObservableObject {
                 chat.waitingForResponse = true
 
                 for try await chunk in stream {
+                    if Task.isCancelled || cancelRequested {
+                        break
+                    }
                     guard !chunk.isEmpty else { continue }
 
                     accumulatedResponse += chunk
@@ -125,6 +134,13 @@ class MessageManager: ObservableObject {
                             streamingMessage = lastMessage
                         }
                     }
+                }
+
+                if Task.isCancelled || cancelRequested {
+                    cancelRequested = false
+                    chat.waitingForResponse = false
+                    completion(.failure(CancellationError()))
+                    return
                 }
 
                 guard !accumulatedResponse.isEmpty else {
@@ -165,11 +181,22 @@ class MessageManager: ObservableObject {
                 try? self.viewContext.save()
                 completion(.success(()))
             }
+            catch is CancellationError {
+                chat.waitingForResponse = false
+                completion(.failure(CancellationError()))
+            }
             catch {
                 print("Streaming error: \(error)")
+                chat.waitingForResponse = false
                 completion(.failure(error))
             }
         }
+    }
+
+    func cancelCurrentRequest() {
+        cancelRequested = true
+        streamTask?.cancel()
+        apiService.cancelCurrentRequest()
     }
 
     func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
