@@ -21,6 +21,8 @@ class OllamaHandler: APIService {
     private let apiKey: String
     let model: String
     private let session: URLSession
+    private var activeDataTask: URLSessionDataTask?
+    private var activeStreamTask: Task<Void, Never>?
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
@@ -42,8 +44,10 @@ class OllamaHandler: APIService {
             stream: false
         )
 
-        session.dataTask(with: request) { data, response, error in
+        activeDataTask?.cancel()
+        let task = session.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
+                self.activeDataTask = nil
                 let result = self.handleAPIResponse(response, data: data, error: error)
 
                 switch result {
@@ -63,7 +67,9 @@ class OllamaHandler: APIService {
                     completion(.failure(error))
                 }
             }
-        }.resume()
+        }
+        activeDataTask = task
+        task.resume()
     }
 
     func sendMessageStream(_ requestMessages: [[String: String]], temperature: Float) async throws
@@ -77,7 +83,8 @@ class OllamaHandler: APIService {
                 stream: true
             )
 
-            Task {
+            let streamTask = Task {
+                defer { self.activeStreamTask = nil }
                 do {
                     let (stream, response) = try await session.bytes(for: request)
                     let result = self.handleAPIResponse(response, data: nil, error: nil)
@@ -122,6 +129,11 @@ class OllamaHandler: APIService {
                 catch {
                     continuation.finish(throwing: APIError.requestFailed(error))
                 }
+            }
+            activeStreamTask?.cancel()
+            activeStreamTask = streamTask
+            continuation.onTermination = { _ in
+                streamTask.cancel()
             }
         }
     }
@@ -262,5 +274,10 @@ class OllamaHandler: APIService {
         }
 
         return (false, nil, nil, nil)
+    }
+
+    func cancelCurrentRequest() {
+        activeDataTask?.cancel()
+        activeStreamTask?.cancel()
     }
 }

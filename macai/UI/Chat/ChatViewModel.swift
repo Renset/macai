@@ -135,6 +135,10 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
         }
     }
 
+    func stopInference() {
+        messageManager.cancelCurrentRequest()
+    }
+
     func generateChatNameIfNeeded() {
         messageManager.generateChatNameIfNeeded(chat: chat)
     }

@@ -72,6 +72,7 @@ struct ChatView: View {
                 editSystemMessage: $editSystemMessage,
                 attachedImages: $attachedImages,
                 isBottomContainerExpanded: $isBottomContainerExpanded,
+                isInferenceInProgress: logicHandler.isStreaming || chat.waitingForResponse,
                 imageUploadsAllowed: chat.apiService?.imageUploadsAllowed ?? false,
                 imageGenerationSupported: chat.apiService?.imageGenerationSupported ?? false,
                 onSendMessage: {
@@ -96,6 +97,9 @@ struct ChatView: View {
                             self.attachedImages.append(contentsOf: newAttachments)
                         }
                     }
+                },
+                onStopInference: {
+                    logicHandler.stopInference()
                 }
             )
         }
@@ -129,6 +133,9 @@ struct ChatView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
             logicHandler.handleRetryMessage(newMessage: &newMessage)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopInference"))) { _ in
+            logicHandler.stopInference()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
             logicHandler.ignoreError()

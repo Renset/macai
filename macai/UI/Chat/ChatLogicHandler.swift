@@ -28,6 +28,7 @@ class ChatLogicHandler: ObservableObject {
     }
     
     func sendMessage(messageText: String, attachedImages: [ImageAttachment]) {
+        guard !chat.waitingForResponse, !isStreaming else { return }
         guard chatViewModel.canSendMessage else {
             currentError = ErrorMessage(
                 type: .noApiService("No API service selected. Select the API service to send your first message"),
@@ -139,9 +140,11 @@ class ChatLogicHandler: ObservableObject {
                         self.handleResponseFinished()
                         self.chatViewModel.generateChatNameIfNeeded()
                     case .failure(let error):
-                        print("Error sending message: \(error)")
-                        let apiError = error as? APIError ?? .unknown("Unknown error occurred")
-                        self.currentError = ErrorMessage(type: apiError, timestamp: Date())
+                        if !self.shouldSuppressError(error) {
+                            print("Error sending message: \(error)")
+                            let apiError = error as? APIError ?? .unknown("Unknown error occurred")
+                            self.currentError = ErrorMessage(type: apiError, timestamp: Date())
+                        }
                         self.handleResponseFinished()
                     }
                 }
@@ -161,9 +164,11 @@ class ChatLogicHandler: ObservableObject {
                     self.chatViewModel.generateChatNameIfNeeded()
                     self.handleResponseFinished()
                 case .failure(let error):
-                    print("Error sending message: \(error)")
-                    let apiError = error as? APIError ?? .unknown("Unknown error occurred")
-                    self.currentError = ErrorMessage(type: apiError, timestamp: Date())
+                    if !self.shouldSuppressError(error) {
+                        print("Error sending message: \(error)")
+                        let apiError = error as? APIError ?? .unknown("Unknown error occurred")
+                        self.currentError = ErrorMessage(type: apiError, timestamp: Date())
+                    }
                     self.handleResponseFinished()
                 }
             }
@@ -193,6 +198,29 @@ class ChatLogicHandler: ObservableObject {
         isStreaming = false
         chat.waitingForResponse = false
         userIsScrolling = false
+    }
+
+    func stopInference() {
+        guard chat.waitingForResponse || isStreaming else { return }
+        chatViewModel.stopInference()
+        handleResponseFinished()
+    }
+
+    private func shouldSuppressError(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .requestFailed(let underlyingError):
+                let nsError = underlyingError as NSError
+                return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
+            default:
+                return false
+            }
+        }
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
     
     private func resetError() {

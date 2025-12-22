@@ -252,6 +252,14 @@ struct macaiApp: App {
                     )
                 }
                 .keyboardShortcut("r", modifiers: .command)
+
+                Button("Stop Response") {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("StopInference"),
+                        object: nil
+                    )
+                }
+                .keyboardShortcut(".", modifiers: .command)
             }
 
             CommandGroup(replacing: .newItem) {

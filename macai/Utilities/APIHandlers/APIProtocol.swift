@@ -32,6 +32,8 @@ protocol APIService {
         -> AsyncThrowingStream<String, Error>
     
     func fetchModels() async throws -> [AIModel]
+
+    func cancelCurrentRequest()
 }
 
 protocol APIServiceConfiguration {
@@ -53,4 +55,6 @@ extension APIService {
     func fetchModels() async throws -> [AIModel] {
         return []
     }
+
+    func cancelCurrentRequest() {}
 }

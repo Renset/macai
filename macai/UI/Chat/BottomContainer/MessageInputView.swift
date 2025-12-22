@@ -11,10 +11,12 @@ import UniformTypeIdentifiers
 struct MessageInputView: View {
     @Binding var text: String
     @Binding var attachedImages: [ImageAttachment]
+    let isInferenceInProgress: Bool
     var imageUploadsAllowed: Bool
     var imageGenerationSupported: Bool
     var onEnter: () -> Void
     var onAddImage: () -> Void
+    var onStopInference: () -> Void
 
     private let frontReturnKeyType: MacaiTextField.ReturnKeyType = .next
     @State var isFocused: Focus?
@@ -42,6 +44,24 @@ struct MessageInputView: View {
         return inputPlaceholderText
     }
 
+    private var defaultInputHeight: CGFloat {
+        CGFloat(initialInputSize + inputPadding * 2)
+    }
+
+    private var stopButtonTransition: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.2, anchor: .trailing)
+                .combined(with: .opacity)
+                .combined(with: .offset(x: -8, y: 6)),
+            removal: .scale(scale: 0.6, anchor: .trailing)
+                .combined(with: .opacity)
+        )
+    }
+
+    private var stopButtonAnimation: Animation {
+        .interpolatingSpring(stiffness: 240, damping: 14)
+    }
+
     enum Focus {
         case focused, notFocused
     }
@@ -49,19 +69,23 @@ struct MessageInputView: View {
     init(
         text: Binding<String>,
         attachedImages: Binding<[ImageAttachment]>,
+        isInferenceInProgress: Bool,
         imageUploadsAllowed: Bool,
         imageGenerationSupported: Bool,
         onEnter: @escaping () -> Void,
         onAddImage: @escaping () -> Void,
+        onStopInference: @escaping () -> Void,
         inputPlaceholderText: String = "Type your prompt here",
         cornerRadius: Double = 20.0
     ) {
         self._text = text
         self._attachedImages = attachedImages
+        self.isInferenceInProgress = isInferenceInProgress
         self.imageUploadsAllowed = imageUploadsAllowed
         self.imageGenerationSupported = imageGenerationSupported
         self.onEnter = onEnter
         self.onAddImage = onAddImage
+        self.onStopInference = onStopInference
         self.inputPlaceholderText = inputPlaceholderText
         self.cornerRadius = cornerRadius
     }
@@ -105,6 +129,7 @@ struct MessageInputView: View {
                     minHeight: initialInputSize,
                     maxHeight: maxInputHeight,
                     onCommit: {
+                        guard !isInferenceInProgress else { return }
                         onEnter()
                     }
                 )
@@ -125,7 +150,20 @@ struct MessageInputView: View {
                 .onTapGesture {
                     isFocused = .focused
                 }
+
+                if isInferenceInProgress {
+                    InputAccessoryButton(
+                        systemName: "stop.fill",
+                        size: defaultInputHeight,
+                        foregroundColor: .blue,
+                        backgroundColor: Color.blue.opacity(0.15),
+                        helpText: "Stop generating",
+                        action: onStopInference
+                    )
+                    .transition(stopButtonTransition)
+                }
             }
+            .animation(stopButtonAnimation, value: isInferenceInProgress)
         }
         .onDrop(of: [.image, .fileURL], isTargeted: $isHoveringDropZone) { providers in
             guard imageUploadsAllowed else { return false }
@@ -179,6 +217,32 @@ struct MessageInputView: View {
     private func isValidImageFile(url: URL) -> Bool {
         let validExtensions = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
         return validExtensions.contains(url.pathExtension.lowercased())
+    }
+}
+
+private struct InputAccessoryButton: View {
+    let systemName: String
+    let size: CGFloat
+    let foregroundColor: Color
+    let backgroundColor: Color
+    let helpText: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: size * 0.45, weight: .semibold))
+                .foregroundColor(foregroundColor)
+                .frame(width: size, height: size)
+                .background(Circle().fill(backgroundColor))
+                .overlay(
+                    Circle()
+                        .stroke(foregroundColor.opacity(0.4), lineWidth: 1)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .help(helpText)
+        .accessibilityLabel(Text(helpText))
     }
 }
 

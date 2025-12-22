@@ -11,11 +11,13 @@ struct ChatBottomContainerView: View {
     @Binding var newMessage: String
     @Binding var isExpanded: Bool
     @Binding var attachedImages: [ImageAttachment]
+    let isInferenceInProgress: Bool
     var imageUploadsAllowed: Bool
     var imageGenerationSupported: Bool
     var onSendMessage: () -> Void
     var onExpandToggle: () -> Void
     var onAddImage: () -> Void
+    var onStopInference: () -> Void
     var onExpandedStateChange: ((Bool) -> Void)?  // Add this line
 
     init(
@@ -23,22 +25,26 @@ struct ChatBottomContainerView: View {
         newMessage: Binding<String>,
         isExpanded: Binding<Bool>,
         attachedImages: Binding<[ImageAttachment]> = .constant([]),
+        isInferenceInProgress: Bool = false,
         imageUploadsAllowed: Bool = false,
         imageGenerationSupported: Bool = false,
         onSendMessage: @escaping () -> Void,
         onExpandToggle: @escaping () -> Void = {},
         onAddImage: @escaping () -> Void = {},
+        onStopInference: @escaping () -> Void = {},
         onExpandedStateChange: ((Bool) -> Void)? = nil
     ) {
         self.chat = chat
         self._newMessage = newMessage
         self._isExpanded = isExpanded
         self._attachedImages = attachedImages
+        self.isInferenceInProgress = isInferenceInProgress
         self.imageUploadsAllowed = imageUploadsAllowed
         self.imageGenerationSupported = imageGenerationSupported
         self.onSendMessage = onSendMessage
         self.onExpandToggle = onExpandToggle
         self.onAddImage = onAddImage
+        self.onStopInference = onStopInference
         self.onExpandedStateChange = onExpandedStateChange
 
         if chat.messagesArray.isEmpty {
@@ -82,10 +88,12 @@ struct ChatBottomContainerView: View {
                     MessageInputView(
                         text: $newMessage,
                         attachedImages: $attachedImages,
+                        isInferenceInProgress: isInferenceInProgress,
                         imageUploadsAllowed: imageUploadsAllowed,
                         imageGenerationSupported: imageGenerationSupported,
                         onEnter: onSendMessage,
-                        onAddImage: onAddImage
+                        onAddImage: onAddImage,
+                        onStopInference: onStopInference
                     )
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .multilineTextAlignment(.leading)

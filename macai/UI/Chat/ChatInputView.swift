@@ -14,11 +14,13 @@ struct ChatInputView: View {
     @Binding var editSystemMessage: Bool
     @Binding var attachedImages: [ImageAttachment]
     @Binding var isBottomContainerExpanded: Bool
+    let isInferenceInProgress: Bool
     
     let imageUploadsAllowed: Bool
     let imageGenerationSupported: Bool
     let onSendMessage: () -> Void
     let onAddImage: () -> Void
+    let onStopInference: () -> Void
     
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     
@@ -28,6 +30,7 @@ struct ChatInputView: View {
             newMessage: $newMessage,
             isExpanded: $isBottomContainerExpanded,
             attachedImages: $attachedImages,
+            isInferenceInProgress: isInferenceInProgress,
             imageUploadsAllowed: imageUploadsAllowed,
             imageGenerationSupported: imageGenerationSupported,
             onSendMessage: {
@@ -37,11 +40,13 @@ struct ChatInputView: View {
                     editSystemMessage = false
                     store.saveInCoreData()
                 }
-                else if !newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                else if !isInferenceInProgress,
+                        !newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     onSendMessage()
                 }
             },
-            onAddImage: onAddImage
+            onAddImage: onAddImage,
+            onStopInference: onStopInference
         )
     }
 }
@@ -53,9 +58,11 @@ struct ChatInputView: View {
         editSystemMessage: .constant(false),
         attachedImages: .constant([]),
         isBottomContainerExpanded: .constant(false),
+        isInferenceInProgress: false,
         imageUploadsAllowed: true,
         imageGenerationSupported: true,
         onSendMessage: {},
-        onAddImage: {}
+        onAddImage: {},
+        onStopInference: {}
     )
 }

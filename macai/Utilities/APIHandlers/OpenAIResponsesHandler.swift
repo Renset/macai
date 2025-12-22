@@ -20,6 +20,8 @@ private struct OpenAIModel: Codable {
 class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
     private static var temperatureUnsupportedModels = Set<String>()
     private static let temperatureLock = NSLock()
+    private var activeDataTask: URLSessionDataTask?
+    private var activeStreamTask: Task<Void, Never>?
 
     func sendMessage(
         _ requestMessages: [[String: String]],
@@ -34,8 +36,10 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
                 includeTemperature: includeTemperature
             )
 
-            session.dataTask(with: request) { data, response, error in
+            activeDataTask?.cancel()
+            let task = session.dataTask(with: request) { data, response, error in
                 DispatchQueue.main.async {
+                    self.activeDataTask = nil
                     let result = self.handleAPIResponse(response, data: data, error: error)
 
                     switch result {
@@ -58,7 +62,9 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
                         completion(.failure(error))
                     }
                 }
-            }.resume()
+            }
+            activeDataTask = task
+            task.resume()
         }
 
         performRequest(includeTemperature: shouldSendTemperature())
@@ -75,7 +81,8 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
                 includeTemperature: self.shouldSendTemperature()
             )
 
-            Task {
+            let streamTask = Task {
+                defer { self.activeStreamTask = nil }
                 do {
                     let (stream, response) = try await session.bytes(for: request)
                     let result = self.handleAPIResponse(response, data: nil, error: nil)
@@ -150,6 +157,11 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
                     continuation.finish(throwing: error)
                 }
             }
+            activeStreamTask?.cancel()
+            activeStreamTask = streamTask
+            continuation.onTermination = { _ in
+                streamTask.cancel()
+            }
         }
     }
 
@@ -182,6 +194,11 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
         catch {
             throw APIError.requestFailed(error)
         }
+    }
+
+    func cancelCurrentRequest() {
+        activeDataTask?.cancel()
+        activeStreamTask?.cancel()
     }
 
     private func prepareRequest(
