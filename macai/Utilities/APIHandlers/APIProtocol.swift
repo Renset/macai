@@ -41,6 +41,8 @@ protocol APIServiceConfiguration {
     var apiUrl: URL { get set }
     var apiKey: String { get set }
     var model: String { get set }
+    var gcpProjectId: String? { get set }
+    var gcpRegion: String? { get set }
 }
 
 struct AIModel: Codable, Identifiable {

@@ -12,4 +12,6 @@ struct APIServiceConfig: APIServiceConfiguration, Codable {
     var apiUrl: URL
     var apiKey: String
     var model: String
+    var gcpProjectId: String?
+    var gcpRegion: String?
 }
