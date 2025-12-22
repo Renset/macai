@@ -10,6 +10,7 @@
 		0BA0FF405FC14D3FABF82621 /* APIServiceTemplateProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */; };
 		1001F81047D94F5484238553 /* APIServiceTemplateAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */; };
 		16E55B88D2D449948BD6C60F /* APIServiceTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */; };
+		2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
 		4A0BCBBC2D5199140033AB96 /* ButtonWithStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */; };
 		4A0E02852D0F571000D2FAF3 /* PerplexityHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */; };
 		4A1614112D430AE300A1EF8D /* ThinkingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */; };
@@ -99,7 +100,6 @@
 		B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
 		B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
 		F595CD3876D345D794C42AFF /* APIServiceTemplateAddViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */; };
-		2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -133,12 +133,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacaiTextField.swift; sourceTree = "<group>"; };
 		14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPresenter.swift; sourceTree = "<group>"; };
 		16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProviderTests.swift; sourceTree = "<group>"; };
 		25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddViewModel.swift; sourceTree = "<group>"; };
 		3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProvider.swift; sourceTree = "<group>"; };
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
-		04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacaiTextField.swift; sourceTree = "<group>"; };
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
 		4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinkingProcessView.swift; sourceTree = "<group>"; };
 		4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMessageBubbleView.swift; sourceTree = "<group>"; };
@@ -920,7 +920,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.3.0;
+				CURRENT_PROJECT_VERSION = 2.3.1;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -939,7 +939,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.3.0;
+				MARKETING_VERSION = 2.3.1;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -962,7 +962,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.3.0;
+				CURRENT_PROJECT_VERSION = 2.3.1;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -981,7 +981,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.3.0;
+				MARKETING_VERSION = 2.3.1;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
