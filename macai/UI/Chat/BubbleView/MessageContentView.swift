@@ -125,7 +125,7 @@ struct MessageContentView: View {
 
         case .table(let header, let data):
             TableView(header: header, tableData: data, searchText: $searchText, message: message, currentSearchOccurrence: currentSearchOccurrence, elementIndex: elementIndex)
-                .padding()
+                .padding(.bottom, 12)
 
         case .code(let code, let lang, let indent):
             renderCode(code: code, lang: lang, indent: indent, isStreaming: isStreaming, elementIndex: elementIndex)

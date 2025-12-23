@@ -31,15 +31,25 @@ struct HighlightedText: View {
     }
 
     var body: some View {
-        guard !highlight.isEmpty else {
-            return Text(text).eraseToAnyView()
-        }
-        
-        guard text.count < AppConstants.maxHighlightableTextLength && !text.contains("data:image") && !text.contains("base64") else {
+        let shouldUseHighlight = !highlight.isEmpty
+        let shouldUseAttributedText = (text.count < AppConstants.maxHighlightableTextLength && !text.contains("data:image") && !text.contains("base64"))
+            || elementType == "table"
+
+        guard shouldUseAttributedText else {
             return Text(text).eraseToAnyView()
         }
 
         let attributedString = NSMutableAttributedString(string: text)
+        if elementType == "table" {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineBreakMode = .byCharWrapping
+            attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: NSRange(location: 0, length: attributedString.length))
+        }
+
+        guard shouldUseHighlight else {
+            return Text(AttributedString(attributedString)).eraseToAnyView()
+        }
+
         let range = NSString(string: text.lowercased())
         let originalRange = NSString(string: originalContent.lowercased())
         var location = 0

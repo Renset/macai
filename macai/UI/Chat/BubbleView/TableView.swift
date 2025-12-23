@@ -32,12 +32,13 @@ struct TableHeaderView: View {
                     cellPosition: index
                 )
                     .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .tableCellStyle()
                     .textSelection(.enabled)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                 if index < header.count - 1 {
                     Divider()
+                        .frame(maxHeight: .infinity)
                 }
             }
         }
@@ -67,17 +68,35 @@ struct TableRowView: View {
                     elementType: "table",
                     cellPosition: (rowIndex + 1) * 1000 + columnIndex
                 )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .tableCellStyle()
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                     .textSelection(.enabled)
                 
                 if columnIndex < rowData.count - 1 {
                     Divider()
+                        .frame(maxHeight: .infinity)
                 }
             }
         }
         .background(rowIndex % 2 == 0 ? Color.gray.opacity(0.1) : Color.clear)
+    }
+}
+
+private struct TableCellStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .multilineTextAlignment(.leading)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
+    }
+}
+
+private extension View {
+    func tableCellStyle() -> some View {
+        modifier(TableCellStyle())
     }
 }
 
@@ -201,6 +220,10 @@ struct TableView: View {
                 }
             }
             .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
             .padding(.top, 0)
         }
         
