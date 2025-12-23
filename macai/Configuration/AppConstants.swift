@@ -37,7 +37,7 @@ struct AppConstants {
     static let defaultPersonaName = "Default ChatGPT Assistant"
     static let defaultPersonaColor = "#007AFF"
     static let defaultPersonasFlag = "defaultPersonasAdded"
-    static let defaultPersonaTemperature: Float = 0.7
+    static let defaultPersonaTemperature: Float = 1.0
     static let defaultTemperatureForChat: Float = 0.7
     static let geminiLegacyAPIURL = "https://generativelanguage.googleapis.com/v1beta/chat/completions"
     static let geminiCurrentAPIURL = "https://generativelanguage.googleapis.com/v1beta/models"

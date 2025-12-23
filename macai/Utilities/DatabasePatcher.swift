@@ -53,19 +53,17 @@ class DatabasePatcher {
 
         do {
             let personas = try context.fetch(fetchRequest)
-            var needsSave = false
+            guard !personas.isEmpty else { return }
+
+            let uniqueOrders = Set(personas.map { $0.order })
+            guard uniqueOrders.count == 1 && uniqueOrders.contains(0) else { return }
 
             for (index, persona) in personas.enumerated() {
-                if persona.order == 0 && index != 0 {
-                    persona.order = Int16(index)
-                    needsSave = true
-                }
+                persona.order = Int16(index)
             }
 
-            if needsSave {
-                try context.save()
-                print("Successfully patched persona ordering")
-            }
+            try context.save()
+            print("Successfully patched persona ordering")
         }
         catch {
             print("Error patching persona ordering: \(error)")

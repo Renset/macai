@@ -193,7 +193,7 @@ struct PersonaDetailView: View {
     @State private var color: Color = .white
     @State private var systemMessage: String = ""
     @State private var showingDeleteConfirmation = false
-    @State private var temperature: Float = 0.0
+    @State private var temperature: Float = AppConstants.defaultPersonaTemperature
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -230,21 +230,27 @@ struct PersonaDetailView: View {
             }
             .padding(.top, 8)
 
-            HStack {
-                Slider(
-                    value: $temperature,
-                    in: 0...1,
-                    step: 0.1
-                ) {
-                    Text("Temperature")
-                } minimumValueLabel: {
-                    Text("0.0")
-                } maximumValueLabel: {
-                    Text("1.0")
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Slider(
+                        value: $temperature,
+                        in: 0...1,
+                        step: 0.1
+                    ) {
+                        Text("Temperature")
+                    } minimumValueLabel: {
+                        Text("0.0")
+                    } maximumValueLabel: {
+                        Text("1.0")
+                    }
+
+                    Text(getTemperatureLabel())
+                        .frame(width: 90)
                 }
 
-                Text(getTemperatureLabel())
-                    .frame(width: 90)
+                Text("1.0 is recommended when using reasoning models.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .padding(.top, 8)
 
