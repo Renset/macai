@@ -61,6 +61,7 @@
 		4A79A0762CEA9FB900CB41D8 /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
 		4A7AFF182B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
+		4A7E44B92EFA0A76001DE975 /* ChatAttentionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */; };
 		4A8560DC2EF0C429007A5E42 /* V1ToV3Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */; };
 		4A885C522CEA3B130018BBED /* HTMLPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */; };
 		4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C532CEA3D960018BBED /* PreviewStateManager.swift */; };
@@ -188,6 +189,7 @@
 		4A751D2429CBA70B006B983B /* macaiDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = macaiDataModel.xcdatamodel; sourceTree = "<group>"; };
 		4A775A032C1486F3004301D3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTestApiTokenAndModel.swift; sourceTree = "<group>"; };
+		4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttentionStore.swift; sourceTree = "<group>"; };
 		4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V1ToV3Migration.swift; sourceTree = "<group>"; };
 		4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLPreviewView.swift; sourceTree = "<group>"; };
 		4A885C532CEA3D960018BBED /* PreviewStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewStateManager.swift; sourceTree = "<group>"; };
@@ -414,6 +416,7 @@
 		4A272A7029F5D9C200F93D0D /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */,
 				4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */,
 				4ACE2FB72D61656000DEEA6D /* SwipeModifier.swift */,
 				4AADD98B2C924FB400242D20 /* APIServiceManager.swift */,
@@ -692,6 +695,7 @@
 				4A27FF942DA1C4640075D730 /* MessageContent.swift in Sources */,
 				4A27FF952DA1C4640075D730 /* ImageAttachment.swift in Sources */,
 				4AB4B08D2D75099E00CA41B6 /* DeepseekHandler.swift in Sources */,
+				4A7E44B92EFA0A76001DE975 /* ChatAttentionStore.swift in Sources */,
 				4AE3CEB72C93A88D00A9CF4C /* TabAPIServicesView.swift in Sources */,
 				1001F81047D94F5484238553 /* APIServiceTemplateAddView.swift in Sources */,
 				F595CD3876D345D794C42AFF /* APIServiceTemplateAddViewModel.swift in Sources */,

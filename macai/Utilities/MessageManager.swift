@@ -57,6 +57,15 @@ class MessageManager: ObservableObject {
                 
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: NSNotification.Name("NonStreamingMessageCompleted"), object: chat)
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ChatResponseCompleted"),
+                        object: chat,
+                        userInfo: [
+                            "chatId": chat.id,
+                            "message": messageBody,
+                            "chatName": chat.name
+                        ]
+                    )
                 }
                 
                 completion(.success(()))
@@ -179,6 +188,17 @@ class MessageManager: ObservableObject {
 
                 // Save once at the end of the stream
                 try? self.viewContext.save()
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ChatResponseCompleted"),
+                        object: chat,
+                        userInfo: [
+                            "chatId": chat.id,
+                            "message": accumulatedResponse,
+                            "chatName": chat.name
+                        ]
+                    )
+                }
                 completion(.success(()))
             }
             catch is CancellationError {
@@ -314,7 +334,6 @@ class MessageManager: ObservableObject {
 
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
         print("Streaming chunk received: \(accumulatedResponse.suffix(20))")
-        chat.waitingForResponse = false
         lastMessage.body = accumulatedResponse
         lastMessage.timestamp = Date()
         lastMessage.waitingForResponse = false

@@ -39,6 +39,7 @@ struct ContentView: View {
     @AppStorage(SettingsIndicatorKeys.iCloudSectionSeen) private var iCloudSettingsSeen: Bool = false
     @AppStorage(SettingsIndicatorKeys.backupSectionSeen) private var backupSectionSeen: Bool = false
     @StateObject private var previewStateManager = PreviewStateManager()
+    @StateObject private var attentionStore = ChatAttentionStore.shared
 
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
@@ -49,6 +50,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             ChatListView(selectedChat: $selectedChat, searchText: $searchText)
+                .environmentObject(attentionStore)
                 .navigationSplitViewColumnWidth(
                     min: 180,
                     ideal: 220,
@@ -219,6 +221,30 @@ struct ContentView: View {
                 self.openedChatId = newValue?.id.uuidString
                 previewStateManager.hidePreview()
             }
+            if let selectedId = newValue?.id {
+                attentionStore.clear(selectedId)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChatResponseCompleted"))) { notification in
+            guard let chatId = notification.userInfo?["chatId"] as? UUID else { return }
+            let isActiveChat = selectedChat?.id == chatId
+            let appIsActive = scenePhase == .active && NSApp.isActive
+
+            if !isActiveChat || !appIsActive {
+                attentionStore.mark(chatId)
+
+                let chatName = chatDisplayName(
+                    for: chatId,
+                    fallback: notification.userInfo?["chatName"] as? String
+                )
+                let message = notification.userInfo?["message"] as? String ?? ""
+                let body = notificationBody(from: message)
+                NotificationPresenter.shared.scheduleNotification(
+                    identifier: "chat-response-\(chatId.uuidString)-\(Date().timeIntervalSince1970)",
+                    title: chatName,
+                    body: body
+                )
+            }
         }
         .environmentObject(previewStateManager)
     }
@@ -347,6 +373,44 @@ struct ContentView: View {
             object: nil,
             userInfo: ["chatId": chat.id]
         )
+    }
+
+}
+
+private extension ContentView {
+    func chatDisplayName(for chatId: UUID, fallback: String?) -> String {
+        if let chat = chats.first(where: { $0.id == chatId }) {
+            if !chat.name.isEmpty {
+                return chat.name
+            }
+            if let persona = chat.persona?.name, !persona.isEmpty {
+                return persona
+            }
+        }
+        if let fallback, !fallback.isEmpty {
+            return fallback
+        }
+        return "Chat"
+    }
+
+    func notificationBody(from message: String) -> String {
+        if message.isEmpty {
+            return "Response finished"
+        }
+
+        let messageWithoutNewlines = message.replacingOccurrences(of: "\n", with: " ")
+        let messageWithoutThinking = messageWithoutNewlines.replacingOccurrences(
+            of: "<think>.*?</think>",
+            with: "",
+            options: .regularExpression
+        )
+        let trimmed = messageWithoutThinking.trimmingCharacters(in: .whitespacesAndNewlines)
+        let maxLength = 160
+        if trimmed.count > maxLength {
+            let index = trimmed.index(trimmed.startIndex, offsetBy: maxLength)
+            return String(trimmed[..<index]) + "…"
+        }
+        return trimmed
     }
 
 }

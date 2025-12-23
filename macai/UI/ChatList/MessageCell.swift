@@ -12,6 +12,7 @@ struct MessageCell: View, Equatable {
         lhs.chat.id == rhs.chat.id &&
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
+        lhs.showsAttentionIndicator == rhs.showsAttentionIndicator &&
         lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
         lhs.chat.isPinned == rhs.chat.isPinned &&
         lhs.searchText == rhs.searchText
@@ -20,6 +21,7 @@ struct MessageCell: View, Equatable {
     @ObservedObject var chat: ChatEntity
     @State var timestamp: Date
     var message: String
+    let showsAttentionIndicator: Bool
     @Binding var isActive: Bool
     let viewContext: NSManagedObjectContext
     let searchText: String
@@ -80,12 +82,18 @@ struct MessageCell: View, Equatable {
                 .padding(8)
                 Spacer()
                 
-                if chat.isPinned {
-                    Image(systemName: "pin.fill")
-                        .foregroundColor(self.isActive ? .white : .gray)
-                        .font(.caption)
-                        .padding(.trailing, 8)
+                HStack(spacing: 6) {
+                    if showsAttentionIndicator && !isActive {
+                        ChatAttentionDot()
+                    }
+
+                    if chat.isPinned {
+                        Image(systemName: "pin.fill")
+                            .foregroundColor(self.isActive ? .white : .gray)
+                            .font(.caption)
+                    }
                 }
+                .padding(.trailing, 8)
             }
             .frame(maxWidth: .infinity)
             .foregroundColor(self.isActive ? .white : .primary)
@@ -114,6 +122,7 @@ struct MessageCell_Previews: PreviewProvider {
                 chat: createPreviewChat(name: "Regular Chat"),
                 timestamp: Date(),
                 message: "Hello, how are you?",
+                showsAttentionIndicator: false,
                 isActive: .constant(false),
                 viewContext: PersistenceController.preview.container.viewContext,
                 searchText: ""
@@ -123,6 +132,7 @@ struct MessageCell_Previews: PreviewProvider {
                 chat: createPreviewChat(name: "Selected Chat"),
                 timestamp: Date(),
                 message: "This is a selected chat preview",
+                showsAttentionIndicator: false,
                 isActive: .constant(true),
                 viewContext: PersistenceController.preview.container.viewContext,
                 searchText: ""
@@ -133,6 +143,7 @@ struct MessageCell_Previews: PreviewProvider {
                 timestamp: Date(),
                 message:
                     "This is a very long message that should be truncated when displayed in the preview cell of our chat application",
+                showsAttentionIndicator: true,
                 isActive: .constant(false),
                 viewContext: PersistenceController.preview.container.viewContext,
                 searchText: ""
@@ -152,5 +163,15 @@ struct MessageCell_Previews: PreviewProvider {
         chat.gptModel = AppConstants.defaultPrimaryModel
         chat.lastSequence = 0
         return chat
+    }
+}
+
+private struct ChatAttentionDot: View {
+    var body: some View {
+        Circle()
+            .fill(Color.accentColor)
+            .frame(width: 6, height: 6)
+            .shadow(color: Color.accentColor.opacity(0.3), radius: 1, x: 0, y: 0)
+            .accessibilityLabel("New response")
     }
 }

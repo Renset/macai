@@ -21,6 +21,10 @@ struct ChatMessagesView: View {
     @State private var isInitialLoad = true
     
     var backgroundColor = Color(NSColor.controlBackgroundColor)
+
+    private var shouldShowWaitingBubble: Bool {
+        chat.waitingForResponse && (chat.lastMessage?.own ?? true)
+    }
     
     var body: some View {
         ScrollView {
@@ -51,7 +55,7 @@ struct ChatMessagesView: View {
                         }
                     }
 
-                    if chat.waitingForResponse {
+                    if shouldShowWaitingBubble {
                         let bubbleContent = ChatBubbleContent(
                             message: "",
                             own: false,
@@ -117,7 +121,7 @@ struct ChatMessagesView: View {
                     }
                 }
                 .onChange(of: chatViewModel.sortedMessages.count) { _ in
-                    if chat.waitingForResponse || currentError != nil {
+                    if shouldShowWaitingBubble || currentError != nil {
                         withAnimation {
                             scrollView.scrollTo(-1)
                         }
