@@ -277,6 +277,7 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
 private final class MacaiNSTextView: NSTextView {
     var focusBinding: Binding<Bool>?
     var onSizeChange: (() -> Void)?
+    private var isUpdatingSize = false
 
     override func becomeFirstResponder() -> Bool {
         focusBinding?.wrappedValue = true
@@ -290,7 +291,18 @@ private final class MacaiNSTextView: NSTextView {
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
-        onSizeChange?()
+        guard window != nil else { return }
+        guard !isUpdatingSize else { return }
+        isUpdatingSize = true
+        if Thread.isMainThread {
+            onSizeChange?()
+            isUpdatingSize = false
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.onSizeChange?()
+                self?.isUpdatingSize = false
+            }
+        }
     }
 }
 #endif

@@ -61,6 +61,7 @@ class MessageManager: ObservableObject {
                         name: NSNotification.Name("ChatResponseCompleted"),
                         object: chat,
                         userInfo: [
+                            "responseId": UUID().uuidString,
                             "chatId": chat.id,
                             "message": messageBody,
                             "chatName": chat.name
@@ -193,6 +194,7 @@ class MessageManager: ObservableObject {
                         name: NSNotification.Name("ChatResponseCompleted"),
                         object: chat,
                         userInfo: [
+                            "responseId": UUID().uuidString,
                             "chatId": chat.id,
                             "message": accumulatedResponse,
                             "chatName": chat.name

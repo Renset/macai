@@ -13,6 +13,7 @@ import SwiftUI
 
 struct ContentView: View {
     private static var handledStartChatRequestIds = Set<String>()
+    private static var handledResponseIds = Set<String>()
 
     @State private var window: NSWindow?
     @Environment(\.scenePhase) private var scenePhase
@@ -226,9 +227,21 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChatResponseCompleted"))) { notification in
+            if let responseId = notification.userInfo?["responseId"] as? String {
+                if ContentView.handledResponseIds.contains(responseId) {
+                    return
+                }
+                ContentView.handledResponseIds.insert(responseId)
+            }
+
             guard let chatId = notification.userInfo?["chatId"] as? UUID else { return }
+            let isKeyWindow = window?.isKeyWindow ?? false
             let isActiveChat = selectedChat?.id == chatId
             let appIsActive = scenePhase == .active && NSApp.isActive
+
+            if appIsActive && !isKeyWindow {
+                return
+            }
 
             if !isActiveChat || !appIsActive {
                 attentionStore.mark(chatId)
