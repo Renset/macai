@@ -25,11 +25,22 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .notDetermined else { return }
             DispatchQueue.main.async {
-                center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                     if granted {
                         self.onAuthorizationGranted?()
                     }
                 }
+            }
+        }
+    }
+
+    /// For existing users who were authorized without .badge, re-request authorization
+    /// to register the badge capability with macOS.
+    func enableBadgeForExistingUsers() {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            if settings.authorizationStatus == .authorized && settings.badgeSetting != .enabled {
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
             }
         }
     }
@@ -45,7 +56,7 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
             switch settings.authorizationStatus {
             case .notDetermined:
                 DispatchQueue.main.async {
-                    center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                    center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                         if granted {
                             self.onAuthorizationGranted?()
                             self.enqueueNotification(

@@ -206,6 +206,9 @@ struct macaiApp: App {
         }
         NotificationPresenter.shared.requestAuthorizationIfNeeded()
 
+        // Enable badge for existing users who were authorized without .badge
+        NotificationPresenter.shared.enableBadgeForExistingUsers()
+
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,

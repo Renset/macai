@@ -152,6 +152,17 @@ struct ContentView: View {
                     newChat()
                 }
             }
+
+            // Clear badge for selected chat when app becomes active
+            NotificationCenter.default.addObserver(
+                forName: NSApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                if let selectedId = selectedChat?.id {
+                    attentionStore.clear(selectedId)
+                }
+            }
         }
         .navigationTitle("Chats")
         .toolbar {
