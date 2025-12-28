@@ -1,12 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "512.png",
+      "filename" : "macai_welcome.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "512@2x.png",
+      "filename" : "macai_welcome 1.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
