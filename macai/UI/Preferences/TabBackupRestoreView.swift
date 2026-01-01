@@ -410,8 +410,6 @@ struct BackupRestoreView: View {
     @State private var isCreatingBackup = false
     @State private var alertMessage = ""
     @State private var showAlert = false
-    @AppStorage(SettingsIndicatorKeys.backupSeen) private var backupSettingsSeen: Bool = false
-    @AppStorage(SettingsIndicatorKeys.backupSectionSeen) private var backupSectionSeen: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -421,11 +419,6 @@ struct BackupRestoreView: View {
                     HStack {
                         Text("Data Backups")
                             .fontWeight(.medium)
-
-                        if !backupSectionSeen {
-                            SettingsIndicatorBadge(text: "New")
-                                .transition(.opacity)
-                        }
 
                         Button {
                         } label: {
@@ -514,32 +507,6 @@ struct BackupRestoreView: View {
                 }
                 .padding(8)
             }
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(
-                        !backupSectionSeen
-                        ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.9)
-                        : Color.clear,
-                        lineWidth: 1.2
-                    )
-                    .opacity(backupSectionSeen ? 0 : 1)
-            )
-            .shadow(
-                color: !backupSectionSeen
-                ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.35)
-                : Color.clear,
-                radius: 12,
-                x: 0,
-                y: 0
-            )
-            .animation(.easeOut(duration: 0.35), value: backupSectionSeen)
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        backupSectionSeen = true
-                    }
-                }
-            }
 
             // JSON Export/Import Section
             GroupBox {
@@ -594,9 +561,6 @@ struct BackupRestoreView: View {
         .padding()
         .frame(minHeight: 420, maxHeight: 480)
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                backupSettingsSeen = true
-            }
             refreshBackups()
         }
         .alert("Delete Backup", isPresented: $showDeleteConfirmation) {

@@ -31,7 +31,6 @@ struct TabGeneralSettingsView: View {
     @AppStorage("codeFont") private var codeFont: String = AppConstants.firaCode
     @AppStorage(PersistenceController.iCloudSyncEnabledKey) private var iCloudSyncEnabled: Bool = false
     @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
-    @AppStorage(SettingsIndicatorKeys.iCloudSectionSeen) private var iCloudSectionSeen: Bool = false
     @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var cloudSyncManager = CloudSyncManager.shared
     @State private var selectedColorSchemeRaw: Int = 0
@@ -217,11 +216,6 @@ struct TabGeneralSettingsView: View {
 
                                 SettingsIndicatorBadge(text: "Beta", color: .gray)
 
-                                if !iCloudSectionSeen {
-                                    SettingsIndicatorBadge(text: "New")
-                                        .transition(.opacity)
-                                }
-
                                 Spacer()
 
                                 // Status indicator with label
@@ -260,37 +254,39 @@ struct TabGeneralSettingsView: View {
                                 }
                             }
                         }
+                        .padding(8)
                     }
-                    .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .frame(maxWidth: .infinity)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(
-                                !iCloudSectionSeen
-                                ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.9)
-                                : Color.clear,
-                                lineWidth: 1.2
-                            )
-                            .opacity(iCloudSectionSeen ? 0 : 1)
-                    )
-                    .shadow(
-                        color: !iCloudSectionSeen
-                        ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.35)
-                        : Color.clear,
-                        radius: 12,
-                        x: 0,
-                        y: 0
-                    )
-                    .animation(.easeOut(duration: 0.35), value: iCloudSectionSeen)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                            withAnimation(.easeOut(duration: 0.5)) {
-                                iCloudSectionSeen = true
-                            }
-                        }
-                    }
                 }
+                #else
+                // Show info when iCloud is disabled via build flag
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "icloud.slash")
+                                .foregroundColor(.secondary)
+                                .font(.title2)
+                            
+                            Text("iCloud Sync Disabled")
+                                .fontWeight(.medium)
+                            
+                            Spacer()
+                        }
+                        
+                        Text("iCloud Sync is disabled in this build via the DISABLE_ICLOUD compiler flag.")
+                            .foregroundColor(.secondary)
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        Text("To enable iCloud Sync, remove DISABLE_ICLOUD from Build Settings → Swift Compiler → Active Compilation Conditions.")
+                            .foregroundColor(.secondary)
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(8)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 #endif
             }
             .frame(maxWidth: .infinity, alignment: .leading)

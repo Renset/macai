@@ -9,19 +9,11 @@ import SwiftUI
 
 enum SettingsIndicatorKeys {
     static let generalSeen = "SettingsIndicator.GeneralSeen"
-    static let backupSeen = "SettingsIndicator.BackupSeen"
-    static let iCloudSectionSeen = "SettingsIndicator.ICloudSectionSeen"
-    static let backupSectionSeen = "SettingsIndicator.BackupSectionSeen"
 }
 
 enum SettingsIndicatorState {
-    static func needsAttention(
-        generalSeen: Bool,
-        backupSeen: Bool,
-        iCloudSectionSeen: Bool,
-        backupSectionSeen: Bool
-    ) -> Bool {
-        return !(generalSeen && backupSeen && iCloudSectionSeen && backupSectionSeen)
+    static func needsAttention(generalSeen: Bool) -> Bool {
+        return !generalSeen
     }
 }
 

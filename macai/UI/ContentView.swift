@@ -36,9 +36,6 @@ struct ContentView: View {
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlOpenAIResponses
     @AppStorage("defaultApiService") private var defaultApiServiceID: String?
     @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
-    @AppStorage(SettingsIndicatorKeys.backupSeen) private var backupSettingsSeen: Bool = false
-    @AppStorage(SettingsIndicatorKeys.iCloudSectionSeen) private var iCloudSettingsSeen: Bool = false
-    @AppStorage(SettingsIndicatorKeys.backupSectionSeen) private var backupSectionSeen: Bool = false
     @StateObject private var previewStateManager = PreviewStateManager()
     @StateObject private var attentionStore = ChatAttentionStore.shared
 
@@ -49,7 +46,7 @@ struct ContentView: View {
     @State private var isSearchPresented = false
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             ChatListView(selectedChat: $selectedChat, searchText: $searchText)
                 .environmentObject(attentionStore)
                 .navigationSplitViewColumnWidth(
@@ -110,12 +107,16 @@ struct ContentView: View {
             }
         }
         .onAppear(perform: {
+            updateSidebarVisibilityForChatCount()
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
                     selectedChat = lastOpenedChat
                 }
             }
         })
+        .onChange(of: chats.count) { _ in
+            updateSidebarVisibilityForChatCount()
+        }
         .background(WindowAccessor(window: $window))
         .onAppear {
             NotificationCenter.default.addObserver(
@@ -276,12 +277,7 @@ struct ContentView: View {
     private var settingsGearIcon: some View {
         ZStack(alignment: .topTrailing) {
             Image(systemName: "gear")
-            if SettingsIndicatorState.needsAttention(
-                generalSeen: generalSettingsSeen,
-                backupSeen: backupSettingsSeen,
-                iCloudSectionSeen: iCloudSettingsSeen,
-                backupSectionSeen: backupSectionSeen
-            ) {
+            if SettingsIndicatorState.needsAttention(generalSeen: generalSettingsSeen) {
                 SettingsIndicatorDot()
                     .offset(x: 1, y: -1)
             }
@@ -399,6 +395,9 @@ struct ContentView: View {
         )
     }
 
+    private func updateSidebarVisibilityForChatCount() {
+        columnVisibility = chats.isEmpty ? .detailOnly : .all
+    }
 }
 
 private extension ContentView {
@@ -477,6 +476,7 @@ struct PreviewPane: View {
                 }
         )
     }
+
 }
 
 struct WindowAccessor: NSViewRepresentable {
