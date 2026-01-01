@@ -230,7 +230,22 @@ enum DatabaseBackupManager {
                     try fm.removeItem(at: destination)
                 }
                 try fm.copyItem(at: source, to: destination)
+                normalizeStorePermissions(at: destination)
             }
+        }
+    }
+
+    private static func normalizeStorePermissions(at url: URL) {
+        let fm = FileManager.default
+        let attributes: [FileAttributeKey: Any] = [
+            .posixPermissions: NSNumber(value: 0o600),
+            .immutable: false,
+            .appendOnly: false
+        ]
+        do {
+            try fm.setAttributes(attributes, ofItemAtPath: url.path)
+        } catch {
+            print("Failed to normalize store permissions for \(url.lastPathComponent): \(error)")
         }
     }
 

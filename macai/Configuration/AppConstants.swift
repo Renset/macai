@@ -46,6 +46,12 @@ struct AppConstants {
     static let geminiMigrationPendingNotificationKey = "GeminiURLMigrationPendingMessage"
     static let chatCompletionsMigrationCompletedKey = "ChatCompletionsMigrationCompleted"
     static let chatCompletionsMigrationPendingNotificationKey = "ChatCompletionsMigrationPendingMessage"
+    static let personaOrderingPatchCompletedKey = "PersonaOrderingPatchCompleted"
+    static let imageUploadsPatchCompletedKey = "ImageUploadsPatchCompleted"
+    static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
+    static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
+    static let entityIDBackfillCompletedKey = "EntityIDBackfillCompleted"
+    static let messageSequenceBackfillCompletedKey = "MessageSequenceBackfillCompleted"
     static let openAiReasoningModels: [String] = [
         "o1", "o1-preview", "o1-mini", "o3-mini", "o3-mini-high", "o3-mini-2025-01-31", "o1-preview-2024-09-12",
         "o1-mini-2024-09-12", "o1-2024-12-17",

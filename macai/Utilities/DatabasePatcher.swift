@@ -9,17 +9,133 @@ import CoreData
 import Foundation
 
 class DatabasePatcher {
-    static func applyPatches(context: NSManagedObjectContext) {
+    private static func syncMigrationFlagsFromSettings(persistence: PersistenceController) {
+        let defaults = UserDefaults.standard
+        let keys = [
+            AppConstants.apiServiceMigrationCompletedKey,
+            AppConstants.geminiURLMigrationCompletedKey,
+            AppConstants.chatCompletionsMigrationCompletedKey,
+            AppConstants.entityIDBackfillCompletedKey,
+            AppConstants.messageSequenceBackfillCompletedKey,
+            AppConstants.personaOrderingPatchCompletedKey,
+            AppConstants.imageUploadsPatchCompletedKey,
+            AppConstants.imageGenerationPatchCompletedKey
+        ]
+
+        for key in keys {
+            if persistence.getMetadata(forKey: key) as? Bool == true {
+                continue
+            }
+            if defaults.bool(forKey: key) {
+                persistence.setMetadata(value: true, forKey: key)
+            }
+        }
+    }
+
+    private static func setMetadataIfMissing(_ value: Bool, forKey key: String, persistence: PersistenceController) {
+        if persistence.getMetadata(forKey: key) == nil {
+            persistence.setMetadata(value: value, forKey: key)
+        }
+    }
+
+    private static func seedPatchFlagsForExistingInstall() {
+        let defaults = UserDefaults.standard
+        let patchKeys = [
+            AppConstants.personaOrderingPatchCompletedKey,
+            AppConstants.imageUploadsPatchCompletedKey,
+            AppConstants.imageGenerationPatchCompletedKey
+        ]
+
+        for key in patchKeys {
+            if defaults.object(forKey: key) == nil {
+                defaults.set(true, forKey: key)
+            }
+        }
+    }
+
+    static func applyPatches(context: NSManagedObjectContext, persistence: PersistenceController) {
         addDefaultPersonasIfNeeded(context: context)
-        patchMissingIDs(context: context)
-        patchPersonaOrdering(context: context)
-        backfillMessageSequencesIfNeeded(context: context)
-        patchImageUploadsForAPIServices(context: context)
-        patchImageGenerationForAPIServices(context: context)
-        //resetMigrationState()
-        patchGeminiLegacyEndpoint(context: context)
-        patchChatGPTLegacyEndpoint(context: context)
-        //resetPersonaOrdering(context: context)
+        patchMissingIDs(context: context, persistence: persistence)
+        
+        if persistence.getMetadata(forKey: AppConstants.personaOrderingPatchCompletedKey) as? Bool != true {
+            if patchPersonaOrdering(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.personaOrderingPatchCompletedKey)
+            }
+        }
+        
+        if persistence.getMetadata(forKey: AppConstants.imageUploadsPatchCompletedKey) as? Bool != true {
+            if patchImageUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
+            }
+        }
+        
+        if persistence.getMetadata(forKey: AppConstants.imageGenerationPatchCompletedKey) as? Bool != true {
+            if patchImageGenerationForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
+            }
+        }
+        
+        backfillMessageSequencesIfNeeded(context: context, persistence: persistence)
+        patchGeminiLegacyEndpoint(context: context, persistence: persistence)
+        patchChatGPTLegacyEndpoint(context: context, persistence: persistence)
+    }
+
+    static func initializeDatabaseIfNeeded(context: NSManagedObjectContext, persistence: PersistenceController) {
+        let initializationKey = "DB_INITIALIZED"
+        let latestVersion = 3
+        if persistence.getMetadata(forKey: initializationKey) as? Bool == true {
+            return
+        }
+        
+        let entityNames = ["APIServiceEntity", "ChatEntity", "PersonaEntity", "MessageEntity"]
+        var hasExistingData = false
+        for entityName in entityNames {
+            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: entityName)
+            fetchRequest.fetchLimit = 1
+            do {
+                if try context.count(for: fetchRequest) > 0 {
+                    hasExistingData = true
+                    break
+                }
+            } catch {
+                print("Error checking for existing \(entityName) data: \(error)")
+                hasExistingData = true
+                break
+            }
+        }
+        
+        if !hasExistingData && persistence.getMetadata(forKey: "DB_VERSION") == nil {
+            print("Fresh install detected, initializing migration flags in metadata.")
+            // It's a fresh install - no need to run any legacy migrations or patches.
+            persistence.setMetadata(value: true, forKey: AppConstants.apiServiceMigrationCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.geminiURLMigrationCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.entityIDBackfillCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.messageSequenceBackfillCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.personaOrderingPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
+            
+            // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
+            persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
+            persistence.setMetadata(value: true, forKey: initializationKey)
+            
+            // Still need to add default personas for new users
+            addDefaultPersonasIfNeeded(context: context)
+            return
+        }
+
+        // Existing installs predate DB_VERSION; treat current schema as baseline.
+        seedPatchFlagsForExistingInstall()
+        syncMigrationFlagsFromSettings(persistence: persistence)
+        setMetadataIfMissing(true, forKey: AppConstants.personaOrderingPatchCompletedKey, persistence: persistence)
+        setMetadataIfMissing(true, forKey: AppConstants.imageUploadsPatchCompletedKey, persistence: persistence)
+        setMetadataIfMissing(true, forKey: AppConstants.imageGenerationPatchCompletedKey, persistence: persistence)
+        if persistence.getMetadata(forKey: "DB_VERSION") == nil {
+            persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
+        }
+        
+        persistence.setMetadata(value: true, forKey: initializationKey)
     }
 
     static func addDefaultPersonasIfNeeded(context: NSManagedObjectContext, force: Bool = false) {
@@ -47,16 +163,17 @@ class DatabasePatcher {
         }
     }
 
-    static func patchPersonaOrdering(context: NSManagedObjectContext) {
+    @discardableResult
+    static func patchPersonaOrdering(context: NSManagedObjectContext) -> Bool {
         let fetchRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)]
 
         do {
             let personas = try context.fetch(fetchRequest)
-            guard !personas.isEmpty else { return }
+            guard !personas.isEmpty else { return true }
 
             let uniqueOrders = Set(personas.map { $0.order })
-            guard uniqueOrders.count == 1 && uniqueOrders.contains(0) else { return }
+            guard uniqueOrders.count == 1 && uniqueOrders.contains(0) else { return true }
 
             for (index, persona) in personas.enumerated() {
                 persona.order = Int16(index)
@@ -64,9 +181,11 @@ class DatabasePatcher {
 
             try context.save()
             print("Successfully patched persona ordering")
+            return true
         }
         catch {
             print("Error patching persona ordering: \(error)")
+            return false
         }
     }
 
@@ -89,7 +208,8 @@ class DatabasePatcher {
         }
     }
 
-    static func patchImageUploadsForAPIServices(context: NSManagedObjectContext) {
+    @discardableResult
+    static func patchImageUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
         let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
         
         do {
@@ -108,15 +228,18 @@ class DatabasePatcher {
             
             if needsSave {
                 try context.save()
-                print("Successfully patched image uploads for API services")
             }
+            print("Successfully patched image uploads for API services")
+            return true
         }
         catch {
             print("Error patching image uploads for API services: \(error)")
+            return false
         }
     }
 
-    static func patchImageGenerationForAPIServices(context: NSManagedObjectContext) {
+    @discardableResult
+    static func patchImageGenerationForAPIServices(context: NSManagedObjectContext) -> Bool {
         let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
 
         do {
@@ -142,20 +265,27 @@ class DatabasePatcher {
 
             if needsSave {
                 try context.save()
-                print("Successfully patched image generation for API services")
             }
+            print("Successfully patched image generation for API services")
+            return true
         }
         catch {
             print("Error patching image generation for API services: \(error)")
+            return false
         }
     }
 
-    static func patchGeminiLegacyEndpoint(context: NSManagedObjectContext) {
+    static func patchGeminiLegacyEndpoint(context: NSManagedObjectContext, persistence: PersistenceController) {
         deliverPendingGeminiMigrationNotificationIfNeeded()
 
         let defaults = UserDefaults.standard
 
+        if persistence.getMetadata(forKey: AppConstants.geminiURLMigrationCompletedKey) as? Bool == true {
+            return
+        }
+
         if defaults.bool(forKey: AppConstants.geminiURLMigrationCompletedKey) {
+            persistence.setMetadata(value: true, forKey: AppConstants.geminiURLMigrationCompletedKey)
             return
         }
 
@@ -177,6 +307,7 @@ class DatabasePatcher {
 
         guard !legacyServices.isEmpty else {
             defaults.set(true, forKey: AppConstants.geminiURLMigrationCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.geminiURLMigrationCompletedKey)
             return
         }
 
@@ -201,6 +332,7 @@ class DatabasePatcher {
         }
 
         defaults.set(true, forKey: AppConstants.geminiURLMigrationCompletedKey)
+        persistence.setMetadata(value: true, forKey: AppConstants.geminiURLMigrationCompletedKey)
         defaults.removeObject(forKey: AppConstants.geminiURLMigrationSkippedKey)
 
         guard updatedCount > 0 else { return }
@@ -212,12 +344,17 @@ class DatabasePatcher {
         scheduleGeminiNotification(message)
     }
 
-    static func patchChatGPTLegacyEndpoint(context: NSManagedObjectContext) {
+    static func patchChatGPTLegacyEndpoint(context: NSManagedObjectContext, persistence: PersistenceController) {
         deliverPendingChatCompletionsMigrationNotificationIfNeeded()
 
         let defaults = UserDefaults.standard
 
+        if persistence.getMetadata(forKey: AppConstants.chatCompletionsMigrationCompletedKey) as? Bool == true {
+            return
+        }
+
         if defaults.bool(forKey: AppConstants.chatCompletionsMigrationCompletedKey) {
+            persistence.setMetadata(value: true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
             return
         }
 
@@ -238,10 +375,11 @@ class DatabasePatcher {
         }
 
         guard !legacyServices.isEmpty else {
-        defaults.set(true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
-        defaults.removeObject(forKey: AppConstants.chatCompletionsMigrationPendingNotificationKey)
-        return
-    }
+            defaults.set(true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
+            defaults.removeObject(forKey: AppConstants.chatCompletionsMigrationPendingNotificationKey)
+            return
+        }
 
         guard let targetURL = URL(string: AppConstants.apiUrlOpenAIResponses) else {
             print("Invalid OpenAI Responses URL: \(AppConstants.apiUrlOpenAIResponses)")
@@ -291,6 +429,7 @@ class DatabasePatcher {
         }
 
         defaults.set(true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
+        persistence.setMetadata(value: true, forKey: AppConstants.chatCompletionsMigrationCompletedKey)
 
         guard updatedCount > 0 else {
             defaults.removeObject(forKey: AppConstants.chatCompletionsMigrationPendingNotificationKey)
@@ -360,14 +499,25 @@ class DatabasePatcher {
         }
     }
     
-    static func migrateExistingConfiguration(context: NSManagedObjectContext) {
+    static func migrateExistingConfiguration(context: NSManagedObjectContext, persistence: PersistenceController) {
         let apiServiceManager = APIServiceManager(viewContext: context)
-        let defaults = UserDefaults.standard
-        if defaults.bool(forKey: "APIServiceMigrationCompleted") {
+        if persistence.getMetadata(forKey: AppConstants.apiServiceMigrationCompletedKey) as? Bool == true {
             return
         }
 
-        let apiUrl = defaults.string(forKey: "apiUrl") ?? AppConstants.apiUrlOpenAIResponses
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: AppConstants.apiServiceMigrationCompletedKey) {
+            persistence.setMetadata(value: true, forKey: AppConstants.apiServiceMigrationCompletedKey)
+            return
+        }
+        
+        guard let apiUrl = defaults.string(forKey: "apiUrl"), apiUrl.isEmpty == false else {
+            // No legacy config found, just mark migration as completed in metadata
+            persistence.setMetadata(value: true, forKey: AppConstants.apiServiceMigrationCompletedKey)
+            return
+        }
+
+        let actualApiUrl = apiUrl
         let gptModel = defaults.string(forKey: "gptModel") ?? AppConstants.defaultPrimaryModel
         let useStream = defaults.bool(forKey: "useStream")
         let useChatGptForNames = defaults.bool(forKey: "useChatGptForNames")
@@ -376,11 +526,11 @@ class DatabasePatcher {
         var name = AppConstants.defaultApiConfigurations[type]?.name ?? "OpenAI"
         var chatContext = defaults.double(forKey: "chatContext")
 
-        if apiUrl.contains(":11434/api/chat") {
+        if actualApiUrl.contains(":11434/api/chat") {
             type = "ollama"
             name = "Ollama"
         }
-        else if apiUrl.contains("/chat/completions") {
+        else if actualApiUrl.contains("/chat/completions") {
             type = "chatgpt"
             name = AppConstants.defaultApiConfigurations[type]?.name ?? "Generic Completions API"
         }
@@ -392,7 +542,7 @@ class DatabasePatcher {
         let apiService = apiServiceManager.createAPIService(
             name: name,
             type: type,
-            url: URL(string: apiUrl)!,
+            url: URL(string: actualApiUrl)!,
             model: gptModel,
             contextSize: chatContext.toInt16() ?? 15,
             useStreamResponse: useStream,
@@ -447,16 +597,15 @@ class DatabasePatcher {
 
         defaults.set(apiService.objectID.uriRepresentation().absoluteString, forKey: "defaultApiService")
 
-        // Migration completed
-        defaults.set(true, forKey: "APIServiceMigrationCompleted")
+        // Migration completed in metadata
+        persistence.setMetadata(value: true, forKey: AppConstants.apiServiceMigrationCompletedKey)
     }
 
     // MARK: - ID backfill for non-optional UUIDs
-    static func patchMissingIDs(context: NSManagedObjectContext) {
-        let defaults = UserDefaults.standard
-        let key = "EntityIDBackfillCompleted"
+    static func patchMissingIDs(context: NSManagedObjectContext, persistence: PersistenceController) {
+        let key = AppConstants.entityIDBackfillCompletedKey
 
-        if defaults.bool(forKey: key) {
+        if persistence.getMetadata(forKey: key) as? Bool == true {
             return
         }
 
@@ -524,16 +673,15 @@ class DatabasePatcher {
         }
 
         if saveSucceeded {
-            defaults.set(true, forKey: key)
+            persistence.setMetadata(value: true, forKey: key)
         }
     }
 
     // MARK: - Message sequencing migration
-    static func backfillMessageSequencesIfNeeded(context: NSManagedObjectContext) {
-        let defaults = UserDefaults.standard
-        let migrationKey = "MessageSequenceBackfillCompleted"
+    static func backfillMessageSequencesIfNeeded(context: NSManagedObjectContext, persistence: PersistenceController) {
+        let migrationKey = AppConstants.messageSequenceBackfillCompletedKey
 
-        if defaults.bool(forKey: migrationKey) {
+        if persistence.getMetadata(forKey: migrationKey) as? Bool == true {
             return
         }
 
@@ -547,7 +695,7 @@ class DatabasePatcher {
             // If the loaded model does not yet contain the new fields, skip to avoid KVC crashes.
             guard hasSequence, hasLastSequence else {
                 print("Skipping sequence backfill: model missing sequence/lastSequence attributes")
-                defaults.set(true, forKey: migrationKey)
+                persistence.setMetadata(value: true, forKey: migrationKey)
                 return
             }
 
@@ -611,7 +759,7 @@ class DatabasePatcher {
                     context.saveWithRetry(attempts: 1)
                 }
 
-                defaults.set(true, forKey: migrationKey)
+                persistence.setMetadata(value: true, forKey: migrationKey)
             }
             catch {
                 print("Error backfilling message sequences: \(error)")

@@ -53,7 +53,19 @@ class PersistenceController {
 
     init(inMemory: Bool = false) {
         let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
-        self.isCloudKitEnabled = iCloudEnabled && !inMemory
+        
+        // Ensure CloudKit is only enabled if:
+        // 1. User enabled it in settings
+        // 2. Not in memory (previews/tests)
+        // 3. Not disabled via compile-time flag
+        // 4. CloudKit container identifier is actually present in Info.plist
+        #if DISABLE_ICLOUD
+        let canEnableCloudKit = false
+        #else
+        let canEnableCloudKit = iCloudEnabled && !inMemory && AppConstants.cloudKitContainerIdentifier != nil
+        #endif
+        
+        self.isCloudKitEnabled = canEnableCloudKit
 
         if isCloudKitEnabled {
             container = NSPersistentCloudKitContainer(name: "macaiDataModel")
@@ -66,6 +78,8 @@ class PersistenceController {
         for description in container.persistentStoreDescriptions {
             description.shouldMigrateStoreAutomatically = true
             description.shouldInferMappingModelAutomatically = true
+            // Keep history tracking consistent to avoid Core Data forcing read-only on reopen.
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         }
 
         if inMemory {
@@ -80,8 +94,7 @@ class PersistenceController {
                 )
             }
 
-            // Enable history tracking for CloudKit sync
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            // Enable remote change notifications for CloudKit sync.
             description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
 
@@ -137,6 +150,38 @@ class PersistenceController {
         // Initialize CloudSyncManager if CloudKit is enabled
         if isCloudKitEnabled, let cloudKitContainer = container as? NSPersistentCloudKitContainer {
             CloudSyncManager.shared.configure(with: cloudKitContainer)
+        }
+
+        // Apply database patches and migrations after store is loaded
+        DatabasePatcher.initializeDatabaseIfNeeded(context: container.viewContext, persistence: self)
+        DatabasePatcher.applyPatches(context: container.viewContext, persistence: self)
+        DatabasePatcher.migrateExistingConfiguration(context: container.viewContext, persistence: self)
+        TokenManager.reconcileTokensWithCurrentSyncSetting()
+    }
+
+    func getMetadata(forKey key: String) -> Any? {
+        guard let store = container.persistentStoreCoordinator.persistentStores.first else {
+            return nil
+        }
+        let metadata = container.persistentStoreCoordinator.metadata(for: store)
+        return metadata[key]
+    }
+
+    func setMetadata(value: Any?, forKey key: String) {
+        guard let store = container.persistentStoreCoordinator.persistentStores.first else {
+            return
+        }
+        guard store.isReadOnly == false else {
+            print("Skipping metadata update for \(key): persistent store is read-only.")
+            return
+        }
+        var metadata = container.persistentStoreCoordinator.metadata(for: store)
+        metadata[key] = value
+        container.persistentStoreCoordinator.setMetadata(metadata, for: store)
+        
+        // Save the context to ensure metadata is persisted to disk if it was updated
+        if container.viewContext.hasChanges {
+            try? container.viewContext.save()
         }
     }
 
@@ -215,9 +260,6 @@ struct macaiApp: App {
             userDriverDelegate: nil
         )
 
-        DatabasePatcher.applyPatches(context: persistenceController.container.viewContext)
-        DatabasePatcher.migrateExistingConfiguration(context: persistenceController.container.viewContext)
-        TokenManager.reconcileTokensWithCurrentSyncSetting()
     }
 
     var body: some Scene {

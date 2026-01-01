@@ -197,97 +197,101 @@ struct TabGeneralSettingsView: View {
                     .padding(8)
                 }
 
-                // iCloud Sync Section
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .center, spacing: 8) {
-                            Text("iCloud Sync")
-                                .fontWeight(.medium)
+                // iCloud Sync Section - hidden when DISABLE_ICLOUD flag is set or CloudKit is not configured
+                #if !DISABLE_ICLOUD
+                if AppConstants.cloudKitContainerIdentifier != nil {
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .center, spacing: 8) {
+                                Text("iCloud Sync")
+                                    .fontWeight(.medium)
 
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.secondary)
-                                .font(.callout)
-                                .help("""
-                                - Your data is transmitted securely to iCloud and stored by Apple; it is not accessible to the macai developer.
-                                - You can enable Advanced Data Protection in iCloud settings to encrypt your data so even Apple can't read your chats and messages.
-                                - Apple collects telemetry data, but it is anonymized.
-                                """)
-
-                            SettingsIndicatorBadge(text: "Beta", color: .gray)
-
-                            if !iCloudSectionSeen {
-                                SettingsIndicatorBadge(text: "New")
-                                    .transition(.opacity)
-                            }
-
-                            Spacer()
-
-                            // Status indicator with label
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(syncStatusColor)
-                                    .frame(width: 8, height: 8)
-                                Text(syncStatusText)
+                                Image(systemName: "info.circle")
                                     .foregroundColor(.secondary)
                                     .font(.callout)
-                            }
+                                    .help("""
+                                    - Your data is transmitted securely to iCloud and stored by Apple; it is not accessible to the macai developer.
+                                    - You can enable Advanced Data Protection in iCloud settings to encrypt your data so even Apple can't read your chats and messages.
+                                    - Apple collects telemetry data, but it is anonymized.
+                                    """)
 
-                            Button(action: {
-                                pendingSyncState = !iCloudSyncEnabled
-                                showRestartAlert = true
-                            }) {
-                                Text(iCloudSyncEnabled ? "Turn Off" : "Turn On")
-                                    .frame(width: 60)
-                            }
-                            .disabled(isPurgingCloudData)
-                        }
+                                SettingsIndicatorBadge(text: "Beta", color: .gray)
 
-                        Text("Syncs chats, messages, AI Assistants, and API Services across your devices. API keys are synced securely via iCloud Keychain.")
-                            .foregroundColor(.secondary)
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if iCloudSyncEnabled {
-                            HStack {
-                                Spacer()
-                                Button("Show Log") {
-                                    showSyncDebugLog = true
+                                if !iCloudSectionSeen {
+                                    SettingsIndicatorBadge(text: "New")
+                                        .transition(.opacity)
                                 }
-                                .buttonStyle(.link)
+
+                                Spacer()
+
+                                // Status indicator with label
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(syncStatusColor)
+                                        .frame(width: 8, height: 8)
+                                    Text(syncStatusText)
+                                        .foregroundColor(.secondary)
+                                        .font(.callout)
+                                }
+
+                                Button(action: {
+                                    pendingSyncState = !iCloudSyncEnabled
+                                    showRestartAlert = true
+                                }) {
+                                    Text(iCloudSyncEnabled ? "Turn Off" : "Turn On")
+                                        .frame(width: 60)
+                                }
+                                .disabled(isPurgingCloudData)
+                            }
+
+                            Text("Syncs chats, messages, AI Assistants, and API Services across your devices. API keys are synced securely via iCloud Keychain.")
+                                .foregroundColor(.secondary)
                                 .font(.callout)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if iCloudSyncEnabled {
+                                HStack {
+                                    Spacer()
+                                    Button("Show Log") {
+                                        showSyncDebugLog = true
+                                    }
+                                    .buttonStyle(.link)
+                                    .font(.callout)
+                                }
                             }
                         }
                     }
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(
-                            !iCloudSectionSeen
-                            ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.9)
-                            : Color.clear,
-                            lineWidth: 1.2
-                        )
-                        .opacity(iCloudSectionSeen ? 0 : 1)
-                )
-                .shadow(
-                    color: !iCloudSectionSeen
-                    ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.35)
-                    : Color.clear,
-                    radius: 12,
-                    x: 0,
-                    y: 0
-                )
-                .animation(.easeOut(duration: 0.35), value: iCloudSectionSeen)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                        withAnimation(.easeOut(duration: 0.5)) {
-                            iCloudSectionSeen = true
+                    .frame(maxWidth: .infinity)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(
+                                !iCloudSectionSeen
+                                ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.9)
+                                : Color.clear,
+                                lineWidth: 1.2
+                            )
+                            .opacity(iCloudSectionSeen ? 0 : 1)
+                    )
+                    .shadow(
+                        color: !iCloudSectionSeen
+                        ? Color(red: 0.92, green: 0.62, blue: 0.18).opacity(0.35)
+                        : Color.clear,
+                        radius: 12,
+                        x: 0,
+                        y: 0
+                    )
+                    .animation(.easeOut(duration: 0.35), value: iCloudSectionSeen)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            withAnimation(.easeOut(duration: 0.5)) {
+                                iCloudSectionSeen = true
+                            }
                         }
                     }
                 }
+                #endif
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
