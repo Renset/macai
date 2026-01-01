@@ -11,6 +11,8 @@ import SwiftUI
 struct ChatMessagesView: View {
     @ObservedObject var chat: ChatEntity
     @ObservedObject var chatViewModel: ChatViewModel
+    @Binding var newMessage: String
+    @Binding var editSystemMessage: Bool
     @Binding var isStreaming: Bool
     @Binding var currentError: ErrorMessage?
     @Binding var userIsScrolling: Bool
@@ -33,8 +35,8 @@ struct ChatMessagesView: View {
                     SystemMessageBubbleView(
                         message: chat.systemMessage,
                         color: chat.persona?.color,
-                        newMessage: .constant(""),
-                        editSystemMessage: .constant(false),
+                        newMessage: $newMessage,
+                        editSystemMessage: $editSystemMessage,
                         searchText: $searchText
                     )
                     .id("system_message")

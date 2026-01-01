@@ -58,6 +58,8 @@ struct ChatView: View {
             ChatMessagesView(
                 chat: chat,
                 chatViewModel: chatViewModel,
+                newMessage: $newMessage,
+                editSystemMessage: $editSystemMessage,
                 isStreaming: $logicHandler.isStreaming,
                 currentError: $logicHandler.currentError,
                 userIsScrolling: $logicHandler.userIsScrolling,
@@ -100,6 +102,9 @@ struct ChatView: View {
                 },
                 onStopInference: {
                     logicHandler.stopInference()
+                },
+                onCancelSystemMessageEdit: {
+                    cancelSystemMessageEdit()
                 }
             )
         }
@@ -167,6 +172,11 @@ struct ChatView: View {
                 newMessage = chat.newMessage ?? ""
             }
         }
+        .onExitCommand {
+            if editSystemMessage {
+                cancelSystemMessageEdit()
+            }
+        }
     }
 
     private func scheduleDraftSave(_ message: String) {
@@ -184,6 +194,12 @@ struct ChatView: View {
         draftSaveWorkItem?.cancel()
         chat.newMessage = newMessage
         store.saveInCoreData()
+    }
+
+    private func cancelSystemMessageEdit() {
+        guard editSystemMessage else { return }
+        newMessage = chat.newMessage ?? ""
+        editSystemMessage = false
     }
 }
 

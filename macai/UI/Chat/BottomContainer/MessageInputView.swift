@@ -12,11 +12,13 @@ struct MessageInputView: View {
     @Binding var text: String
     @Binding var attachedImages: [ImageAttachment]
     let isInferenceInProgress: Bool
+    let isEditingSystemMessage: Bool
     var imageUploadsAllowed: Bool
     var imageGenerationSupported: Bool
     var onEnter: () -> Void
     var onAddImage: () -> Void
     var onStopInference: () -> Void
+    var onCancelEdit: () -> Void
 
     private let frontReturnKeyType: MacaiTextField.ReturnKeyType = .next
     @State var isFocused: Focus?
@@ -62,6 +64,17 @@ struct MessageInputView: View {
         .interpolatingSpring(stiffness: 240, damping: 14)
     }
 
+    private var shouldShowAccessoryButton: Bool {
+        isInferenceInProgress || isEditingSystemMessage
+    }
+
+    private var accessoryButtonConfig: (systemName: String, foregroundColor: Color, backgroundColor: Color, helpText: String, action: () -> Void) {
+        if isInferenceInProgress {
+            return ("stop.fill", .blue, Color.blue.opacity(0.15), "Stop generating", onStopInference)
+        }
+        return ("xmark", .blue, Color.blue.opacity(0.15), "Cancel editing", onCancelEdit)
+    }
+
     enum Focus {
         case focused, notFocused
     }
@@ -70,22 +83,26 @@ struct MessageInputView: View {
         text: Binding<String>,
         attachedImages: Binding<[ImageAttachment]>,
         isInferenceInProgress: Bool,
+        isEditingSystemMessage: Bool = false,
         imageUploadsAllowed: Bool,
         imageGenerationSupported: Bool,
         onEnter: @escaping () -> Void,
         onAddImage: @escaping () -> Void,
         onStopInference: @escaping () -> Void,
+        onCancelEdit: @escaping () -> Void = {},
         inputPlaceholderText: String = "Type your prompt here",
         cornerRadius: Double = 20.0
     ) {
         self._text = text
         self._attachedImages = attachedImages
         self.isInferenceInProgress = isInferenceInProgress
+        self.isEditingSystemMessage = isEditingSystemMessage
         self.imageUploadsAllowed = imageUploadsAllowed
         self.imageGenerationSupported = imageGenerationSupported
         self.onEnter = onEnter
         self.onAddImage = onAddImage
         self.onStopInference = onStopInference
+        self.onCancelEdit = onCancelEdit
         self.inputPlaceholderText = inputPlaceholderText
         self.cornerRadius = cornerRadius
     }
@@ -128,6 +145,7 @@ struct MessageInputView: View {
                     fontSize: effectiveFontSize,
                     minHeight: initialInputSize,
                     maxHeight: maxInputHeight,
+                    onEscape: isEditingSystemMessage ? onCancelEdit : nil,
                     onCommit: {
                         guard !isInferenceInProgress else { return }
                         onEnter()
@@ -151,19 +169,20 @@ struct MessageInputView: View {
                     isFocused = .focused
                 }
 
-                if isInferenceInProgress {
+                if shouldShowAccessoryButton {
+                    let config = accessoryButtonConfig
                     InputAccessoryButton(
-                        systemName: "stop.fill",
+                        systemName: config.systemName,
                         size: defaultInputHeight,
-                        foregroundColor: .blue,
-                        backgroundColor: Color.blue.opacity(0.15),
-                        helpText: "Stop generating",
-                        action: onStopInference
+                        foregroundColor: config.foregroundColor,
+                        backgroundColor: config.backgroundColor,
+                        helpText: config.helpText,
+                        action: config.action
                     )
                     .transition(stopButtonTransition)
                 }
             }
-            .animation(stopButtonAnimation, value: isInferenceInProgress)
+            .animation(stopButtonAnimation, value: shouldShowAccessoryButton)
         }
         .onDrop(of: [.image, .fileURL], isTargeted: $isHoveringDropZone) { providers in
             guard imageUploadsAllowed else { return false }

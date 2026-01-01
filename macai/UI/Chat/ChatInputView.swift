@@ -21,6 +21,7 @@ struct ChatInputView: View {
     let onSendMessage: () -> Void
     let onAddImage: () -> Void
     let onStopInference: () -> Void
+    let onCancelSystemMessageEdit: () -> Void
     
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     
@@ -31,6 +32,7 @@ struct ChatInputView: View {
             isExpanded: $isBottomContainerExpanded,
             attachedImages: $attachedImages,
             isInferenceInProgress: isInferenceInProgress,
+            isEditingSystemMessage: editSystemMessage,
             imageUploadsAllowed: imageUploadsAllowed,
             imageGenerationSupported: imageGenerationSupported,
             onSendMessage: {
@@ -46,7 +48,8 @@ struct ChatInputView: View {
                 }
             },
             onAddImage: onAddImage,
-            onStopInference: onStopInference
+            onStopInference: onStopInference,
+            onCancelEdit: onCancelSystemMessageEdit
         )
     }
 }
@@ -63,6 +66,7 @@ struct ChatInputView: View {
         imageGenerationSupported: true,
         onSendMessage: {},
         onAddImage: {},
-        onStopInference: {}
+        onStopInference: {},
+        onCancelSystemMessageEdit: {}
     )
 }

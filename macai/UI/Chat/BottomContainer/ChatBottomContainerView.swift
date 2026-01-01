@@ -12,12 +12,14 @@ struct ChatBottomContainerView: View {
     @Binding var isExpanded: Bool
     @Binding var attachedImages: [ImageAttachment]
     let isInferenceInProgress: Bool
+    let isEditingSystemMessage: Bool
     var imageUploadsAllowed: Bool
     var imageGenerationSupported: Bool
     var onSendMessage: () -> Void
     var onExpandToggle: () -> Void
     var onAddImage: () -> Void
     var onStopInference: () -> Void
+    var onCancelEdit: () -> Void
     var onExpandedStateChange: ((Bool) -> Void)?  // Add this line
 
     init(
@@ -26,12 +28,14 @@ struct ChatBottomContainerView: View {
         isExpanded: Binding<Bool>,
         attachedImages: Binding<[ImageAttachment]> = .constant([]),
         isInferenceInProgress: Bool = false,
+        isEditingSystemMessage: Bool = false,
         imageUploadsAllowed: Bool = false,
         imageGenerationSupported: Bool = false,
         onSendMessage: @escaping () -> Void,
         onExpandToggle: @escaping () -> Void = {},
         onAddImage: @escaping () -> Void = {},
         onStopInference: @escaping () -> Void = {},
+        onCancelEdit: @escaping () -> Void = {},
         onExpandedStateChange: ((Bool) -> Void)? = nil
     ) {
         self.chat = chat
@@ -39,12 +43,14 @@ struct ChatBottomContainerView: View {
         self._isExpanded = isExpanded
         self._attachedImages = attachedImages
         self.isInferenceInProgress = isInferenceInProgress
+        self.isEditingSystemMessage = isEditingSystemMessage
         self.imageUploadsAllowed = imageUploadsAllowed
         self.imageGenerationSupported = imageGenerationSupported
         self.onSendMessage = onSendMessage
         self.onExpandToggle = onExpandToggle
         self.onAddImage = onAddImage
         self.onStopInference = onStopInference
+        self.onCancelEdit = onCancelEdit
         self.onExpandedStateChange = onExpandedStateChange
 
         if chat.messagesArray.isEmpty {
@@ -89,11 +95,13 @@ struct ChatBottomContainerView: View {
                         text: $newMessage,
                         attachedImages: $attachedImages,
                         isInferenceInProgress: isInferenceInProgress,
+                        isEditingSystemMessage: isEditingSystemMessage,
                         imageUploadsAllowed: imageUploadsAllowed,
                         imageGenerationSupported: imageGenerationSupported,
                         onEnter: onSendMessage,
                         onAddImage: onAddImage,
-                        onStopInference: onStopInference
+                        onStopInference: onStopInference,
+                        onCancelEdit: onCancelEdit
                     )
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .multilineTextAlignment(.leading)

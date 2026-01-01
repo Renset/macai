@@ -21,6 +21,7 @@ struct MacaiTextField: View {
     var onCommit: (() -> Void)?
     var onTab: (() -> Void)?
     var onBackTab: (() -> Void)?
+    var onEscape: (() -> Void)?
 
     @State private var measuredHeight: CGFloat
     @State private var placeholderHeight: CGFloat = 0
@@ -35,6 +36,7 @@ struct MacaiTextField: View {
         maxHeight: CGFloat = 160,
         onTab: (() -> Void)? = nil,
         onBackTab: (() -> Void)? = nil,
+        onEscape: (() -> Void)? = nil,
         onCommit: (() -> Void)? = nil
     ) {
         self.title = String(title)
@@ -47,6 +49,7 @@ struct MacaiTextField: View {
         self.onCommit = onCommit
         self.onTab = onTab
         self.onBackTab = onBackTab
+        self.onEscape = onEscape
         _measuredHeight = State(initialValue: minHeight)
     }
 
@@ -79,7 +82,8 @@ struct MacaiTextField: View {
                 maxHeight: maxHeight,
                 onCommit: onCommit,
                 onTab: onTab,
-                onBackTab: onBackTab
+                onBackTab: onBackTab,
+                onEscape: onEscape
             )
         }
         .frame(height: min(max(currentHeight, minHeight), maxHeight))
@@ -115,6 +119,7 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
     var onCommit: (() -> Void)?
     var onTab: (() -> Void)?
     var onBackTab: (() -> Void)?
+    var onEscape: (() -> Void)?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -262,6 +267,11 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
                       commandSelector == #selector(NSResponder.insertBacktab(_:))
             {
                 onBackTab()
+                return true
+            } else if let onEscape = parent.onEscape,
+                      commandSelector == #selector(NSResponder.cancelOperation(_:))
+            {
+                onEscape()
                 return true
             }
 
