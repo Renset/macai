@@ -1,5 +1,5 @@
 <div align="center">
-<img width="256" src="https://github.com/user-attachments/assets/3b5b5587-a83f-4133-b00d-9a8c509661df" />
+  <img width="256" height="256" alt="Macai App icon" src="https://github.com/user-attachments/assets/e5abd1b5-352f-41a1-92c4-8c159e873e6e" />
 </div>
 <h2 align="center">macai</h2>
 
