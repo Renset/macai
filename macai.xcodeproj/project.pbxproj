@@ -62,6 +62,7 @@
 		4A7AFF182B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */; };
 		4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7E1BDA29C910F900E57DC2 /* Sparkle */; };
 		4A7E44B92EFA0A76001DE975 /* ChatAttentionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */; };
+		4A7E44C12F06C91E001DE975 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4A7E44C02F06C91E001DE975 /* AppIcon.icon */; };
 		4A8560DC2EF0C429007A5E42 /* V1ToV3Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */; };
 		4A885C522CEA3B130018BBED /* HTMLPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */; };
 		4A885C542CEA3D960018BBED /* PreviewStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C532CEA3D960018BBED /* PreviewStateManager.swift */; };
@@ -190,6 +191,7 @@
 		4A775A032C1486F3004301D3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonTestApiTokenAndModel.swift; sourceTree = "<group>"; };
 		4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttentionStore.swift; sourceTree = "<group>"; };
+		4A7E44C02F06C91E001DE975 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V1ToV3Migration.swift; sourceTree = "<group>"; };
 		4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLPreviewView.swift; sourceTree = "<group>"; };
 		4A885C532CEA3D960018BBED /* PreviewStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewStateManager.swift; sourceTree = "<group>"; };
@@ -441,6 +443,7 @@
 				4A399CB329BC8FF200E98796 /* macaiUITests */,
 				4A399C9629BC8FEF00E98796 /* Products */,
 				4A5C394629D834DC00BCB534 /* Frameworks */,
+				4A7E44C02F06C91E001DE975 /* AppIcon.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -656,6 +659,7 @@
 				4A98B1C029CA60ED0064835A /* Info.plist in Resources */,
 				4A399CA129BC8FF100E98796 /* Preview Assets.xcassets in Resources */,
 				4A399C9D29BC8FF100E98796 /* Assets.xcassets in Resources */,
+				4A7E44C12F06C91E001DE975 /* AppIcon.icon in Resources */,
 				4A4F204B2D62650800D1F57F /* FiraCode-VF.ttf in Resources */,
 				4A37B8552C2A399800F36CC4 /* Credits.rtf in Resources */,
 				537028A45E2C4DD7A33DA2D2 /* APIServiceTemplates.json in Resources */,
@@ -920,6 +924,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = macai/macai.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
@@ -962,6 +967,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = macai/macai.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
