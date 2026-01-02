@@ -10,6 +10,10 @@ import CoreData
 import SwiftUI
 import UniformTypeIdentifiers
 
+#if os(iOS)
+import PhotosUI
+#endif
+
 struct ChatView: View {
     let viewContext: NSManagedObjectContext
     @State var chat: ChatEntity
@@ -24,6 +28,10 @@ struct ChatView: View {
     @State private var isBottomContainerExpanded = false
     @State private var renderTime: Double = 0
     @State private var draftSaveWorkItem: DispatchWorkItem?
+    #if os(iOS)
+    @State private var isPhotoPickerPresented = false
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    #endif
     
     // View models and logic
     @StateObject private var chatViewModel: ChatViewModel
@@ -32,7 +40,13 @@ struct ChatView: View {
     
     // Environment
     @Environment(\.colorScheme) private var colorScheme
-    var backgroundColor = Color(NSColor.controlBackgroundColor)
+    private var backgroundColor: Color {
+        #if os(iOS)
+        return Color(NSColor.windowBackgroundColor)
+        #else
+        return Color(NSColor.controlBackgroundColor)
+        #endif
+    }
     
     // MARK: - Initialization
     init(viewContext: NSManagedObjectContext, chat: ChatEntity, searchText: Binding<String>) {
@@ -94,11 +108,15 @@ struct ChatView: View {
                     }
                 },
                 onAddImage: {
+                    #if os(iOS)
+                    isPhotoPickerPresented = true
+                    #else
                     logicHandler.selectAndAddImages { newAttachments in
                         withAnimation {
                             self.attachedImages.append(contentsOf: newAttachments)
                         }
                     }
+                    #endif
                 },
                 onStopInference: {
                     logicHandler.stopInference()
@@ -108,7 +126,34 @@ struct ChatView: View {
                 }
             )
         }
+        #if os(iOS)
+        .background(backgroundColor.ignoresSafeArea())
+        #else
         .background(backgroundColor)
+        #endif
+        #if os(iOS)
+        .photosPicker(isPresented: $isPhotoPickerPresented, selection: $selectedPhotoItems, matching: .images)
+        .onChange(of: selectedPhotoItems) { newItems in
+            _ = _Concurrency.Task<Void, Never>.detached(
+                name: "PhotoPickerLoad",
+                priority: .userInitiated
+            ) {
+                var newAttachments: [ImageAttachment] = []
+                for item in newItems {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let image = NSImage(data: data) {
+                        let attachment = ImageAttachment(image: image)
+                        attachment.saveToEntity(context: viewContext, waitForCompletion: true)
+                        newAttachments.append(attachment)
+                    }
+                }
+                await MainActor.run {
+                    self.attachedImages.append(contentsOf: newAttachments)
+                    self.selectedPhotoItems = []
+                }
+            }
+        }
+        #endif
         .navigationTitle(
             chat.name != "" ? chat.name : chat.persona?.name ?? "macai LLM chat"
         )
@@ -172,11 +217,13 @@ struct ChatView: View {
                 newMessage = chat.newMessage ?? ""
             }
         }
+        #if os(macOS)
         .onExitCommand {
             if editSystemMessage {
                 cancelSystemMessageEdit()
             }
         }
+        #endif
     }
 
     private func scheduleDraftSave(_ message: String) {

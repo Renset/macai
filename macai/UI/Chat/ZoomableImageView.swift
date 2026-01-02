@@ -7,6 +7,13 @@
 
 import SwiftUI
 
+#if os(macOS)
+import AppKit
+#endif
+#if os(iOS)
+import UIKit
+#endif
+
 struct ZoomableImageView: View {
     let image: NSImage
     let imageAspectRatio: CGFloat
@@ -17,10 +24,15 @@ struct ZoomableImageView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
+    #if os(iOS)
+    @State private var isSharePresented = false
+    @State private var shareItems: [Any] = []
+    #endif
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             GeometryReader { geometry in
+                #if os(macOS)
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFill()
@@ -64,6 +76,51 @@ struct ZoomableImageView: View {
                                 }
                             }
                     )
+                #else
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .clipped()
+                    .padding(0)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                offset = CGSize(
+                                    width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height
+                                )
+                            }
+                            .onEnded { _ in
+                                lastOffset = offset
+                            }
+                    )
+                    .gesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                let delta = value / lastScale
+                                lastScale = value
+                                scale *= delta
+                            }
+                            .onEnded { _ in
+                                lastScale = 1.0
+                            }
+                    )
+                    .gesture(
+                        TapGesture(count: 2)
+                            .onEnded {
+                                withAnimation {
+                                    scale = scale > 1.0 ? 1.0 : 2.0
+                                    if scale == 1.0 {
+                                        offset = .zero
+                                        lastOffset = .zero
+                                    }
+                                }
+                            }
+                    )
+                #endif
             }
 
             Group {
@@ -75,8 +132,10 @@ struct ZoomableImageView: View {
                     }) {
                         Image(systemName: "plus.magnifyingglass")
                     }
+                    #if os(macOS)
                     .keyboardShortcut("=", modifiers: [])
                     .keyboardShortcut("+", modifiers: [])
+                    #endif
 
                     Button(action: {
                         withAnimation {
@@ -85,7 +144,9 @@ struct ZoomableImageView: View {
                     }) {
                         Image(systemName: "minus.magnifyingglass")
                     }
+                    #if os(macOS)
                     .keyboardShortcut("-", modifiers: [])
+                    #endif
 
                     Button(action: {
                         withAnimation {
@@ -96,12 +157,22 @@ struct ZoomableImageView: View {
                         Image(systemName: "arrow.counterclockwise")
                     }
 
+                    #if os(macOS)
                     Button(action: {
                         saveImage()
                     }) {
                         Image(systemName: "square.and.arrow.down")
                     }
                     .keyboardShortcut("s", modifiers: .command)
+                    #endif
+                    #if os(iOS)
+                    Button(action: {
+                        shareItems = [image]
+                        isSharePresented = true
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    #endif
 
                     Spacer()
                     Button(action: {
@@ -109,7 +180,9 @@ struct ZoomableImageView: View {
                     }) {
                         Image(systemName: "xmark")
                     }
+                    #if os(macOS)
                     .keyboardShortcut("q", modifiers: .command)
+                    #endif
                 }
                 .padding(8)
             }
@@ -120,9 +193,15 @@ struct ZoomableImageView: View {
         .aspectRatio(imageAspectRatio, contentMode: .fill)
         .padding(0)
         .frame(minWidth: imageAspectRatio > 1.4 ? 800 : nil)
+        #if os(iOS)
+        .sheet(isPresented: $isSharePresented) {
+            ShareSheet(activityItems: shareItems)
+        }
+        #endif
     }
 
     private func saveImage() {
+        #if os(macOS)
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.png, .jpeg]
         savePanel.canCreateDirectories = true
@@ -162,6 +241,7 @@ struct ZoomableImageView: View {
                 }
             }
         }
+        #endif
     }
 
     private func defaultFileName() -> String {

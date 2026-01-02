@@ -17,39 +17,8 @@ struct DangerZoneView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(
-                    "Here you can remove all chats, AI Assistants and API Services. Use with caution: this action cannot be undone."
-                )
-                .foregroundColor(.gray)
-                .fixedSize(horizontal: false, vertical: true)
-                Spacer()
-            }
-            .padding(.bottom, 16)
-
-            VStack(alignment: .leading) {
-                Button(
-                    action: {
-                        currentAlert = .deleteChats
-                    },
-                    label: {
-                        Text("Delete all chats")
-                    }
-                )
-                Button(action: {
-                    currentAlert = .deletePersonas
-                }) {
-                    Text("Delete all AI Assistants")
-                }
-                Button(action: {
-                    currentAlert = .deleteAPIServices
-                }) {
-                    Text("Delete all API Services")
-                }
-
-            }
-
+        ScrollView {
+            content
         }
         .padding(32)
         .alert(item: $currentAlert) { alertType in
@@ -82,6 +51,46 @@ struct DangerZoneView: View {
                     secondaryButton: .cancel()
                 )
             }
+        }
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(
+                    "Here you can remove all chats, AI Assistants and API Services. Use with caution: this action cannot be undone."
+                )
+                .foregroundColor(.gray)
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+            .padding(.bottom, 16)
+
+            VStack(alignment: .leading) {
+                Button(
+                    action: {
+                        currentAlert = .deleteChats
+                    },
+                    label: {
+                        Text("Delete all chats")
+                    }
+                )
+                Button(action: {
+                    currentAlert = .deletePersonas
+                }) {
+                    Text("Delete all AI Assistants")
+                }
+                Button(action: {
+                    currentAlert = .deleteAPIServices
+                }) {
+                    Text("Delete all API Services")
+                }
+
+            }
+            #if os(iOS)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            #endif
         }
     }
 }

@@ -9,6 +9,10 @@ import CoreData
 import Foundation
 import SwiftUI
 
+#if os(macOS)
+import AppKit
+#endif
+
 struct ChatListRow: View, Equatable {
     static func == (lhs: ChatListRow, rhs: ChatListRow) -> Bool {
         lhs.chat?.id == rhs.chat?.id &&
@@ -27,6 +31,10 @@ struct ChatListRow: View, Equatable {
     let viewContext: NSManagedObjectContext
     let searchText: String
     @StateObject private var chatViewModel: ChatViewModel
+    @State private var isDeleteAlertPresented = false
+    @State private var isClearAlertPresented = false
+    @State private var isRenameAlertPresented = false
+    @State private var renameText: String = ""
 
     init(
         chat: ChatEntity?,
@@ -95,9 +103,47 @@ struct ChatListRow: View, Equatable {
                 Label("Delete", systemImage: "trash")
             }
         }
+        #if os(iOS)
+        .alert("Delete chat \(chat?.name ?? "")?", isPresented: $isDeleteAlertPresented) {
+            Button("Delete", role: .destructive) {
+                if let chat {
+                    performDelete(chat)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this chat?")
+        }
+        .alert("Clear chat \(chat?.name ?? "")?", isPresented: $isClearAlertPresented) {
+            Button("Clear", role: .destructive) {
+                if let chat {
+                    performClear(chat)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete all messages from this chat? Chat parameters will not be deleted.")
+        }
+        .alert("Rename chat", isPresented: $isRenameAlertPresented) {
+            TextField("New name", text: $renameText)
+            Button("Rename") {
+                if let chat {
+                    performRename(chat, newName: renameText)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter new name for this chat")
+        }
+        #endif
     }
 
     func deleteChat(_ chat: ChatEntity) {
+        #if os(iOS)
+        isDeleteAlertPresented = true
+        return
+        #endif
+        #if os(macOS)
         let alert = NSAlert()
         alert.messageText = "Delete chat \(chat.name)?"
         alert.informativeText = "Are you sure you want to delete this chat?"
@@ -106,24 +152,19 @@ struct ChatListRow: View, Equatable {
         alert.alertStyle = .warning
         alert.beginSheetModal(for: NSApp.keyWindow!) { response in
             if response == .alertFirstButtonReturn {
-                // Clear selectedChat to prevent accessing deleted item
-                if selectedChat?.id == chat.id {
-                    selectedChat = nil
-                }
-                viewContext.delete(chat)
-                DispatchQueue.main.async {
-                    do {
-                        try viewContext.save()
-                    }
-                    catch {
-                        print("Error deleting chat: \(error.localizedDescription)")
-                    }
-                }
+                performDelete(chat)
             }
         }
+        #endif
     }
 
     func renameChat(_ chat: ChatEntity) {
+        #if os(iOS)
+        renameText = chat.name
+        isRenameAlertPresented = true
+        return
+        #endif
+        #if os(macOS)
         let alert = NSAlert()
         alert.messageText = "Rename chat"
         alert.informativeText = "Enter new name for this chat"
@@ -135,19 +176,18 @@ struct ChatListRow: View, Equatable {
         alert.accessoryView = textField
         alert.beginSheetModal(for: NSApp.keyWindow!) { response in
             if response == .alertFirstButtonReturn {
-                chat.name = textField.stringValue
-                do {
-                    try viewContext.save()
-                }
-
-                catch {
-                    print("Error renaming chat: \(error.localizedDescription)")
-                }
+                performRename(chat, newName: textField.stringValue)
             }
         }
+        #endif
     }
     
     func clearChat(_ chat: ChatEntity) {
+        #if os(iOS)
+        isClearAlertPresented = true
+        return
+        #endif
+        #if os(macOS)
         let alert = NSAlert()
         alert.messageText = "Clear chat \(chat.name)?"
         alert.informativeText = "Are you sure you want to delete all messages from this chat? Chat parameters will not be deleted. This action cannot be undone."
@@ -156,14 +196,10 @@ struct ChatListRow: View, Equatable {
         alert.alertStyle = .warning
         alert.beginSheetModal(for: NSApp.keyWindow!) { response in
             if response == .alertFirstButtonReturn {
-                chat.clearMessages()
-                do {
-                    try viewContext.save()
-                } catch {
-                    print("Error clearing chat: \(error.localizedDescription)")
-                }
+                performClear(chat)
             }
         }
+        #endif
     }
     
     func togglePinChat(_ chat: ChatEntity) {
@@ -172,6 +208,40 @@ struct ChatListRow: View, Equatable {
             try viewContext.save()
         } catch {
             print("Error toggling pin status: \(error.localizedDescription)")
+        }
+    }
+
+    private func performDelete(_ chat: ChatEntity) {
+        if selectedChat?.id == chat.id {
+            selectedChat = nil
+        }
+        viewContext.delete(chat)
+        DispatchQueue.main.async {
+            do {
+                try viewContext.save()
+            }
+            catch {
+                print("Error deleting chat: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func performRename(_ chat: ChatEntity, newName: String) {
+        chat.name = newName
+        do {
+            try viewContext.save()
+        }
+        catch {
+            print("Error renaming chat: \(error.localizedDescription)")
+        }
+    }
+
+    private func performClear(_ chat: ChatEntity) {
+        chat.clearMessages()
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error clearing chat: \(error.localizedDescription)")
         }
     }
 }

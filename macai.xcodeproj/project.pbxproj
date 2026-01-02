@@ -7,10 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07A14388985744369D631313 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47BB5469E53F4EE5977FB689 /* ShareSheet.swift */; };
 		0BA0FF405FC14D3FABF82621 /* APIServiceTemplateProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */; };
 		1001F81047D94F5484238553 /* APIServiceTemplateAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */; };
+		13F7630105ADBAC7CC0FAF74 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399C9C29BC8FF100E98796 /* Assets.xcassets */; };
 		16E55B88D2D449948BD6C60F /* APIServiceTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */; };
+		1E5C24B5C897D9041A956CAA /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0B6375947770D810A1B1D5 /* PersistenceController.swift */; };
+		20A9394C295CB41213267BB9 /* AppKitCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816D6D0C2529B79A593F70F /* AppKitCompat.swift */; };
 		2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
+		396433E00F8243AD9A28FFA6 /* BackupRestoreView+iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69A382C7F4C43B98A413F68 /* BackupRestoreView+iOS.swift */; };
+		3CD4808FF3F905D5F626DD1B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0B6375947770D810A1B1D5 /* PersistenceController.swift */; };
+		4352DF4DB21F8D2942727C04 /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1C9D0B776D45F2277A891C /* ImageProcessing.swift */; };
+		44918EE1D1E75D6B79D8C5BF /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1C9D0B776D45F2277A891C /* ImageProcessing.swift */; };
 		4A0BCBBC2D5199140033AB96 /* ButtonWithStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */; };
 		4A0E02852D0F571000D2FAF3 /* PerplexityHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */; };
 		4A1614112D430AE300A1EF8D /* ThinkingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */; };
@@ -77,6 +85,98 @@
 		4AA6EF5D2C566009003B6D41 /* MessageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF5C2C566009003B6D41 /* MessageManager.swift */; };
 		4AADD98C2C924FBA00242D20 /* APIServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADD98B2C924FB400242D20 /* APIServiceManager.swift */; };
 		4AADF71F2C9CE788001B7A26 /* ClaudeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */; };
+		4AB135D12F0866960027540C /* ThemeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */; };
+		4AB135D22F0866960027540C /* V1ToV3Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8560DB2EF0C429007A5E42 /* V1ToV3Migration.swift */; };
+		4AB135D32F0866960027540C /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0929CEFB7F002A139A /* MessageCell.swift */; };
+		4AB135D42F0866960027540C /* ErrorBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */; };
+		4AB135D52F0866960027540C /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */; };
+		4AB135D62F0866960027540C /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
+		4AB135D72F0866960027540C /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
+		4AB135D82F0866960027540C /* ChatGPTHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */; };
+		4AB135D92F0866960027540C /* SceneKitParticlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64C029C78B64000403F7 /* SceneKitParticlesView.swift */; };
+		4AB135DA2F0866960027540C /* MessageContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A27FF932DA1C4640075D730 /* MessageContent.swift */; };
+		4AB135DB2F0866960027540C /* ImageAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A27FF922DA1C4640075D730 /* ImageAttachment.swift */; };
+		4AB135DC2F0866960027540C /* DeepseekHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB4B08C2D75099E00CA41B6 /* DeepseekHandler.swift */; };
+		4AB135DD2F0866960027540C /* ChatAttentionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */; };
+		4AB135DE2F0866960027540C /* TabAPIServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */; };
+		4AB135DF2F0866960027540C /* APIServiceTemplateAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */; };
+		4AB135E02F0866960027540C /* APIServiceTemplateAddViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */; };
+		4AB135E12F0866960027540C /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8E2E0A2C56FCFD00F077F2 /* ChatViewModel.swift */; };
+		4AB135E22F0866960027540C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9A29BC8FEF00E98796 /* ContentView.swift */; };
+		4AB135E32F0866960027540C /* HTMLPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C512CEA3B130018BBED /* HTMLPreviewView.swift */; };
+		4AB135E42F0866960027540C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
+		4AB135E52F0866960027540C /* TokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A28424A2C87018800E5C920 /* TokenManager.swift */; };
+		4AB135E62F0866960027540C /* APIServiceTemplateProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */; };
+		4AB135E72F0866960027540C /* SwipeModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACE2FB72D61656000DEEA6D /* SwipeModifier.swift */; };
+		4AB135E82F0866960027540C /* ButtonWithStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */; };
+		4AB135E92F0866960027540C /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
+		4AB135EA2F0866960027540C /* ChatListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C572CEA3F7B0018BBED /* ChatListRow.swift */; };
+		4AB135EB2F0866960027540C /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */; };
+		4AB135EC2F0866960027540C /* APIServiceDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADCA45A2C9B74E8005664A6 /* APIServiceDetailViewModel.swift */; };
+		4AB135ED2F0866960027540C /* MessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4918772D9F3C54007EB4A2 /* MessageContentView.swift */; };
+		4AB135EE2F0866960027540C /* PersonaSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614142D46C86800A1EF8D /* PersonaSelectorView.swift */; };
+		4AB135EF2F0866960027540C /* ThinkingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */; };
+		4AB135F02F0866960027540C /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C552CEA3F6C0018BBED /* ChatListView.swift */; };
+		4AB135F12F0866960027540C /* APIServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADD98B2C924FB400242D20 /* APIServiceManager.swift */; };
+		4AB135F22F0866960027540C /* CodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACAD6622C13AE8F0081BDAC /* CodeView.swift */; };
+		4AB135F32F0866960027540C /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC329BCE67800E98796 /* PreferencesView.swift */; };
+		4AB135F42F0866960027540C /* MessageParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6529F86B5900661B2D /* MessageParser.swift */; };
+		4AB135F52F0866960027540C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
+		4AB135F62F0866960027540C /* NotificationPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */; };
+		4AB135F72F0866960027540C /* macaiDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4A751D2329CBA70B006B983B /* macaiDataModel.xcdatamodeld */; };
+		4AB135F82F0866960027540C /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
+		4AB135F92F0866960027540C /* CodeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A254A6E2CEA6A2400F66935 /* CodeViewModel.swift */; };
+		4AB135FA2F0866960027540C /* RequestMessagesTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */; };
+		4AB135FB2F0866960027540C /* OpenRouterHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB4B0902D778B1D00CA41B6 /* OpenRouterHandler.swift */; };
+		4AB135FC2F0866960027540C /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B929C64F9D000403F7 /* ChatView.swift */; };
+		4AB135FD2F0866960027540C /* APIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7202C472F53006F99FB /* APIProtocol.swift */; };
+		4AB135FE2F0866960027540C /* PreviewStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A885C532CEA3D960018BBED /* PreviewStateManager.swift */; };
+		4AB135FF2F0866960027540C /* APIServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF5A2C565FDF003B6D41 /* APIServiceFactory.swift */; };
+		4AB136002F0866960027540C /* ChatBottomContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA681C62D3DAB40005C4E6E /* ChatBottomContainerView.swift */; };
+		4AB136012F0866960027540C /* SystemMessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614122D46B9BA00A1EF8D /* SystemMessageBubbleView.swift */; };
+		4AB136022F0866960027540C /* APIServiceConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF582C565F90003B6D41 /* APIServiceConfig.swift */; };
+		4AB136032F0866960027540C /* ClaudeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */; };
+		4AB136042F0866960027540C /* MessageInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A27FF902DA1C43E0075D730 /* MessageInputView.swift */; };
+		4AB136052F0866960027540C /* ToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */; };
+		4AB136062F0866960027540C /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A270AE229D4AFE7005E063C /* AppConstants.swift */; };
+		4AB136072F0866960027540C /* macaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399C9829BC8FEF00E98796 /* macaiApp.swift */; };
+		4AB136082F0866960027540C /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */; };
+		4AB136092F0866960027540C /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A775A032C1486F3004301D3 /* Extensions.swift */; };
+		4AB1360A2F0866960027540C /* TabDangerZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */; };
+		4AB1360B2F0866960027540C /* SettingsIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */; };
+		4AB1360C2F0866960027540C /* ZoomableImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A27FF8E2DA1C41B0075D730 /* ZoomableImageView.swift */; };
+		4AB1360D2F0866960027540C /* EntityListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A194C052C9633BC003C8782 /* EntityListView.swift */; };
+		4AB1360E2F0866960027540C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
+		4AB1360F2F0866960027540C /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A399CC529BCF02500E98796 /* ChatStore.swift */; };
+		4AB136102F0866960027540C /* TabAIPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */; };
+		4AB136112F0866960027540C /* ButtonTestApiTokenAndModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7AFF172B0147A300C34BB4 /* ButtonTestApiTokenAndModel.swift */; };
+		4AB136122F0866960027540C /* AdaptiveMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A471B872C29CD3D00C66926 /* AdaptiveMathView.swift */; };
+		4AB136132F0866960027540C /* PerplexityHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */; };
+		4AB136142F0866960027540C /* MessageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA6EF5C2C566009003B6D41 /* MessageManager.swift */; };
+		4AB136152F0866960027540C /* HighlighterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A254A6C2CEA69EB00F66935 /* HighlighterManager.swift */; };
+		4AB136162F0866960027540C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A272A7329F5DAA800F93D0D /* Models.swift */; };
+		4AB136172F0866960027540C /* APIServiceTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */; };
+		4AB136182F0866960027540C /* HighlightedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */; };
+		4AB136192F0866960027540C /* TabGeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8A78C72D4C41980057A6CC /* TabGeneralSettingsView.swift */; };
+		4AB1361A2F0866960027540C /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E16832E16DB4500E5CBA3 /* ChatInputView.swift */; };
+		4AB1361B2F0866960027540C /* ChatMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E16842E16DB4500E5CBA3 /* ChatMessagesView.swift */; };
+		4AB1361C2F0866960027540C /* ChatLogicHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E16822E16DB4500E5CBA3 /* ChatLogicHandler.swift */; };
+		4AB1361D2F0866960027540C /* OllamaHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */; };
+		4AB1361E2F0866960027540C /* GeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */; };
+		4AB1361F2F0866960027540C /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0B6375947770D810A1B1D5 /* PersistenceController.swift */; };
+		4AB136202F0866960027540C /* AppKitCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816D6D0C2529B79A593F70F /* AppKitCompat.swift */; };
+		4AB136212F0866960027540C /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1C9D0B776D45F2277A891C /* ImageProcessing.swift */; };
+		4AB136222F0866960027540C /* MacaiTextField+iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC67EA1A0B60221E8AC21621 /* MacaiTextField+iOS.swift */; };
+		4AB136232F0866960027540C /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		4AB136242F0866960027540C /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		4AB136252F0866960027540C /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		4AB136262F0866960027540C /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		4AB136272F0866960027540C /* FiraCode-VF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
+		4AB136282F0866960027540C /* APIServiceTemplates.json in Resources */ = {isa = PBXBuildFile; fileRef = 7E9696501A3843E4A2D9926B /* APIServiceTemplates.json */; };
+		4AB136292F0866960027540C /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
+		4AB1362A2F0866960027540C /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
+		4AB1362B2F0866960027540C /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 4A471B852C29C56800C66926 /* SwiftMath */; };
+		4AB1362C2F0866960027540C /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 4A2842482C87014800E5C920 /* KeychainAccess */; };
 		4AB4B08D2D75099E00CA41B6 /* DeepseekHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB4B08C2D75099E00CA41B6 /* DeepseekHandler.swift */; };
 		4AB4B0912D778B1D00CA41B6 /* OpenRouterHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB4B0902D778B1D00CA41B6 /* OpenRouterHandler.swift */; };
 		4ABB86792CFBDBD3004EC7B1 /* HighlightedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB86782CFBDBD3004EC7B1 /* HighlightedText.swift */; };
@@ -96,11 +196,17 @@
 		4AFEE7212C472F53006F99FB /* APIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7202C472F53006F99FB /* APIProtocol.swift */; };
 		4AFEE7232C472FA1006F99FB /* ChatGPTHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */; };
 		4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */; };
+		4BC89F14AAC4F8292FF1CC43 /* macaiiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDCA18695A070D8B07EC7C63 /* macaiiOSApp.swift */; };
 		537028A45E2C4DD7A33DA2D2 /* APIServiceTemplates.json in Resources */ = {isa = PBXBuildFile; fileRef = 7E9696501A3843E4A2D9926B /* APIServiceTemplates.json */; };
+		6C0850F8A023BF4B079C1589 /* IOSRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22B980E523E494495399459 /* IOSRootView.swift */; };
+		75D858091E5B24704907A2BF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */; };
 		7CEEFA33B4C841A2AC2BFBA2 /* APIServiceTemplateProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */; };
 		9A040A4C76354F309DF6CB6F /* NotificationPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */; };
+		A873BD70D98490D25F4FFCA6 /* MacaiTextField+iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC67EA1A0B60221E8AC21621 /* MacaiTextField+iOS.swift */; };
 		B2E47C1C2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */; };
 		B2E47C1E2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */; };
+		D53028F1F10ADCB5FACCA663 /* AppKitCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816D6D0C2529B79A593F70F /* AppKitCompat.swift */; };
+		F52C94233CBB56CE4C775C36 /* MacaiTextField+iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC67EA1A0B60221E8AC21621 /* MacaiTextField+iOS.swift */; };
 		F595CD3876D345D794C42AFF /* APIServiceTemplateAddViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */; };
 /* End PBXBuildFile section */
 
@@ -138,8 +244,10 @@
 		04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacaiTextField.swift; sourceTree = "<group>"; };
 		14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPresenter.swift; sourceTree = "<group>"; };
 		16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProviderTests.swift; sourceTree = "<group>"; };
+		1C0B6375947770D810A1B1D5 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddViewModel.swift; sourceTree = "<group>"; };
 		3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProvider.swift; sourceTree = "<group>"; };
+		47BB5469E53F4EE5977FB689 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
 		4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinkingProcessView.swift; sourceTree = "<group>"; };
@@ -227,12 +335,35 @@
 		4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaHandler.swift; sourceTree = "<group>"; };
 		5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddView.swift; sourceTree = "<group>"; };
 		62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplate.swift; sourceTree = "<group>"; };
+		6816D6D0C2529B79A593F70F /* AppKitCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitCompat.swift; sourceTree = "<group>"; };
 		7E9696501A3843E4A2D9926B /* APIServiceTemplates.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = APIServiceTemplates.json; sourceTree = "<group>"; };
+		AA001106903125854DEB215F /* macaiiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macaiiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E47C1B2CF90E5C00ABCD12 /* OpenAIHandlerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIHandlerBase.swift; sourceTree = "<group>"; };
 		B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIResponsesHandler.swift; sourceTree = "<group>"; };
+		D22B980E523E494495399459 /* IOSRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSRootView.swift; sourceTree = "<group>"; };
+		D69A382C7F4C43B98A413F68 /* BackupRestoreView+iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BackupRestoreView+iOS.swift"; sourceTree = "<group>"; };
+		DC67EA1A0B60221E8AC21621 /* MacaiTextField+iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MacaiTextField+iOS.swift"; sourceTree = "<group>"; };
+		E53F871E97892856B60AE6D9 /* macaiiOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = macaiiOS.entitlements; sourceTree = "<group>"; };
+		EDCA18695A070D8B07EC7C63 /* macaiiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = macaiiOSApp.swift; sourceTree = "<group>"; };
+		FA1C9D0B776D45F2277A891C /* ImageProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessing.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3743A5C5AB6FFA42EBF74E6B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4AB136292F0866960027540C /* Highlightr in Frameworks */,
+				4AB1362A2F0866960027540C /* AttributedText in Frameworks */,
+				4AB136232F0866960027540C /* (null) in Frameworks */,
+				4AB136242F0866960027540C /* (null) in Frameworks */,
+				4AB1362C2F0866960027540C /* KeychainAccess in Frameworks */,
+				4AB136252F0866960027540C /* (null) in Frameworks */,
+				4AB136262F0866960027540C /* (null) in Frameworks */,
+				4AB1362B2F0866960027540C /* SwiftMath in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4A399C9229BC8FEF00E98796 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -262,6 +393,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		43B2BE05388126682A9D88C8 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				EDCA18695A070D8B07EC7C63 /* macaiiOSApp.swift */,
+				D22B980E523E494495399459 /* IOSRootView.swift */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
 		4A1614162D46C88900A1EF8D /* BottomContainer */ = {
 			isa = PBXGroup;
 			children = (
@@ -300,6 +440,8 @@
 		4A164BB92C962E520060ECFE /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				DC67EA1A0B60221E8AC21621 /* MacaiTextField+iOS.swift */,
+				47BB5469E53F4EE5977FB689 /* ShareSheet.swift */,
 				4A4918792D9F4186007EB4A2 /* ToolbarButton.swift */,
 				4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */,
 				4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */,
@@ -348,6 +490,7 @@
 				4A399CC329BCE67800E98796 /* PreferencesView.swift */,
 				4AFDEB7D2AFF90FB00BA8642 /* TabDangerZoneView.swift */,
 				4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */,
+				D69A382C7F4C43B98A413F68 /* BackupRestoreView+iOS.swift */,
 				4A315DB12C8CD8410095ABD1 /* TabAIPersonasView.swift */,
 			);
 			path = Preferences;
@@ -418,6 +561,7 @@
 		4A272A7029F5D9C200F93D0D /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				FA1C9D0B776D45F2277A891C /* ImageProcessing.swift */,
 				4A7E44B82EFA0A76001DE975 /* ChatAttentionStore.swift */,
 				4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */,
 				4ACE2FB72D61656000DEEA6D /* SwipeModifier.swift */,
@@ -451,6 +595,7 @@
 			isa = PBXGroup;
 			children = (
 				4A399C9529BC8FEF00E98796 /* macai.app */,
+				AA001106903125854DEB215F /* macaiiOS.app */,
 				4A399CA629BC8FF200E98796 /* macaiTests.xctest */,
 				4A399CB029BC8FF200E98796 /* macaiUITests.xctest */,
 			);
@@ -463,6 +608,9 @@
 				4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */,
 				4A399C9C29BC8FF100E98796 /* Assets.xcassets */,
 				4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */,
+				A9DD64C49924B293390E9236 /* Platform */,
+				E596C24C49FBD282D7171AA7 /* Data */,
+				43B2BE05388126682A9D88C8 /* iOS */,
 				4ABDBE6429F86B3900661B2D /* Configuration */,
 				4A272A7029F5D9C200F93D0D /* Utilities */,
 				4A272A6F29F5CE5700F93D0D /* Resources */,
@@ -472,6 +620,7 @@
 				4A399C9829BC8FEF00E98796 /* macaiApp.swift */,
 				4A98B1BF29CA60ED0064835A /* Info.plist */,
 				4A399C9E29BC8FF100E98796 /* macai.entitlements */,
+				E53F871E97892856B60AE6D9 /* macaiiOS.entitlements */,
 			);
 			path = macai;
 			sourceTree = "<group>";
@@ -535,6 +684,22 @@
 				4AA6EF5A2C565FDF003B6D41 /* APIServiceFactory.swift */,
 			);
 			path = APIHandlers;
+			sourceTree = "<group>";
+		};
+		A9DD64C49924B293390E9236 /* Platform */ = {
+			isa = PBXGroup;
+			children = (
+				6816D6D0C2529B79A593F70F /* AppKitCompat.swift */,
+			);
+			path = Platform;
+			sourceTree = "<group>";
+		};
+		E596C24C49FBD282D7171AA7 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				1C0B6375947770D810A1B1D5 /* PersistenceController.swift */,
+			);
+			path = Data;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -601,6 +766,29 @@
 			productReference = 4A399CB029BC8FF200E98796 /* macaiUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		63E15D4B61AB5EBAC0CE6174 /* macaiiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD6B9F6ED6081FB51319F2EC /* Build configuration list for PBXNativeTarget "macaiiOS" */;
+			buildPhases = (
+				C7D79EB30B62BEF8E35335D0 /* Sources */,
+				3743A5C5AB6FFA42EBF74E6B /* Frameworks */,
+				ED30EF7D5CCF9EA32A300AB9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = macaiiOS;
+			packageProductDependencies = (
+				4A51EC6129C32AF700973D83 /* Highlightr */,
+				4A51EC6429C32B0B00973D83 /* AttributedText */,
+				4A471B852C29C56800C66926 /* SwiftMath */,
+				4A2842482C87014800E5C920 /* KeychainAccess */,
+			);
+			productName = macaiiOS;
+			productReference = AA001106903125854DEB215F /* macaiiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -621,6 +809,9 @@
 					4A399CAF29BC8FF200E98796 = {
 						CreatedOnToolsVersion = 14.2;
 						TestTargetID = 4A399C9429BC8FEF00E98796;
+					};
+					63E15D4B61AB5EBAC0CE6174 = {
+						CreatedOnToolsVersion = 14.2;
 					};
 				};
 			};
@@ -647,6 +838,7 @@
 				4A399C9429BC8FEF00E98796 /* macai */,
 				4A399CA529BC8FF200E98796 /* macaiTests */,
 				4A399CAF29BC8FF200E98796 /* macaiUITests */,
+				63E15D4B61AB5EBAC0CE6174 /* macaiiOS */,
 			);
 		};
 /* End PBXProject section */
@@ -677,6 +869,17 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ED30EF7D5CCF9EA32A300AB9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				13F7630105ADBAC7CC0FAF74 /* Assets.xcassets in Resources */,
+				75D858091E5B24704907A2BF /* Preview Assets.xcassets in Resources */,
+				4AB136272F0866960027540C /* FiraCode-VF.ttf in Resources */,
+				4AB136282F0866960027540C /* APIServiceTemplates.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -765,6 +968,10 @@
 				4A1E16872E16DB4600E5CBA3 /* ChatLogicHandler.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
 				4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */,
+				1E5C24B5C897D9041A956CAA /* PersistenceController.swift in Sources */,
+				D53028F1F10ADCB5FACCA663 /* AppKitCompat.swift in Sources */,
+				44918EE1D1E75D6B79D8C5BF /* ImageProcessing.swift in Sources */,
+				F52C94233CBB56CE4C775C36 /* MacaiTextField+iOS.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -786,6 +993,103 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C7D79EB30B62BEF8E35335D0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4BC89F14AAC4F8292FF1CC43 /* macaiiOSApp.swift in Sources */,
+				6C0850F8A023BF4B079C1589 /* IOSRootView.swift in Sources */,
+				3CD4808FF3F905D5F626DD1B /* PersistenceController.swift in Sources */,
+				20A9394C295CB41213267BB9 /* AppKitCompat.swift in Sources */,
+				4352DF4DB21F8D2942727C04 /* ImageProcessing.swift in Sources */,
+				A873BD70D98490D25F4FFCA6 /* MacaiTextField+iOS.swift in Sources */,
+				07A14388985744369D631313 /* ShareSheet.swift in Sources */,
+				396433E00F8243AD9A28FFA6 /* BackupRestoreView+iOS.swift in Sources */,
+				4AB135D12F0866960027540C /* ThemeMode.swift in Sources */,
+				4AB135D22F0866960027540C /* V1ToV3Migration.swift in Sources */,
+				4AB135D32F0866960027540C /* MessageCell.swift in Sources */,
+				4AB135D42F0866960027540C /* ErrorBubbleView.swift in Sources */,
+				4AB135D52F0866960027540C /* ChatBubbleView.swift in Sources */,
+				4AB135D62F0866960027540C /* OpenAIHandlerBase.swift in Sources */,
+				4AB135D72F0866960027540C /* OpenAIResponsesHandler.swift in Sources */,
+				4AB135D82F0866960027540C /* ChatGPTHandler.swift in Sources */,
+				4AB135D92F0866960027540C /* SceneKitParticlesView.swift in Sources */,
+				4AB135DA2F0866960027540C /* MessageContent.swift in Sources */,
+				4AB135DB2F0866960027540C /* ImageAttachment.swift in Sources */,
+				4AB135DC2F0866960027540C /* DeepseekHandler.swift in Sources */,
+				4AB135DD2F0866960027540C /* ChatAttentionStore.swift in Sources */,
+				4AB135DE2F0866960027540C /* TabAPIServicesView.swift in Sources */,
+				4AB135DF2F0866960027540C /* APIServiceTemplateAddView.swift in Sources */,
+				4AB135E02F0866960027540C /* APIServiceTemplateAddViewModel.swift in Sources */,
+				4AB135E12F0866960027540C /* ChatViewModel.swift in Sources */,
+				4AB135E22F0866960027540C /* ContentView.swift in Sources */,
+				4AB135E32F0866960027540C /* HTMLPreviewView.swift in Sources */,
+				4AB135E42F0866960027540C /* TableView.swift in Sources */,
+				4AB135E52F0866960027540C /* TokenManager.swift in Sources */,
+				4AB135E62F0866960027540C /* APIServiceTemplateProvider.swift in Sources */,
+				4AB135E72F0866960027540C /* SwipeModifier.swift in Sources */,
+				4AB135E82F0866960027540C /* ButtonWithStatusIndicator.swift in Sources */,
+				4AB135E92F0866960027540C /* MacaiTextField.swift in Sources */,
+				4AB135EA2F0866960027540C /* ChatListRow.swift in Sources */,
+				4AB135EB2F0866960027540C /* WelcomeScreen.swift in Sources */,
+				4AB135EC2F0866960027540C /* APIServiceDetailViewModel.swift in Sources */,
+				4AB135ED2F0866960027540C /* MessageContentView.swift in Sources */,
+				4AB135EE2F0866960027540C /* PersonaSelectorView.swift in Sources */,
+				4AB135EF2F0866960027540C /* ThinkingProcessView.swift in Sources */,
+				4AB135F02F0866960027540C /* ChatListView.swift in Sources */,
+				4AB135F12F0866960027540C /* APIServiceManager.swift in Sources */,
+				4AB135F22F0866960027540C /* CodeView.swift in Sources */,
+				4AB135F32F0866960027540C /* PreferencesView.swift in Sources */,
+				4AB135F42F0866960027540C /* MessageParser.swift in Sources */,
+				4AB135F52F0866960027540C /* DatabasePatcher.swift in Sources */,
+				4AB135F62F0866960027540C /* NotificationPresenter.swift in Sources */,
+				4AB135F72F0866960027540C /* macaiDataModel.xcdatamodeld in Sources */,
+				4AB135F82F0866960027540C /* TabBackupRestoreView.swift in Sources */,
+				4AB135F92F0866960027540C /* CodeViewModel.swift in Sources */,
+				4AB135FA2F0866960027540C /* RequestMessagesTransformer.swift in Sources */,
+				4AB135FB2F0866960027540C /* OpenRouterHandler.swift in Sources */,
+				4AB135FC2F0866960027540C /* ChatView.swift in Sources */,
+				4AB135FD2F0866960027540C /* APIProtocol.swift in Sources */,
+				4AB135FE2F0866960027540C /* PreviewStateManager.swift in Sources */,
+				4AB135FF2F0866960027540C /* APIServiceFactory.swift in Sources */,
+				4AB136002F0866960027540C /* ChatBottomContainerView.swift in Sources */,
+				4AB136012F0866960027540C /* SystemMessageBubbleView.swift in Sources */,
+				4AB136022F0866960027540C /* APIServiceConfig.swift in Sources */,
+				4AB136032F0866960027540C /* ClaudeHandler.swift in Sources */,
+				4AB136042F0866960027540C /* MessageInputView.swift in Sources */,
+				4AB136052F0866960027540C /* ToolbarButton.swift in Sources */,
+				4AB136062F0866960027540C /* AppConstants.swift in Sources */,
+				4AB136072F0866960027540C /* macaiApp.swift in Sources */,
+				4AB136082F0866960027540C /* CloudSyncManager.swift in Sources */,
+				4AB136092F0866960027540C /* Extensions.swift in Sources */,
+				4AB1360A2F0866960027540C /* TabDangerZoneView.swift in Sources */,
+				4AB1360B2F0866960027540C /* SettingsIndicators.swift in Sources */,
+				4AB1360C2F0866960027540C /* ZoomableImageView.swift in Sources */,
+				4AB1360D2F0866960027540C /* EntityListView.swift in Sources */,
+				4AB1360E2F0866960027540C /* APIServiceDetailView.swift in Sources */,
+				4AB1360F2F0866960027540C /* ChatStore.swift in Sources */,
+				4AB136102F0866960027540C /* TabAIPersonasView.swift in Sources */,
+				4AB136112F0866960027540C /* ButtonTestApiTokenAndModel.swift in Sources */,
+				4AB136122F0866960027540C /* AdaptiveMathView.swift in Sources */,
+				4AB136132F0866960027540C /* PerplexityHandler.swift in Sources */,
+				4AB136142F0866960027540C /* MessageManager.swift in Sources */,
+				4AB136152F0866960027540C /* HighlighterManager.swift in Sources */,
+				4AB136162F0866960027540C /* Models.swift in Sources */,
+				4AB136172F0866960027540C /* APIServiceTemplate.swift in Sources */,
+				4AB136182F0866960027540C /* HighlightedText.swift in Sources */,
+				4AB136192F0866960027540C /* TabGeneralSettingsView.swift in Sources */,
+				4AB1361A2F0866960027540C /* ChatInputView.swift in Sources */,
+				4AB1361B2F0866960027540C /* ChatMessagesView.swift in Sources */,
+				4AB1361C2F0866960027540C /* ChatLogicHandler.swift in Sources */,
+				4AB1361D2F0866960027540C /* OllamaHandler.swift in Sources */,
+				4AB1361E2F0866960027540C /* GeminiHandler.swift in Sources */,
+				4AB1361F2F0866960027540C /* PersistenceController.swift in Sources */,
+				4AB136202F0866960027540C /* AppKitCompat.swift in Sources */,
+				4AB136212F0866960027540C /* ImageProcessing.swift in Sources */,
+				4AB136222F0866960027540C /* MacaiTextField+iOS.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -802,6 +1106,32 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		189DE1F7EC5B00ADBECED57F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macai/macaiiOS.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = ZRB8WDV435;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
+				PRODUCT_NAME = macaiiOS;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		4A399CB829BC8FF200E98796 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1094,6 +1424,32 @@
 			};
 			name = Release;
 		};
+		F7537542D6A0D8EE3F186B96 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macai/macaiiOS.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = ZRB8WDV435;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai.ios;
+				PRODUCT_NAME = macaiiOS;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1129,6 +1485,15 @@
 			buildConfigurations = (
 				4A399CC129BC8FF200E98796 /* Debug */,
 				4A399CC229BC8FF200E98796 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD6B9F6ED6081FB51319F2EC /* Build configuration list for PBXNativeTarget "macaiiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F7537542D6A0D8EE3F186B96 /* Debug */,
+				189DE1F7EC5B00ADBECED57F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

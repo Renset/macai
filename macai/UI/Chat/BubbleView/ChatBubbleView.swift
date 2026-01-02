@@ -8,6 +8,10 @@
 import Foundation
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 enum MessageElements {
     case text(String)
     case table(header: [String], data: [[String]])
@@ -185,9 +189,13 @@ struct ChatBubbleView: View, Equatable {
     }
 
     private func copyMessageToClipboard(_ text: String) {
+        #if os(macOS)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        #elseif os(iOS)
+        UIPasteboard.general.string = text
+        #endif
 
         withAnimation {
             isCopied = true

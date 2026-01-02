@@ -5,7 +5,11 @@
 //  Created by Renat Notfullin on 19.09.2025
 //
 
+import SwiftUI
+
+#if os(macOS)
 import AppKit
+#endif
 import CoreData
 import SwiftUI
 
@@ -46,7 +50,9 @@ struct APIServiceTemplateAddView: View {
             Spacer(minLength: 8)
             footer
         }
+        #if os(macOS)
         .frame(minWidth: 520, minHeight: 420)
+        #endif
         .padding(20)
         .onAppear {
             if selectedRowID.isEmpty {

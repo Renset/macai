@@ -15,23 +15,33 @@ struct WelcomeScreen: View {
     let newChat: () -> Void
 
     var body: some View {
+        #if os(iOS)
+        let iconPadding: CGFloat = 32
+        let bottomPadding: CGFloat = 24
+        #else
+        let iconPadding: CGFloat = 64
+        let bottomPadding: CGFloat = 60
+        #endif
+
         GeometryReader { geometry in
 
             ZStack {
-                // if new user, show beautiful welcome particles
                 if chatsCount == 0 && !apiServiceIsPresent {
+                    #if os(macOS)
                     SceneKitParticlesView()
                         .edgesIgnoringSafeArea(.all)
+                    #endif
                 }
 
                 VStack {
                     WelcomeIcon()
-                        .padding(64)
+                        .padding(iconPadding)
 
                     VStack {
                         Text("Welcome to macai!").font(.title)
                         if !apiServiceIsPresent {
                             Text("To get started, please add at least one API Service in the settings")
+                            #if os(macOS)
                             if #available(macOS 14.0, *) {
                                 SettingsLink {
                                     Text("Open Settings")
@@ -42,6 +52,11 @@ struct WelcomeScreen: View {
                                     openPreferencesView()
                                 }
                             }
+                            #else
+                            Button("Open Settings") {
+                                openPreferencesView()
+                            }
+                            #endif
                         }
                         else {
                             if chatsCount == 0 {
@@ -56,10 +71,14 @@ struct WelcomeScreen: View {
 
                         }
                     }
-                    .padding(.bottom, 60)
+                    .padding(.bottom, bottomPadding)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            #if os(iOS)
+            .background(Color(.systemBackground).ignoresSafeArea())
+            #endif
 
         }
     }

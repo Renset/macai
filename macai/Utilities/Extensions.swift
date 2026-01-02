@@ -9,7 +9,10 @@ import CommonCrypto
 import CoreData
 import Foundation
 import SwiftUI
+
+#if os(macOS)
 import AppKit
+#endif
 
 extension Data {
     public func sha256() -> String {

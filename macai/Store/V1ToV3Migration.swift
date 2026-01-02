@@ -1,4 +1,8 @@
+import Foundation
+
+#if os(macOS)
 import AppKit
+#endif
 import CoreData
 import SQLite3
 
@@ -157,6 +161,7 @@ final class ProgrammaticMigrator {
 
     @discardableResult
     private static func presentFatalAlert(messageText: String, informativeText: String, includeBackupsButton: Bool) -> Never {
+        #if os(macOS)
         let work = {
             if !restoreLinkOpened {
                 NSWorkspace.shared.open(restoreURL)
@@ -190,14 +195,18 @@ final class ProgrammaticMigrator {
         } else {
             DispatchQueue.main.sync(execute: work)
         }
+        #else
+        print("[Migration] \(messageText) - \(informativeText)")
+        #endif
 
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 60))
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 1))
         fatalError("Migration aborted")
     }
 }
 
 // MARK: - Migration Progress Window
 
+#if os(macOS)
 final class MigrationProgressWindow {
     enum Step: Int {
         case readAPIServices = 1
@@ -390,6 +399,31 @@ final class MigrationProgressWindow {
         }
     }
 }
+#else
+final class MigrationProgressWindow {
+    enum Step: Int {
+        case readAPIServices = 1
+        case readPersonas = 2
+        case readChats = 3
+        case readMessages = 4
+        case readImages = 5
+        case writeAPIServices = 6
+        case writePersonas = 7
+        case writeChats = 8
+        case writeMessages = 9
+        case writeImages = 10
+        case finalizing = 11
+    }
+
+    static let totalSteps = Step.finalizing.rawValue
+
+    func show() {}
+    func setTotalSteps(_ totalSteps: Int, initialMessage: String? = nil) {}
+    func setProgress(step: Step, message: String) {}
+    func showSuccessAndClose(after delaySeconds: TimeInterval) {}
+    func close() {}
+}
+#endif
 
 // MARK: - Migration Data Export/Import
 
@@ -738,6 +772,7 @@ enum CoreDataBackupManager {
     }
 
     static func revealBackupsFolder() {
+        #if os(macOS)
         let backupsDir = backupsDirectoryURL()
         if FileManager.default.fileExists(atPath: backupsDir.path) {
             NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: backupsDir.path)
@@ -745,6 +780,9 @@ enum CoreDataBackupManager {
             let parentDir = backupsDir.deletingLastPathComponent()
             NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: parentDir.path)
         }
+        #else
+        // No-op on iOS (no Finder to reveal)
+        #endif
     }
 
     static func clearMigrationRetrySkipBackupFlag() {

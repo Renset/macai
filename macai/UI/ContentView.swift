@@ -5,6 +5,8 @@
 //  Created by Renat Notfullin on 11.03.2023.
 //
 
+#if os(macOS)
+
 import AppKit
 import Combine
 import CoreData
@@ -492,3 +494,5 @@ struct WindowAccessor: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
+
+#endif

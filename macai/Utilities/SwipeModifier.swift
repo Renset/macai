@@ -16,6 +16,8 @@
 
 import SwiftUI
 
+#if os(macOS)
+
 extension View {
     ///
     ///    View modifier to handle mouse swipes.
@@ -216,9 +218,6 @@ public class SwipeEvent {
         return  .none
     }
 }
-
-
-
 ///
 ///    A ViewModifier for detecting swipe events.
 ///
@@ -280,3 +279,18 @@ private struct OnSwipe: ViewModifier {
     }
 }
 
+#else
+extension View {
+    func onSwipe(perform action: @escaping (SwipeEvent) -> Void) -> some View {
+        self
+    }
+}
+
+public final class SwipeEvent {
+    enum SwipeDirection {
+        case none, up, down, left, right
+    }
+
+    var direction: SwipeDirection { .none }
+}
+#endif

@@ -72,7 +72,7 @@ class ImageAttachment: Identifiable, ObservableObject {
                     }
                 }
 
-                if let image = NSImage(contentsOf: url) {
+                if let image = ImageProcessing.loadImage(from: url) {
                     self.createThumbnail(from: image)
                     self.saveToEntity(image: image)
 
@@ -212,63 +212,28 @@ class ImageAttachment: Identifiable, ObservableObject {
     }
 
     private func generateThumbnailImage(from image: NSImage) -> NSImage? {
-        let thumbnailSize: CGFloat = AppConstants.thumbnailSize
-
-        let size = image.size
-        guard size.width > 0, size.height > 0 else { return nil }
-
-        let aspectRatio = size.width / size.height
-
-        var newWidth: CGFloat
-        var newHeight: CGFloat
-
-        if size.width > size.height {
-            newWidth = thumbnailSize
-            newHeight = thumbnailSize / aspectRatio
-        }
-        else {
-            newHeight = thumbnailSize
-            newWidth = thumbnailSize * aspectRatio
-        }
-
-        let thumbnailImage = NSImage(size: NSSize(width: newWidth, height: newHeight))
-
-        thumbnailImage.lockFocus()
-        NSGraphicsContext.current?.imageInterpolation = .high
-        image.draw(
-            in: NSRect(x: 0, y: 0, width: newWidth, height: newHeight),
-            from: NSRect(x: 0, y: 0, width: size.width, height: size.height),
-            operation: .copy,
-            fraction: 1.0
-        )
-        thumbnailImage.unlockFocus()
-
-        return thumbnailImage
+        ImageProcessing.thumbnail(from: image, maxSize: AppConstants.thumbnailSize)
     }
 
     private func convertHEICToJPEG() -> NSImage? {
         guard let url = self.url else { return nil }
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
         guard let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else { return nil }
-
+        #if os(macOS)
         let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
         guard let jpegData = bitmapRep.representation(using: .jpeg, properties: [:]) else { return nil }
-
         return NSImage(data: jpegData)
+        #else
+        let image = NSImage(cgImage: cgImage)
+        return image
+        #endif
     }
 
     func toBase64() -> String? {
         guard let image = self.image else { return nil }
 
         let resizedImage = resizeImageIfNeeded(image)
-
-        guard let tiffData = resizedImage.tiffRepresentation,
-            let bitmapImage = NSBitmapImageRep(data: tiffData),
-            let jpegData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.8])
-        else {
-            return nil
-        }
-
+        guard let jpegData = ImageProcessing.jpegData(from: resizedImage, compression: 0.8) else { return nil }
         return jpegData.base64EncodedString()
     }
 
@@ -296,19 +261,7 @@ class ImageAttachment: Identifiable, ObservableObject {
             newWidth = min(maxLongSide, size.width * (maxShortSide / size.height))
         }
 
-        let newImage = NSImage(size: NSSize(width: newWidth, height: newHeight))
-
-        newImage.lockFocus()
-        NSGraphicsContext.current?.imageInterpolation = .high
-        image.draw(
-            in: NSRect(x: 0, y: 0, width: newWidth, height: newHeight),
-            from: NSRect(x: 0, y: 0, width: size.width, height: size.height),
-            operation: .copy,
-            fraction: 1.0
-        )
-        newImage.unlockFocus()
-
-        return newImage
+        return ImageProcessing.resize(image: image, to: CGSize(width: newWidth, height: newHeight)) ?? image
     }
 
     private func getFormatString(from type: UTType) -> String {
@@ -320,18 +273,6 @@ class ImageAttachment: Identifiable, ObservableObject {
         default:
             // Try to get the preferred filename extension
             return type.preferredFilenameExtension ?? "jpeg"
-        }
-    }
-
-    private func getImageData(from bitmapImage: NSBitmapImageRep, using type: UTType) -> Data? {
-        switch type {
-        case .png:
-            return bitmapImage.representation(using: .png, properties: [:])
-        case .jpeg:
-            return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-        default:
-            // For all other types (HEIC/HEIF/WEBP/unknown), prefer JPEG to keep size modest.
-            return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
         }
     }
 
@@ -351,12 +292,7 @@ class ImageAttachment: Identifiable, ObservableObject {
         while resultData.count > targetSize && compressionFactor > 0.1 && compressionIterations < maxCompressionIterations {
             compressionIterations += 1
             
-            if let tiffData = resizedImage.tiffRepresentation,
-               let bitmapImage = NSBitmapImageRep(data: tiffData),
-               let compressedData = bitmapImage.representation(
-                   using: .jpeg,
-                   properties: [.compressionFactor: compressionFactor]
-               ) {
+            if let compressedData = ImageProcessing.jpegData(from: resizedImage, compression: compressionFactor) {
                 resultData = compressedData
                 
                 // Early exit if we've reached the target
@@ -381,25 +317,11 @@ class ImageAttachment: Identifiable, ObservableObject {
                     height: currentSize.height * scaleFactor
                 )
 
-                let scaledImage = NSImage(size: currentSize)
-                scaledImage.lockFocus()
-                NSGraphicsContext.current?.imageInterpolation = .high
-                resizedImage.draw(
-                    in: NSRect(origin: .zero, size: currentSize),
-                    from: NSRect(origin: .zero, size: resizedImage.size),
-                    operation: .copy,
-                    fraction: 1.0
-                )
-                scaledImage.unlockFocus()
+                if let scaledImage = ImageProcessing.resize(image: resizedImage, to: currentSize) {
+                    resizedImage = scaledImage
+                }
 
-                resizedImage = scaledImage
-
-                if let tiffData = resizedImage.tiffRepresentation,
-                   let bitmapImage = NSBitmapImageRep(data: tiffData),
-                   let compressedData = bitmapImage.representation(
-                       using: .jpeg,
-                       properties: [.compressionFactor: 0.6]
-                   ) {
+                if let compressedData = ImageProcessing.jpegData(from: resizedImage, compression: 0.6) {
                     resultData = compressedData
                     
                     // Early exit if we've reached the target
@@ -434,14 +356,11 @@ extension ImageAttachment {
                 convertedToJPEG = true
             }
             else if let url = self.url {
-                workingImage = NSImage(contentsOf: url)
+                workingImage = ImageProcessing.loadImage(from: url)
             }
         }
 
-        guard let imageToPersist = workingImage,
-            let tiffData = imageToPersist.tiffRepresentation,
-            let bitmapImage = NSBitmapImageRep(data: tiffData)
-        else {
+        guard let imageToPersist = workingImage else {
             return nil
         }
 
@@ -451,16 +370,16 @@ extension ImageAttachment {
         var imageData: Data?
 
         if usePNG {
-            imageData = bitmapImage.representation(using: .png, properties: [:])
+            imageData = ImageProcessing.pngData(from: imageToPersist)
         } else {
-            imageData = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+            imageData = ImageProcessing.jpegData(from: imageToPersist, compression: 0.9)
             if originalFileType != .jpeg {
                 convertedToJPEG = true
             }
         }
 
         if imageData == nil,
-           let jpegFallback = bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+           let jpegFallback = ImageProcessing.jpegData(from: imageToPersist, compression: 0.9)
         {
             imageData = jpegFallback
             targetFormat = "jpeg"
@@ -490,14 +409,8 @@ extension ImageAttachment {
         let thumbnailImage = self.thumbnail ?? generateThumbnailImage(from: imageToPersist)
         var thumbnailData: Data?
 
-        if let thumbnailImage,
-           let thumbnailTiff = thumbnailImage.tiffRepresentation,
-           let thumbnailBitmap = NSBitmapImageRep(data: thumbnailTiff)
-        {
-            thumbnailData = thumbnailBitmap.representation(
-                using: .jpeg,
-                properties: [.compressionFactor: 0.7]
-            )
+        if let thumbnailImage {
+            thumbnailData = ImageProcessing.jpegData(from: thumbnailImage, compression: 0.7)
             if let data = thumbnailData, data.isEmpty {
                 thumbnailData = nil
             }

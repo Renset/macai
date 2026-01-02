@@ -5,9 +5,12 @@
 //  Created by Renat on 07.02.2025.
 //
 
-import AppKit
-import CoreData
 import Foundation
+import CoreData
+
+#if os(macOS)
+import AppKit
+#endif
 
 private struct GeminiModelList: Decodable {
     let models: [GeminiModel]
@@ -786,33 +789,8 @@ class GeminiHandler: APIService {
     }
 
     private func createThumbnailData(from image: NSImage) -> Data? {
-        let thumbnailSize = CGFloat(AppConstants.thumbnailSize)
-        let originalSize = image.size
-        guard originalSize.width > 0, originalSize.height > 0 else { return nil }
-
-        let aspectRatio = originalSize.width / originalSize.height
-        var targetSize = CGSize(width: thumbnailSize, height: thumbnailSize)
-
-        if aspectRatio > 1 {
-            targetSize.height = thumbnailSize / aspectRatio
-        }
-        else {
-            targetSize.width = thumbnailSize * aspectRatio
-        }
-
-        let thumbnail = NSImage(size: targetSize)
-        thumbnail.lockFocus()
-        NSGraphicsContext.current?.imageInterpolation = .high
-        image.draw(in: CGRect(origin: .zero, size: targetSize), from: .zero, operation: .copy, fraction: 1.0)
-        thumbnail.unlockFocus()
-
-        guard let tiffData = thumbnail.tiffRepresentation,
-            let bitmap = NSBitmapImageRep(data: tiffData)
-        else {
-            return nil
-        }
-
-        return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.7])
+        guard let thumbnail = ImageProcessing.thumbnail(from: image, maxSize: CGFloat(AppConstants.thumbnailSize)) else { return nil }
+        return ImageProcessing.jpegData(from: thumbnail, compression: 0.7)
     }
 
     private func formatFromMimeType(_ mimeType: String?) -> String {

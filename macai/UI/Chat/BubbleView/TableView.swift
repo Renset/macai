@@ -7,7 +7,12 @@
 
 import Foundation
 import SwiftUI
+
+#if os(macOS)
 import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 
 struct TableHeaderView: View {
@@ -114,9 +119,13 @@ struct TableView: View {
         let headerString = header.joined(separator: "\t")
         let tableDataString = tableData.map { $0.joined(separator: "\t") }.joined(separator: "\n")
         let tableString = "\(headerString)\n\(tableDataString)"
+        #if os(macOS)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(tableString, forType: .string)
+        #elseif os(iOS)
+        UIPasteboard.general.string = tableString
+        #endif
     }
     
     private func copyTableAsJSONToClipboard() {

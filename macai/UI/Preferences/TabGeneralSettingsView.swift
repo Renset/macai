@@ -5,10 +5,15 @@
 //  Created by Renat on 31.01.2025.
 //
 
-import AppKit
-import Sparkle
 import SwiftUI
 import AttributedText
+
+#if os(macOS)
+import AppKit
+import Sparkle
+#elseif os(iOS)
+import UIKit
+#endif
 
 struct TabGeneralSettingsView: View {
     private let previewCode = """
@@ -53,6 +58,7 @@ struct TabGeneralSettingsView: View {
             set: { newValue in
                 // This ugly solution is needed to workaround the SwiftUI (?) bug with the view not updated completely on setting theme to System
                 if newValue == nil {
+                    #if os(macOS)
                     let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
                     preferredColorSchemeRaw = isDark ? 2 : 1
                     selectedColorSchemeRaw = 0
@@ -60,6 +66,10 @@ struct TabGeneralSettingsView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         preferredColorSchemeRaw = 0
                     }
+                    #else
+                    preferredColorSchemeRaw = 0
+                    selectedColorSchemeRaw = 0
+                    #endif
                 }
                 else {
                     switch newValue {
@@ -75,18 +85,131 @@ struct TabGeneralSettingsView: View {
         )
     }
 
+    #if os(macOS)
     private let updaterController = SPUStandardUpdaterController(
         startingUpdater: true,
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
+    #endif
 
     var body: some View {
+        Group {
+            #if os(iOS)
+            ScrollView {
+                content
+            }
+            #else
+            content
+            #endif
+        }
+        .padding()
+        .onAppear {
+            self.selectedColorSchemeRaw = self.preferredColorSchemeRaw
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                generalSettingsSeen = true
+            }
+        }
+        .alert("Restart Required", isPresented: $showRestartAlert) {
+            Button("Cancel", role: .cancel) {}
+            if pendingSyncState {
+                #if os(iOS)
+                Button("Enable") {
+                    enableSyncAction()
+                }
+                #else
+                Button("Enable & Restart") {
+                    enableSyncAction()
+                }
+                #endif
+            } else {
+                #if os(iOS)
+                Button("Disable & Keep in iCloud") {
+                    disableAndKeepAction()
+                }
+                Button("Disable & Delete from iCloud", role: .destructive) {
+                    disableAndDeleteAction()
+                }
+                #else
+                Button("Disable & Keep in iCloud") {
+                    disableAndKeepAction()
+                }
+                Button("Disable & Delete from iCloud", role: .destructive) {
+                    disableAndDeleteAction()
+                }
+                #endif
+            }
+        } message: {
+            Text(restartAlertMessage)
+        }
+        .sheet(isPresented: $showSyncDebugLog) {
+            SyncDebugLogView(cloudSyncManager: cloudSyncManager)
+        }
+        .alert("Couldn't remove iCloud data", isPresented: Binding<Bool>(
+            get: { purgeError != nil },
+            set: { newValue in if !newValue { purgeError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(purgeError ?? "Unknown error")
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Use a plain VStack instead of Form so sections stretch to the full
             // available width (macOS Form tends to hug intrinsic content).
             VStack(alignment: .leading, spacing: 16) {
                 GroupBox {
+                    #if os(iOS)
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Chat Font Size")
+                            VStack(spacing: 4) {
+                                HStack {
+                                    Text("A").foregroundColor(.secondary).font(.system(size: 12))
+                                    Slider(value: $chatFontSize, in: 10...24, step: 1)
+                                    Text("A").foregroundColor(.secondary).font(.system(size: 20))
+                                }
+                                Text("Example \(Int(chatFontSize))pt")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: chatFontSize))
+                            }
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Code Font")
+                            VStack(alignment: .leading, spacing: 4) {
+                                ScrollView {
+                                    if let highlighted = HighlighterManager.shared.highlight(
+                                        code: previewCode,
+                                        language: "swift",
+                                        theme: systemColorScheme == .dark ? "monokai-sublime" : "code-brewer",
+                                        fontSize: chatFontSize
+                                    ) {
+                                        AttributedText(highlighted)
+                                    } else {
+                                        Text(previewCode)
+                                            .font(.custom(codeFont, size: chatFontSize))
+                                    }
+                                }
+                                
+                                Picker("", selection: $codeFont) {
+                                    Text("Fira Code").tag(AppConstants.firaCode)
+                                    Text("PT Mono").tag(AppConstants.ptMono)
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                            .padding(8)
+                            .background(systemColorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                            .cornerRadius(6)
+                            .frame(height: 140)
+                        }
+                    }
+                    .padding(8)
+                    #else
                     Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
                         GridRow {
                             HStack {
@@ -194,6 +317,7 @@ struct TabGeneralSettingsView: View {
                         }
                     }
                     .padding(8)
+                    #endif
                 }
 
                 // iCloud Sync Section - hidden when DISABLE_ICLOUD flag is set or CloudKit is not configured
@@ -249,7 +373,9 @@ struct TabGeneralSettingsView: View {
                                     Button("Show Log") {
                                         showSyncDebugLog = true
                                     }
+                                    #if os(macOS)
                                     .buttonStyle(.link)
+                                    #endif
                                     .font(.callout)
                                 }
                             }
@@ -291,6 +417,7 @@ struct TabGeneralSettingsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
+            #if os(macOS)
             HStack {
                 Toggle("Automatically check for updates", isOn: $autoCheckForUpdates)
                     .onChange(of: autoCheckForUpdates) { newValue in
@@ -303,77 +430,8 @@ struct TabGeneralSettingsView: View {
                     updaterController.checkForUpdates(nil)
                 }
             }
+            #endif
 
-        }
-        .padding()
-        .onAppear {
-            self.selectedColorSchemeRaw = self.preferredColorSchemeRaw
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                generalSettingsSeen = true
-            }
-        }
-        .alert("Restart Required", isPresented: $showRestartAlert) {
-            Button("Cancel", role: .cancel) {}
-            if pendingSyncState {
-                Button("Enable & Restart") {
-                    // Cache tokens first, then restore to cloud after enabling sync
-                    let cachedTokens = TokenManager.cacheAllTokens()
-                    iCloudSyncEnabled = pendingSyncState
-                    TokenManager.restoreTokensToCloudKeychain(cachedTokens)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        restartApp()
-                    }
-                }
-            } else {
-                Button("Disable & Keep in iCloud") {
-                    // Cache tokens in memory first, then restore to local keychain
-                    let cachedTokens = TokenManager.cacheAllTokens()
-                    iCloudSyncEnabled = pendingSyncState
-                    TokenManager.restoreTokensToLocalKeychain(cachedTokens)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        restartApp()
-                    }
-                }
-                Button("Disable & Delete from iCloud", role: .destructive) {
-                    guard !isPurgingCloudData else { return }
-                    isPurgingCloudData = true
-                    // Cache all tokens in memory BEFORE any keychain operations
-                    let cachedTokens = TokenManager.cacheAllTokens()
-                    cloudSyncManager.purgeCloudData { result in
-                        DispatchQueue.main.async {
-                            isPurgingCloudData = false
-                            switch result {
-                            case .success:
-                                purgeError = nil
-                                TokenManager.clearCloudTokens()
-                                // Restore cached tokens to local keychain AFTER clearing cloud
-                                TokenManager.restoreTokensToLocalKeychain(cachedTokens)
-                                iCloudSyncEnabled = pendingSyncState
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    restartApp()
-                                }
-                            case .failure(let error):
-                                purgeError = error.localizedDescription
-                            }
-                        }
-                    }
-                }
-            }
-        } message: {
-            Text(pendingSyncState
-                 ? "Enabling iCloud sync requires restarting the app. Your existing data will be uploaded to iCloud."
-                 : "Disabling iCloud sync requires restarting the app. Choose to keep or delete your iCloud copy; local data stays on this Mac and will stop syncing.")
-        }
-        .sheet(isPresented: $showSyncDebugLog) {
-            SyncDebugLogView(cloudSyncManager: cloudSyncManager)
-        }
-        .alert("Couldn't remove iCloud data", isPresented: Binding<Bool>(
-            get: { purgeError != nil },
-            set: { newValue in if !newValue { purgeError = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(purgeError ?? "Unknown error")
         }
     }
 
@@ -393,6 +451,22 @@ struct TabGeneralSettingsView: View {
         }
     }
 
+    private var restartAlertMessage: String {
+        if pendingSyncState {
+            #if os(macOS)
+            return "Enabling iCloud sync requires restarting the app. Your existing data will be uploaded to iCloud."
+            #else
+            return "Enabling iCloud sync requires restarting the app. Please manually close the app from the App Switcher and open it again. Your existing data will be uploaded to iCloud."
+            #endif
+        } else {
+            #if os(macOS)
+            return "Disabling iCloud sync requires restarting the app. Choose to keep or delete your iCloud copy; local data stays on this Mac and will stop syncing."
+            #else
+            return "Disabling iCloud sync requires restarting the app. Please manually close the app from the App Switcher and open it again. Choose to keep or delete your iCloud copy; local data stays on this device and will stop syncing."
+            #endif
+        }
+    }
+
     private var syncStatusText: String {
         if !iCloudSyncEnabled {
             return "Off"
@@ -409,7 +483,59 @@ struct TabGeneralSettingsView: View {
         }
     }
 
+    private func enableSyncAction() {
+        // Cache tokens first, then restore to cloud after enabling sync
+        let cachedTokens = TokenManager.cacheAllTokens()
+        iCloudSyncEnabled = pendingSyncState
+        TokenManager.restoreTokensToCloudKeychain(cachedTokens)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            #if os(macOS)
+            restartApp()
+            #endif
+        }
+    }
+
+    private func disableAndKeepAction() {
+        // Cache tokens in memory first, then restore to local keychain
+        let cachedTokens = TokenManager.cacheAllTokens()
+        iCloudSyncEnabled = pendingSyncState
+        TokenManager.restoreTokensToLocalKeychain(cachedTokens)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            #if os(macOS)
+            restartApp()
+            #endif
+        }
+    }
+
+    private func disableAndDeleteAction() {
+        guard !isPurgingCloudData else { return }
+        isPurgingCloudData = true
+        // Cache all tokens in memory BEFORE any keychain operations
+        let cachedTokens = TokenManager.cacheAllTokens()
+        cloudSyncManager.purgeCloudData { result in
+            DispatchQueue.main.async {
+                isPurgingCloudData = false
+                switch result {
+                case .success:
+                    purgeError = nil
+                    TokenManager.clearCloudTokens()
+                    // Restore cached tokens to local keychain AFTER clearing cloud
+                    TokenManager.restoreTokensToLocalKeychain(cachedTokens)
+                    iCloudSyncEnabled = pendingSyncState
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        #if os(macOS)
+                        restartApp()
+                        #endif
+                    }
+                case .failure(let error):
+                    purgeError = error.localizedDescription
+                }
+            }
+        }
+    }
+
     private func restartApp() {
+        #if os(macOS)
         let appPath = Bundle.main.bundlePath
 
         // Spawn a detached shell process that waits for the app to quit, then relaunches it
@@ -425,6 +551,9 @@ struct TabGeneralSettingsView: View {
 
         // Terminate the current instance
         NSApplication.shared.terminate(nil)
+        #else
+        print("Restart is not supported on iOS.")
+        #endif
     }
 }
 
@@ -457,12 +586,18 @@ struct SyncDebugLogView: View {
                 Spacer()
 
                 Toggle("Auto-scroll", isOn: $autoScroll)
+                    #if os(macOS)
                     .toggleStyle(.checkbox)
+                    #endif
 
                 Button("Copy Log") {
                     let logText = cloudSyncManager.exportLogsAsText()
+                    #if os(macOS)
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(logText, forType: .string)
+                    #elseif os(iOS)
+                    UIPasteboard.general.string = logText
+                    #endif
                 }
 
                 Button("Clear") {
@@ -537,7 +672,11 @@ struct SyncDebugLogView: View {
             }
             .padding()
         }
+        #if os(macOS)
         .frame(minWidth: 700, minHeight: 400)
+        #else
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
     }
 
     private var statusColor: Color {

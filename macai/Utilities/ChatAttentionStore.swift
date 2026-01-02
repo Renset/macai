@@ -5,8 +5,13 @@
 //  Created by Renat Notfullin on 23.12.2025
 //
 
-import AppKit
 import Foundation
+
+#if os(macOS)
+import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 final class ChatAttentionStore: ObservableObject {
     static let shared = ChatAttentionStore()
@@ -60,10 +65,14 @@ final class ChatAttentionStore: ObservableObject {
         print("Setting dock badge count: \(count)")
 
         if Thread.isMainThread {
+            #if os(macOS)
             NSApplication.shared.dockTile.showsApplicationBadge = true
             NSApplication.shared.dockTile.badgeLabel = badge
             NSApplication.shared.dockTile.display()
             print("Dock badge label now: \(NSApplication.shared.dockTile.badgeLabel ?? "nil")")
+            #elseif os(iOS)
+            UIApplication.shared.applicationIconBadgeNumber = count
+            #endif
         }
         else {
             DispatchQueue.main.async { [weak self] in

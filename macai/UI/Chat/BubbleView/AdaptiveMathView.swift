@@ -15,6 +15,7 @@ struct MathViewSizePreferenceKey: PreferenceKey {
     }
 }
 
+#if os(macOS)
 struct MathView: NSViewRepresentable {
     var equation: String
     var fontSize: CGFloat
@@ -34,6 +35,27 @@ struct MathView: NSViewRepresentable {
         view.setNeedsDisplay(view.bounds)
     }
 }
+#elseif os(iOS)
+struct MathView: UIViewRepresentable {
+    var equation: String
+    var fontSize: CGFloat
+
+    func makeUIView(context: Context) -> MTMathUILabel {
+        let view = MTMathUILabel()
+        view.font = MTFontManager().termesFont(withSize: fontSize)
+        view.textColor = .label
+        view.textAlignment = .left
+        view.labelMode = .text
+        return view
+    }
+
+    func updateUIView(_ view: MTMathUILabel, context: Context) {
+        view.latex = equation
+        view.fontSize = fontSize
+        view.setNeedsDisplay()
+    }
+}
+#endif
 
 struct AdaptiveMathView: View {
     let equation: String
@@ -55,4 +77,3 @@ struct AdaptiveMathView: View {
         .frame(width: size.width, height: size.height)
     }
 }
-

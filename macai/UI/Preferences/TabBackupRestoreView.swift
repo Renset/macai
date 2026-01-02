@@ -5,6 +5,8 @@
 //  Created by Renat Notfullin on 11.11.2023.
 //
 
+#if os(macOS)
+
 import CoreData
 import SwiftUI
 import UniformTypeIdentifiers
@@ -838,3 +840,5 @@ struct BackupRowView: View {
         }
     }
 }
+
+#endif

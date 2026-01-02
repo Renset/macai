@@ -37,13 +37,21 @@ struct TabAPIServicesView: View {
                     Button(action: onEdit) {
                         Label("Edit", systemImage: "pencil")
                     }
+                    #if os(iOS)
+                    .buttonStyle(.bordered)
+                    #else
                     .buttonStyle(BorderlessButtonStyle())
+                    #endif
                     .keyboardShortcut(.defaultAction)
 
                     Button(action: onDuplicate) {
                         Label("Duplicate", systemImage: "plus.square.on.square")
                     }
+                    #if os(iOS)
+                    .buttonStyle(.bordered)
+                    #else
                     .buttonStyle(BorderlessButtonStyle())
+                    #endif
 
                     if !isSelectedServiceDefault {
                         Button(action: {
@@ -51,7 +59,11 @@ struct TabAPIServicesView: View {
                         }) {
                             Label("Set as Default", systemImage: "star")
                         }
+                        #if os(iOS)
+                        .buttonStyle(.bordered)
+                        #else
                         .buttonStyle(BorderlessButtonStyle())
+                        #endif
                     }
                 }
                 Spacer(minLength: 0)
@@ -64,9 +76,17 @@ struct TabAPIServicesView: View {
                     presentSimpleAdd()
                 }
                 .frame(maxWidth: 200, alignment: .trailing)
+                #if os(iOS)
+                .buttonStyle(.bordered)
+                #endif
             }
+            #if os(iOS)
+            .controlSize(.regular)
+            #endif
         }
+        #if os(macOS)
         .frame(minHeight: 300)
+        #endif
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
             case .addSimple:
@@ -101,6 +121,9 @@ struct TabAPIServicesView: View {
                 }
             }
         }
+        #if os(iOS)
+        .padding(.horizontal, 8)
+        #endif
     }
 
     private var entityListView: some View {

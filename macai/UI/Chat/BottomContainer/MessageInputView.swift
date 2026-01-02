@@ -278,6 +278,7 @@ struct ImagePreviewView: View {
                     .cornerRadius(8)
             }
             else if let thumbnail = attachment.thumbnail ?? attachment.image {
+                #if os(macOS)
                 Image(nsImage: thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -288,6 +289,18 @@ struct ImagePreviewView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(Color.gray.opacity(0.5), lineWidth: 1)
                     )
+                #else
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 80, height: 80)
+                    .clipped()
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    )
+                #endif
 
                 Button(action: {
                     onRemove(0)

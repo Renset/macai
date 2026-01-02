@@ -7,6 +7,9 @@
 
 import AttributedText
 import SwiftUI
+#if os(iOS)
+import QuickLook
+#endif
 
 struct IdentifiableImage: Identifiable {
     let id = UUID()
@@ -25,6 +28,9 @@ struct MessageContentView: View {
     @State private var showFullMessage = false
     @State private var isParsingFullMessage = false
     @State private var selectedImage: IdentifiableImage?
+    #if os(iOS)
+    @State private var selectedPreviewItem: ImagePreviewItem?
+    #endif
 
     private let largeMessageSymbolsThreshold = AppConstants.largeMessageSymbolsThreshold
 
@@ -195,8 +201,13 @@ struct MessageContentView: View {
                 let contentTextRange = match.range(at: 1)
                 
                 let fontDescriptor = NSFont.systemFont(ofSize: effectiveFontSize).fontDescriptor
+                #if os(macOS)
                 let italicDescriptor = fontDescriptor.withSymbolicTraits(.italic)
                 let italicFont = NSFont(descriptor: italicDescriptor, size: effectiveFontSize) ?? NSFont.systemFont(ofSize: effectiveFontSize)
+                #else
+                let italicDescriptor = fontDescriptor.withSymbolicTraits(.traitItalic) ?? fontDescriptor
+                let italicFont = NSFont(descriptor: italicDescriptor, size: effectiveFontSize) ?? NSFont.systemFont(ofSize: effectiveFontSize)
+                #endif
                 mutableAttributedString.addAttribute(.font, value: italicFont, range: contentTextRange)
                 
                 let quoteColor = colorScheme == .dark ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor
@@ -257,6 +268,7 @@ struct MessageContentView: View {
         let aspectRatio = image.size.width / image.size.height
         let displayHeight = maxWidth / aspectRatio
 
+        #if os(macOS)
         Image(nsImage: image)
             .resizable()
             .aspectRatio(contentMode: .fill)
@@ -272,8 +284,80 @@ struct MessageContentView: View {
                     imageAspectRatio: aspectRatio,
                     chatName: message?.chat?.name
                 )
-
             }
+        #else
+        Image(uiImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(maxWidth: maxWidth, maxHeight: displayHeight)
+            .cornerRadius(8)
+            .padding(.bottom, 3)
+            .onTapGesture {
+                selectedPreviewItem = makePreviewItem(from: image)
+            }
+            .sheet(item: $selectedPreviewItem) { item in
+                QuickLookPreview(url: item.url)
+            }
+        #endif
     }
 
 }
+
+#if os(iOS)
+private struct ImagePreviewItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private func makePreviewItem(from image: NSImage) -> ImagePreviewItem? {
+    let previewFolder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("macai-image-preview", isDirectory: true)
+    try? FileManager.default.createDirectory(at: previewFolder, withIntermediateDirectories: true)
+
+    let fileURL = previewFolder.appendingPathComponent(UUID().uuidString).appendingPathExtension("jpg")
+    if let data = image.jpegData(compressionQuality: 0.95) ?? image.pngData() {
+        do {
+            try data.write(to: fileURL, options: [.atomic])
+            return ImagePreviewItem(url: fileURL)
+        } catch {
+            print("Failed to write preview image: \(error)")
+        }
+    }
+    return nil
+}
+
+private struct QuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url)
+    }
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
+        context.coordinator.url = url
+        uiViewController.reloadData()
+    }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        var url: URL
+
+        init(url: URL) {
+            self.url = url
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+            1
+        }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
+    }
+}
+#endif

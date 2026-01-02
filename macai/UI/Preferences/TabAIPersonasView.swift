@@ -34,7 +34,11 @@ struct TabAIPersonasView: View {
                     Button(action: onEdit) {
                         Label("Edit", systemImage: "pencil")
                     }
+                    #if os(iOS)
+                    .buttonStyle(.bordered)
+                    #else
                     .buttonStyle(BorderlessButtonStyle())
+                    #endif
                     .keyboardShortcut(.defaultAction)
 
                     Button(action: {
@@ -46,7 +50,11 @@ struct TabAIPersonasView: View {
                     }) {
                         Label("Delete", systemImage: "trash")
                     }
+                    #if os(iOS)
+                    .buttonStyle(.bordered)
+                    #else
                     .buttonStyle(BorderlessButtonStyle())
+                    #endif
                 }
                 Spacer()
                 if personas.count == 0 {
@@ -55,9 +63,17 @@ struct TabAIPersonasView: View {
                 Button(action: onAdd) {
                     Label("Add New", systemImage: "plus")
                 }
+                #if os(iOS)
+                .buttonStyle(.bordered)
+                #endif
             }
+            #if os(iOS)
+            .controlSize(.regular)
+            #endif
         }
+        #if os(macOS)
         .frame(minHeight: 300)
+        #endif
         .onChange(of: selectedPersonaID) { id in
             selectedPersona = personas.first(where: { $0.objectID == id })
             print("Selected Assistant ID: \(id)")
@@ -88,6 +104,9 @@ struct TabAIPersonasView: View {
                 secondaryButton: .cancel()
             )
         }
+        #if os(iOS)
+        .padding(.horizontal, 8)
+        #endif
     }
 
     private var entityListView: some View {
@@ -128,6 +147,9 @@ struct TabAIPersonasView: View {
         }) {
             Label("Add AI Assistants from Presets", systemImage: "plus.circle")
         }
+        #if os(iOS)
+        .buttonStyle(.bordered)
+        #endif
     }
 
     private func detailContent(persona: PersonaEntity?) -> some View {

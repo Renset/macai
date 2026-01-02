@@ -5,6 +5,7 @@
 //  Created by Renat Notfullin on 25.03.2023.
 //
 
+import CoreData
 import SwiftUI
 
 struct MessageCell: View, Equatable {

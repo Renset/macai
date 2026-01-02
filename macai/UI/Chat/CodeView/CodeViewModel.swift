@@ -7,6 +7,10 @@
 
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 class CodeViewModel: ObservableObject {
     @Published var highlightedCode: NSAttributedString?
     @Published var isCopied = false
@@ -34,9 +38,13 @@ class CodeViewModel: ObservableObject {
     }
     
     func copyToClipboard() {
+        #if os(macOS)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(code, forType: .string)
+        #elseif os(iOS)
+        UIPasteboard.general.string = code
+        #endif
         
         withAnimation {
             isCopied = true

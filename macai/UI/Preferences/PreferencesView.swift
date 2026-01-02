@@ -8,6 +8,10 @@
 import Foundation
 import SwiftUI
 
+#if os(macOS)
+import AppKit
+#endif
+
 struct APIRequestData: Codable {
     let model: String
     let messages = [
@@ -32,17 +36,29 @@ struct PreferencesView: View {
 
             TabAPIServicesView()
                 .tabItem {
+                    #if os(iOS)
+                    Label("Services", systemImage: "network")
+                    #else
                     Label("API Services", systemImage: "network")
+                    #endif
                 }
 
             TabAIPersonasView()
                 .tabItem {
+                    #if os(iOS)
+                    Label("Personas", systemImage: "person.2")
+                    #else
                     Label("AI Assistants", systemImage: "person.2")
+                    #endif
                 }
 
             BackupRestoreView(store: store)
                 .tabItem {
+                    #if os(iOS)
+                    Label("Backup", systemImage: "externaldrive")
+                    #else
                     Label("Backup & Restore", systemImage: "externaldrive")
+                    #endif
                 }
 
             DangerZoneView(store: store)
@@ -50,15 +66,17 @@ struct PreferencesView: View {
                     Label("Danger Zone", systemImage: "flame.fill")
                 }
         }
+        #if os(macOS)
         .frame(width: 480)
         .padding()
+        #endif
         .onAppear(perform: {
             store.saveInCoreData()
-
+            #if os(macOS)
             if let window = NSApp.mainWindow {
                 window.standardWindowButton(.zoomButton)?.isEnabled = false
             }
-
+            #endif
         })
     }
 }

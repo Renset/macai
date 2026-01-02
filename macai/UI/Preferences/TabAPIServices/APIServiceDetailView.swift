@@ -4,6 +4,7 @@
 //
 //  Created by Renat Notfullin on 13.09.2024.
 //
+import CoreData
 import SwiftUI
 
 struct APIServiceDetailView: View {

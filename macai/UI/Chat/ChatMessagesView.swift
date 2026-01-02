@@ -22,7 +22,13 @@ struct ChatMessagesView: View {
     @State private var pendingCodeBlocks = 0
     @State private var isInitialLoad = true
     
-    var backgroundColor = Color(NSColor.controlBackgroundColor)
+    private var backgroundColor: Color {
+        #if os(iOS)
+        return Color(NSColor.windowBackgroundColor)
+        #else
+        return Color(NSColor.controlBackgroundColor)
+        #endif
+    }
 
     private var shouldShowWaitingBubble: Bool {
         chat.waitingForResponse && (chat.lastMessage?.own ?? true)

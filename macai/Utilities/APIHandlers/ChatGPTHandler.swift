@@ -5,9 +5,12 @@
 //  Created by Renat on 17.07.2024.
 //
 
-import AppKit
-import CoreData
 import Foundation
+import CoreData
+
+#if os(macOS)
+import AppKit
+#endif
 
 private struct ChatGPTModelsResponse: Codable {
     let data: [ChatGPTModel]

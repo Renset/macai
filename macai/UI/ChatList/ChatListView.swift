@@ -86,7 +86,9 @@ struct ChatListView: View {
                 }
                 .padding(12)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .background(Color(NSColor.windowBackgroundColor))
         .onChange(of: searchText) { newValue in
             debounceTimer?.invalidate()
             

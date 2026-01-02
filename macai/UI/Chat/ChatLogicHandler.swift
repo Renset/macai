@@ -10,6 +10,10 @@ import SwiftUI
 import Foundation
 import UniformTypeIdentifiers
 
+#if os(macOS)
+import AppKit
+#endif
+
 class ChatLogicHandler: ObservableObject {
     private let viewContext: NSManagedObjectContext
     private let chat: ChatEntity
@@ -74,6 +78,12 @@ class ChatLogicHandler: ObservableObject {
     func selectAndAddImages(completion: @escaping ([ImageAttachment]) -> Void) {
         guard chat.apiService?.imageUploadsAllowed == true else { return }
 
+        #if os(iOS)
+        completion([])
+        return
+        #endif
+
+        #if os(macOS)
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -94,6 +104,12 @@ class ChatLogicHandler: ObservableObject {
                 }
             }
         }
+        #endif
+    }
+
+    func addImageAttachments(from urls: [URL]) -> [ImageAttachment] {
+        guard chat.apiService?.imageUploadsAllowed == true else { return [] }
+        return urls.map { ImageAttachment(url: $0, context: viewContext) }
     }
     
     func handleRetryMessage(newMessage: inout String) {

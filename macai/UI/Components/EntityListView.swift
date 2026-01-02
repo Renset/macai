@@ -74,9 +74,14 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
                 }
                 .onMove(perform: onMove)
             }
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            #else
             .listStyle(SidebarListStyle())
             .frame(minWidth: 200, maxHeight: 180)
             .cornerRadius(8)
+            #endif
 
             VStack(alignment: .leading) {
                 HStack {
@@ -94,7 +99,11 @@ struct EntityListView<Entity: NSManagedObject & Identifiable, DetailContent: Vie
                 Spacer()
 
             }
+            #if os(iOS)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            #else
             .frame(maxHeight: 150)
+            #endif
         }
     }
 }
