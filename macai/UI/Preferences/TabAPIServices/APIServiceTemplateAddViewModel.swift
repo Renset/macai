@@ -388,7 +388,9 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             name: type,
             apiUrl: apiURL,
             apiKey: apiKey,
-            model: model
+            model: model,
+            gcpProjectId: nil,
+            gcpRegion: nil
         )
         let apiService = APIServiceFactory.createAPIService(
             config: config,

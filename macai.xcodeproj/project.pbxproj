@@ -11,6 +11,10 @@
 		1001F81047D94F5484238553 /* APIServiceTemplateAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5774456B942348B88C536014 /* APIServiceTemplateAddView.swift */; };
 		16E55B88D2D449948BD6C60F /* APIServiceTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B9230773084F7E92FFB3AD /* APIServiceTemplate.swift */; };
 		2DEB5B6E4EFE4D8C90FBA248 /* MacaiTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */; };
+		3B03E8042EF4FA190067D667 /* VertexCommon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B03E8052EF4FA190067D667 /* VertexCommon.swift */; };
+		3B03E8062EF4FA1A0067D667 /* VertexGeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B03E8072EF4FA1A0067D667 /* VertexGeminiHandler.swift */; };
+		3B03E8082EF4FA1B0067D667 /* VertexClaudeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B03E8092EF4FA1B0067D667 /* VertexClaudeHandler.swift */; };
+		3B924AFB2EF5B6F500FA7608 /* ADCCredentialsAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B924AFA2EF5B6F500FA7608 /* ADCCredentialsAccess.swift */; };
 		4A0BCBBC2D5199140033AB96 /* ButtonWithStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */; };
 		4A0E02852D0F571000D2FAF3 /* PerplexityHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */; };
 		4A1614112D430AE300A1EF8D /* ThinkingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1614102D430AE300A1EF8D /* ThinkingProcessView.swift */; };
@@ -89,6 +93,7 @@
 		4AE3CEB72C93A88D00A9CF4C /* TabAPIServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */; };
 		4AE3CEB92C93AEA800A9CF4C /* APIServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */; };
 		4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */; };
+		4AE8691C2D5696A400E3B3AD /* GeminiHandlerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8691D2D5696A500E3B3AE /* GeminiHandlerBase.swift */; };
 		4AEB7E1B2C8D04A70004818C /* DatabasePatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */; };
 		4AFAC2022EF496C3004B125E /* SettingsIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */; };
 		4AFDEB7C2AFF90C000BA8642 /* TabBackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */; };
@@ -139,6 +144,10 @@
 		14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPresenter.swift; sourceTree = "<group>"; };
 		16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProviderTests.swift; sourceTree = "<group>"; };
 		25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddViewModel.swift; sourceTree = "<group>"; };
+		3B03E8052EF4FA190067D667 /* VertexCommon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexCommon.swift; sourceTree = "<group>"; };
+		3B03E8072EF4FA1A0067D667 /* VertexGeminiHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexGeminiHandler.swift; sourceTree = "<group>"; };
+		3B03E8092EF4FA1B0067D667 /* VertexClaudeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexClaudeHandler.swift; sourceTree = "<group>"; };
+		3B924AFA2EF5B6F500FA7608 /* ADCCredentialsAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADCCredentialsAccess.swift; sourceTree = "<group>"; };
 		3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProvider.swift; sourceTree = "<group>"; };
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
 		4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerplexityHandler.swift; sourceTree = "<group>"; };
@@ -218,6 +227,7 @@
 		4AE3CEB62C93A86F00A9CF4C /* TabAPIServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabAPIServicesView.swift; sourceTree = "<group>"; };
 		4AE3CEB82C93AEA200A9CF4C /* APIServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceDetailView.swift; sourceTree = "<group>"; };
 		4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandler.swift; sourceTree = "<group>"; };
+		4AE8691D2D5696A500E3B3AE /* GeminiHandlerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandlerBase.swift; sourceTree = "<group>"; };
 		4AEB7E1A2C8D04A30004818C /* DatabasePatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcher.swift; sourceTree = "<group>"; };
 		4AFAC2012EF496C3004B125E /* SettingsIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsIndicators.swift; sourceTree = "<group>"; };
 		4AFDEB7B2AFF90C000BA8642 /* TabBackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBackupRestoreView.swift; sourceTree = "<group>"; };
@@ -524,6 +534,7 @@
 				4AB4B0902D778B1D00CA41B6 /* OpenRouterHandler.swift */,
 				4AB4B08C2D75099E00CA41B6 /* DeepseekHandler.swift */,
 				4AE8691A2D56969700E3B3AC /* GeminiHandler.swift */,
+				4AE8691D2D5696A500E3B3AE /* GeminiHandlerBase.swift */,
 				4A0E02842D0F571000D2FAF3 /* PerplexityHandler.swift */,
 				4AADF71E2C9CE780001B7A26 /* ClaudeHandler.swift */,
 				4AFEE7202C472F53006F99FB /* APIProtocol.swift */,
@@ -531,8 +542,12 @@
 				B2E47C1D2CF90E5C00ABCD12 /* OpenAIResponsesHandler.swift */,
 				4AFEE7222C472FA1006F99FB /* ChatGPTHandler.swift */,
 				4AFEE7242C472FB1006F99FB /* OllamaHandler.swift */,
+				3B03E8052EF4FA190067D667 /* VertexCommon.swift */,
+				3B03E8072EF4FA1A0067D667 /* VertexGeminiHandler.swift */,
+				3B03E8092EF4FA1B0067D667 /* VertexClaudeHandler.swift */,
 				4AA6EF582C565F90003B6D41 /* APIServiceConfig.swift */,
 				4AA6EF5A2C565FDF003B6D41 /* APIServiceFactory.swift */,
+				3B924AFA2EF5B6F500FA7608 /* ADCCredentialsAccess.swift */,
 			);
 			path = APIHandlers;
 			sourceTree = "<group>";
@@ -707,6 +722,7 @@
 				4A399C9B29BC8FEF00E98796 /* ContentView.swift in Sources */,
 				4A885C522CEA3B130018BBED /* HTMLPreviewView.swift in Sources */,
 				4A55DCA729C264BC00A3800C /* TableView.swift in Sources */,
+				3B924AFB2EF5B6F500FA7608 /* ADCCredentialsAccess.swift in Sources */,
 				4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */,
 				0BA0FF405FC14D3FABF82621 /* APIServiceTemplateProvider.swift in Sources */,
 				4ACE2FB82D61656000DEEA6D /* SwipeModifier.swift in Sources */,
@@ -762,9 +778,13 @@
 				4A8A78C82D4C41A00057A6CC /* TabGeneralSettingsView.swift in Sources */,
 				4A1E16852E16DB4500E5CBA3 /* ChatInputView.swift in Sources */,
 				4A1E16862E16DB4500E5CBA3 /* ChatMessagesView.swift in Sources */,
+				3B03E8042EF4FA190067D667 /* VertexCommon.swift in Sources */,
+				3B03E8062EF4FA1A0067D667 /* VertexGeminiHandler.swift in Sources */,
+				3B03E8082EF4FA1B0067D667 /* VertexClaudeHandler.swift in Sources */,
 				4A1E16872E16DB4600E5CBA3 /* ChatLogicHandler.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
 				4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */,
+				4AE8691C2D5696A400E3B3AD /* GeminiHandlerBase.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

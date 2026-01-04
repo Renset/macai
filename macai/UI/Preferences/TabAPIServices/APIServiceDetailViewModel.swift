@@ -34,14 +34,18 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var fetchedModels: [AIModel] = []
     @Published var isLoadingModels: Bool = false
     @Published var modelFetchError: String? = nil
+    @Published var gcpProjectId: String = ""
+    @Published var gcpRegion: String = AppConstants.defaultGcpRegion
+
+    @Published var adcImportStatus: String? = nil
 
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
         self.viewContext = viewContext
         self.apiService = apiService
 
         if apiService == nil,
-           let preferredType,
-           let configuration = AppConstants.defaultApiConfigurations[preferredType]
+            let preferredType,
+            let configuration = AppConstants.defaultApiConfigurations[preferredType]
         {
             type = preferredType
             defaultApiConfiguration = configuration
@@ -78,6 +82,14 @@ class APIServiceDetailViewModel: ObservableObject {
                 catch {
                     print("Failed to get token: \(error.localizedDescription)")
                 }
+            }
+
+            gcpProjectId = service.gcpProjectId ?? ""
+            gcpRegion = service.gcpRegion ?? AppConstants.defaultGcpRegion
+
+            // For Vertex AI, rebuild URL from stored project/region
+            if type == "vertex" {
+                url = buildVertexAIUrl(projectId: gcpProjectId, region: gcpRegion)
             }
         }
         else {
@@ -123,6 +135,27 @@ class APIServiceDetailViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        // Update Vertex AI URL when project ID or region changes
+        Publishers.CombineLatest($gcpProjectId, $gcpRegion)
+            .sink { [weak self] projectId, region in
+                guard let self, self.isVertexAI else { return }
+                self.updateVertexAIUrl()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func updateVertexAIUrl() {
+        guard isVertexAI else { return }
+        url = buildVertexAIUrl(projectId: gcpProjectId, region: gcpRegion)
+    }
+
+    private func buildVertexAIUrl(projectId: String, region: String) -> String {
+        let safeRegion = region.isEmpty ? AppConstants.defaultGcpRegion : region
+        if projectId.isEmpty {
+            return "https://\(safeRegion)-aiplatform.googleapis.com/v1/projects/<project-id>/locations/\(safeRegion)"
+        }
+        return "https://\(safeRegion)-aiplatform.googleapis.com/v1/projects/\(projectId)/locations/\(safeRegion)"
     }
 
     private func fetchModelsForService() {
@@ -133,7 +166,9 @@ class APIServiceDetailViewModel: ObservableObject {
             name: type,
             apiUrl: URL(string: url)!,
             apiKey: apiKey,
-            model: ""
+            model: "",
+            gcpProjectId: gcpProjectId.isEmpty ? nil : gcpProjectId,
+            gcpRegion: gcpRegion.isEmpty ? nil : gcpRegion
         )
 
         let apiService = APIServiceFactory.createAPIService(
@@ -156,14 +191,15 @@ class APIServiceDetailViewModel: ObservableObject {
             }
         }
     }
-    
+
     private func updateModelSelection() {
         let modelExists = self.availableModels.contains(self.selectedModel)
-        
+
         if !modelExists && !self.selectedModel.isEmpty {
             self.isCustomModel = true
             self.selectedModel = "custom"
-        } else if modelExists {
+        }
+        else if modelExists {
             self.isCustomModel = false
         }
     }
@@ -189,6 +225,8 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.imageUploadsAllowed = imageUploadsAllowed
         serviceToSave.imageGenerationSupported = imageGenerationSupported
         serviceToSave.defaultPersona = defaultAiPersona
+        serviceToSave.gcpProjectId = gcpProjectId.isEmpty ? nil : gcpProjectId
+        serviceToSave.gcpRegion = gcpRegion.isEmpty ? nil : gcpRegion
         if serviceToSave.tokenIdentifier == nil || serviceToSave.tokenIdentifier?.isEmpty == true {
             serviceToSave.tokenIdentifier = UUID().uuidString
         }
@@ -262,6 +300,17 @@ class APIServiceDetailViewModel: ObservableObject {
             using: self.defaultApiConfiguration!
         )
 
+        // Set defaults when switching to vertex and update URL
+        if type == "vertex" {
+            if gcpRegion.isEmpty {
+                gcpRegion = AppConstants.defaultGcpRegion
+            }
+            updateVertexAIUrl()
+            if model.isEmpty {
+                model = self.defaultApiConfiguration!.defaultModel
+            }
+        }
+
         self.hasProcessedInitialModelSelection = false
 
         fetchModelsForService()
@@ -285,11 +334,42 @@ class APIServiceDetailViewModel: ObservableObject {
         return configSupports || imageGenerationSupported
     }
 
+    var isVertexAI: Bool {
+        return type == "vertex"
+    }
+
+    var requiresApiKey: Bool {
+        guard let config = AppConstants.defaultApiConfigurations[type] else { return true }
+        return !config.apiKeyRef.isEmpty
+    }
+
     private static func supportedState(
         for model: String,
         using config: AppConstants.defaultApiConfiguration
     ) -> Bool {
         guard config.imageGenerationSupported else { return false }
         return config.autoEnableImageGenerationModels.contains(model)
+    }
+
+    @MainActor
+    func importVertexADCCredentials() async {
+        do {
+            let data = try await ADCCredentialsAccess.promptAndStoreBookmark()
+            if !data.isEmpty {
+                adcImportStatus = "ADC credentials imported successfully."
+            }
+            else {
+                adcImportStatus = "Failed to import ADC credentials: Empty data received."
+            }
+        }
+        catch {
+            adcImportStatus = "Failed to import ADC credentials: \(error.localizedDescription)"
+        }
+    }
+
+    func importVertexADCCredentialsButtonTapped() {
+        Task {
+            await importVertexADCCredentials()
+        }
     }
 }
