@@ -46,7 +46,12 @@ class APIServiceFactory {
         case "openrouter":
             return OpenRouterHandler(config: config, session: session)
         case "vertex":
-            return VertexAIHandler(config: config, session: session)
+            // Route to appropriate handler based on model prefix
+            if config.model.lowercased().hasPrefix("claude") {
+                return VertexClaudeHandler(config: config, session: session)
+            } else {
+                return VertexGeminiHandler(config: config, session: session)
+            }
         default:
             fatalError("Unsupported API service: \(config.name)")
         }
