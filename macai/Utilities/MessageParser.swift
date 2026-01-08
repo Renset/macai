@@ -243,17 +243,6 @@ struct MessageParser {
             }
         }
 
-        func extractImageUUID(_ line: String) -> UUID? {
-            let pattern = "<image-uuid>(.*?)</image-uuid>"
-            if let range = line.range(of: pattern, options: .regularExpression) {
-                let uuidString = String(line[range])
-                    .replacingOccurrences(of: "<image-uuid>", with: "")
-                    .replacingOccurrences(of: "</image-uuid>", with: "")
-                return UUID(uuidString: uuidString)
-            }
-            return nil
-        }
-
         func loadImageFromCoreData(uuid: UUID) -> NSImage? {
             let viewContext = PersistenceController.shared.container.viewContext
 
@@ -350,16 +339,11 @@ struct MessageParser {
                 }
 
             case .imageUUID:
-                if let uuid = extractImageUUID(line), let image = loadImageFromCoreData(uuid: uuid) {
-                    combineTextLinesIfNeeded()
-                    elements.append(.image(image))
-                    if !isLastLine {
-                        elements.append(.text("\n"))
-                    }
-                }
-                else {
-                    textLines.append(line)
-                }
+                // Handle inline image tags even when the line starts with <image-uuid>
+                // to avoid dropping trailing text after the image tag.
+                combineTextLinesIfNeeded()
+                appendTableIfNeeded()
+                handleLineWithInlineImages(line, isLastLine: isLastLine)
 
             case .text:
                 if isThinkingBlockOpened {
