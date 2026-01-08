@@ -48,6 +48,12 @@ struct GeminiPartRequest: Codable {
         self.inlineData = inlineData
         self.thoughtSignature = thoughtSignature
     }
+
+    init(thoughtSignature: String) {
+        self.text = nil
+        self.inlineData = nil
+        self.thoughtSignature = thoughtSignature
+    }
 }
 
 struct GeminiInlineData: Codable {
@@ -113,6 +119,8 @@ class GeminiHandler: APIService {
     private var activeDataTask: URLSessionDataTask?
     private var activeStreamTask: Task<Void, Never>?
     private var lastResponseParts: [GeminiPartResponse]?
+    private var streamedResponseParts: [GeminiPartResponse] = []
+    private var streamedSignatureParts: [GeminiPartResponse] = []
 
     init(config: APIServiceConfiguration, session: URLSession) {
         self.name = config.name
@@ -239,6 +247,7 @@ class GeminiHandler: APIService {
             return AsyncThrowingStream { continuation in
                 let streamTask = Task {
                     defer { self.activeStreamTask = nil }
+                    self.resetStreamedParts()
                     do {
                         let (stream, response) = try await session.bytes(for: request)
                         let responseCheck = self.handleAPIResponse(response, data: nil, error: nil)
@@ -376,7 +385,7 @@ class GeminiHandler: APIService {
                     parts: [GeminiPartRequest(text: text)]
                 )
             case "assistant":
-                let parts = storedParts ?? buildParts(from: content, allowInlineData: true)
+                let parts = resolveStoredParts(storedParts, fallbackContent: content, allowInlineData: true)
                 // For Gemini 3 models, we must include thought signatures; if missing, skip to avoid INVALID_ARGUMENT.
                 if requiresThoughtSignatures, !parts.contains(where: { $0.thoughtSignature != nil }) {
                     continue
@@ -389,7 +398,7 @@ class GeminiHandler: APIService {
                     )
                 )
             default:
-                let parts = storedParts ?? buildParts(from: content, allowInlineData: true)
+                let parts = resolveStoredParts(storedParts, fallbackContent: content, allowInlineData: true)
                 guard !parts.isEmpty else { continue }
                 contents.append(
                     GeminiContentRequest(
@@ -401,6 +410,30 @@ class GeminiHandler: APIService {
         }
 
         return (systemInstruction, contents)
+    }
+
+    private func resolveStoredParts(
+        _ storedParts: [GeminiPartRequest]?,
+        fallbackContent: String,
+        allowInlineData: Bool
+    ) -> [GeminiPartRequest] {
+        let fallbackParts = buildParts(from: fallbackContent, allowInlineData: allowInlineData)
+        guard let storedParts else {
+            return fallbackParts
+        }
+
+        let normalizedParts = storedParts.filter { part in
+            if let text = part.text,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return true
+            }
+            if part.inlineData != nil {
+                return true
+            }
+            return part.thoughtSignature != nil
+        }
+
+        return normalizedParts.isEmpty ? fallbackParts : normalizedParts
     }
 
     private func buildRequestURL(stream: Bool) -> URL? {
@@ -436,6 +469,9 @@ class GeminiHandler: APIService {
                     inlineData: GeminiInlineData(mimeType: mime, data: data),
                     thoughtSignature: responsePart.thoughtSignature
                 )
+            }
+            if let signature = responsePart.thoughtSignature {
+                return GeminiPartRequest(thoughtSignature: signature)
             }
             return nil
         }
@@ -593,12 +629,16 @@ class GeminiHandler: APIService {
         }
 
         if let response = try? decoder.decode(GeminiGenerateResponse.self, from: data) {
-            lastResponseParts = response.candidates?.first?.content?.parts
-            let delta = extractDelta(
-                from: response,
-                aggregatedText: &aggregatedText,
-                inlineDataCache: &inlineDataCache
-            )
+            let rendered = renderMessage(from: response, inlineDataCache: &inlineDataCache)
+            var delta: String?
+            var isCumulative = false
+
+            if let rendered, !rendered.isEmpty {
+                isCumulative = aggregatedText.isEmpty || rendered.hasPrefix(aggregatedText)
+                delta = mergeRawDelta(rendered, aggregatedText: &aggregatedText)
+            }
+
+            mergeStreamParts(from: response, isCumulative: isCumulative)
             let finished = shouldFinish(after: response)
             return GeminiStreamParseResult(delta: delta, finished: finished)
         }
@@ -688,18 +728,6 @@ class GeminiHandler: APIService {
         return nil
     }
 
-    private func extractDelta(
-        from response: GeminiGenerateResponse,
-        aggregatedText: inout String,
-        inlineDataCache: inout [String: String]
-    ) -> String? {
-        guard let message = renderMessage(from: response, inlineDataCache: &inlineDataCache) else {
-            return nil
-        }
-
-        return mergeRawDelta(message, aggregatedText: &aggregatedText)
-    }
-
     private func mergeRawDelta(_ fragment: String, aggregatedText: inout String) -> String? {
         guard !fragment.isEmpty else { return nil }
 
@@ -727,6 +755,56 @@ class GeminiHandler: APIService {
 
         aggregatedText.append(fragment)
         return fragment
+    }
+
+    private func resetStreamedParts() {
+        streamedResponseParts = []
+        streamedSignatureParts = []
+    }
+
+    private func mergeStreamParts(from response: GeminiGenerateResponse, isCumulative: Bool) {
+        guard let parts = response.candidates?.first?.content?.parts, !parts.isEmpty else { return }
+
+        let signatureParts = parts.filter { isSignatureOnly($0) }
+        let contentParts = parts.filter { !isSignatureOnly($0) }
+
+        if isCumulative {
+            if !contentParts.isEmpty {
+                streamedResponseParts = contentParts
+            }
+        }
+        else {
+            appendDeltaParts(contentParts)
+        }
+
+        appendSignatureParts(signatureParts)
+
+        let combinedParts = streamedResponseParts + streamedSignatureParts
+        if !combinedParts.isEmpty {
+            lastResponseParts = combinedParts
+        }
+    }
+
+    private func appendDeltaParts(_ parts: [GeminiPartResponse]) {
+        for part in parts {
+            if part.text != nil || part.inlineData != nil {
+                streamedResponseParts.append(part)
+            }
+        }
+    }
+
+    private func appendSignatureParts(_ parts: [GeminiPartResponse]) {
+        for part in parts {
+            guard let signature = part.thoughtSignature else { continue }
+            if streamedSignatureParts.contains(where: { $0.thoughtSignature == signature }) {
+                continue
+            }
+            streamedSignatureParts.append(part)
+        }
+    }
+
+    private func isSignatureOnly(_ part: GeminiPartResponse) -> Bool {
+        part.thoughtSignature != nil && part.text == nil && part.inlineData == nil
     }
 
     private func shouldFinish(after response: GeminiGenerateResponse) -> Bool {

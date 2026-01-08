@@ -83,6 +83,7 @@
 		4ABB867B2CFC79ED004EC7B1 /* ErrorBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABB867A2CFC79ED004EC7B1 /* ErrorBubbleView.swift */; };
 		4ABDBE6629F86B5900661B2D /* MessageParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6529F86B5900661B2D /* MessageParser.swift */; };
 		4ABDBE6B29F86E8D00661B2D /* MessageParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */; };
+		0E6BF47F5D74490F95504FF6 /* GeminiHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1475CF2DC44692A9E47B9A /* GeminiHandlerTests.swift */; };
 		4ACAD6632C13AE8F0081BDAC /* CodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACAD6622C13AE8F0081BDAC /* CodeView.swift */; };
 		4ACE2FB82D61656000DEEA6D /* SwipeModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACE2FB72D61656000DEEA6D /* SwipeModifier.swift */; };
 		4ADCA45B2C9B74E8005664A6 /* APIServiceDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADCA45A2C9B74E8005664A6 /* APIServiceDetailViewModel.swift */; };
@@ -138,6 +139,7 @@
 		04F05D023BB34EF796C7F7D3 /* MacaiTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacaiTextField.swift; sourceTree = "<group>"; };
 		14461D2B9E6A48DEB427E5F1 /* NotificationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPresenter.swift; sourceTree = "<group>"; };
 		16D75E6599084CC8A6C8587C /* APIServiceTemplateProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProviderTests.swift; sourceTree = "<group>"; };
+		1D1475CF2DC44692A9E47B9A /* GeminiHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiHandlerTests.swift; sourceTree = "<group>"; };
 		25B74289407745C983DD1294 /* APIServiceTemplateAddViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateAddViewModel.swift; sourceTree = "<group>"; };
 		3EA7767A135E47FFAB9E3289 /* APIServiceTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTemplateProvider.swift; sourceTree = "<group>"; };
 		4A0BCBBB2D5199140033AB96 /* ButtonWithStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonWithStatusIndicator.swift; sourceTree = "<group>"; };
@@ -514,6 +516,7 @@
 			isa = PBXGroup;
 			children = (
 				4ABDBE6A29F86E8D00661B2D /* MessageParserTests.swift */,
+				1D1475CF2DC44692A9E47B9A /* GeminiHandlerTests.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -774,6 +777,7 @@
 			files = (
 				4ABDBE6B29F86E8D00661B2D /* MessageParserTests.swift in Sources */,
 				7CEEFA33B4C841A2AC2BFBA2 /* APIServiceTemplateProviderTests.swift in Sources */,
+				0E6BF47F5D74490F95504FF6 /* GeminiHandlerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
