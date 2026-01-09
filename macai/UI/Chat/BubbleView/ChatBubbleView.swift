@@ -15,6 +15,13 @@ enum MessageElements {
     case formula(String)
     case thinking(String, isExpanded: Bool)
     case image(NSImage)
+    case file(FileAttachmentInfo)
+}
+
+struct FileAttachmentInfo: Identifiable {
+    let id: UUID
+    let filename: String
+    let mimeType: String?
 }
 
 struct ChatBubbleContent: Equatable {

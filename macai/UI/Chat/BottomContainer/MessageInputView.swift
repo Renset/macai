@@ -11,12 +11,15 @@ import UniformTypeIdentifiers
 struct MessageInputView: View {
     @Binding var text: String
     @Binding var attachedImages: [ImageAttachment]
+    @Binding var attachedFiles: [DocumentAttachment]
     let isInferenceInProgress: Bool
     let isEditingSystemMessage: Bool
     var imageUploadsAllowed: Bool
+    var pdfUploadsAllowed: Bool
     var imageGenerationSupported: Bool
     var onEnter: () -> Void
     var onAddImage: () -> Void
+    var onAddFile: () -> Void
     var onStopInference: () -> Void
     var onCancelEdit: () -> Void
 
@@ -82,12 +85,15 @@ struct MessageInputView: View {
     init(
         text: Binding<String>,
         attachedImages: Binding<[ImageAttachment]>,
+        attachedFiles: Binding<[DocumentAttachment]>,
         isInferenceInProgress: Bool,
         isEditingSystemMessage: Bool = false,
         imageUploadsAllowed: Bool,
+        pdfUploadsAllowed: Bool,
         imageGenerationSupported: Bool,
         onEnter: @escaping () -> Void,
         onAddImage: @escaping () -> Void,
+        onAddFile: @escaping () -> Void,
         onStopInference: @escaping () -> Void,
         onCancelEdit: @escaping () -> Void = {},
         inputPlaceholderText: String = "Type your prompt here",
@@ -95,12 +101,15 @@ struct MessageInputView: View {
     ) {
         self._text = text
         self._attachedImages = attachedImages
+        self._attachedFiles = attachedFiles
         self.isInferenceInProgress = isInferenceInProgress
         self.isEditingSystemMessage = isEditingSystemMessage
         self.imageUploadsAllowed = imageUploadsAllowed
+        self.pdfUploadsAllowed = pdfUploadsAllowed
         self.imageGenerationSupported = imageGenerationSupported
         self.onEnter = onEnter
         self.onAddImage = onAddImage
+        self.onAddFile = onAddFile
         self.onStopInference = onStopInference
         self.onCancelEdit = onCancelEdit
         self.inputPlaceholderText = inputPlaceholderText
@@ -120,13 +129,32 @@ struct MessageInputView: View {
                             }
                         }
                     }
+                    ForEach(attachedFiles) { attachment in
+                        FilePreviewView(attachment: attachment) { index in
+                            if let index = attachedFiles.firstIndex(where: { $0.id == attachment.id }) {
+                                withAnimation {
+                                    attachedFiles.remove(at: index)
+                                }
+                            }
+                        }
+                    }
                 }
                 .padding(.horizontal, 0)
                 .padding(.bottom, 8)
             }
-            .frame(height: attachedImages.isEmpty ? 0 : 100)
+            .frame(height: (attachedImages.isEmpty && attachedFiles.isEmpty) ? 0 : 100)
             
             HStack(spacing: 8) {
+                if pdfUploadsAllowed {
+                    Button(action: onAddFile) {
+                        Image(systemName: "doc.badge.plus")
+                            .font(.system(size: 16))
+                            .foregroundColor(.accentColor)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("Add PDF")
+                }
+                
                 if imageUploadsAllowed {
                     Button(action: onAddImage) {
                         Image(systemName: "photo.badge.plus")
@@ -135,6 +163,7 @@ struct MessageInputView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .help("Add image")
+
                 }
                 
                 MacaiTextField(
@@ -184,8 +213,8 @@ struct MessageInputView: View {
             }
             .animation(stopButtonAnimation, value: shouldShowAccessoryButton)
         }
-        .onDrop(of: [.image, .fileURL], isTargeted: $isHoveringDropZone) { providers in
-            guard imageUploadsAllowed else { return false }
+        .onDrop(of: [.image, .pdf, .fileURL], isTargeted: $isHoveringDropZone) { providers in
+            guard imageUploadsAllowed || pdfUploadsAllowed else { return false }
             return handleDrop(providers: providers)
         }
         .onAppear {
@@ -200,6 +229,7 @@ struct MessageInputView: View {
 
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                guard imageUploadsAllowed else { continue }
                 provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { (data, error) in
                     if let url = data as? URL {
                         DispatchQueue.main.async {
@@ -212,16 +242,39 @@ struct MessageInputView: View {
                     }
                 }
             }
+            else if provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
+                guard pdfUploadsAllowed else { continue }
+                provider.loadItem(forTypeIdentifier: UTType.pdf.identifier, options: nil) { (data, error) in
+                    if let url = data as? URL {
+                        DispatchQueue.main.async {
+                            let attachment = DocumentAttachment(url: url)
+                            withAnimation {
+                                attachedFiles.append(attachment)
+                            }
+                        }
+                        didHandleDrop = true
+                    }
+                }
+            }
             else if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (data, error) in
                     if let urlData = data as? Data,
                         let url = URL(dataRepresentation: urlData, relativeTo: nil),
-                        isValidImageFile(url: url)
+                        (isValidImageFile(url: url) || isValidPDFFile(url: url))
                     {
                         DispatchQueue.main.async {
-                            let attachment = ImageAttachment(url: url)
-                            withAnimation {
-                                attachedImages.append(attachment)
+                            if isValidPDFFile(url: url) {
+                                guard pdfUploadsAllowed else { return }
+                                let attachment = DocumentAttachment(url: url)
+                                withAnimation {
+                                    attachedFiles.append(attachment)
+                                }
+                            } else {
+                                guard imageUploadsAllowed else { return }
+                                let attachment = ImageAttachment(url: url)
+                                withAnimation {
+                                    attachedImages.append(attachment)
+                                }
                             }
                         }
                         didHandleDrop = true
@@ -236,6 +289,10 @@ struct MessageInputView: View {
     private func isValidImageFile(url: URL) -> Bool {
         let validExtensions = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
         return validExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    private func isValidPDFFile(url: URL) -> Bool {
+        return url.pathExtension.lowercased() == "pdf"
     }
 }
 
@@ -311,6 +368,57 @@ struct ImagePreviewView: View {
                 .cornerRadius(8)
                 .help(error.localizedDescription)
             }
+        }
+    }
+}
+
+struct FilePreviewView: View {
+    @ObservedObject var attachment: DocumentAttachment
+    var onRemove: (Int) -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.1))
+                .frame(width: 120, height: 80)
+
+            if attachment.isLoading {
+                ProgressView()
+                    .frame(width: 120, height: 80)
+            }
+            else if let error = attachment.error {
+                VStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.red)
+                    Text("Error")
+                        .font(.caption)
+                }
+                .frame(width: 120, height: 80)
+                .help(error.localizedDescription)
+            }
+            else {
+                VStack(alignment: .leading, spacing: 6) {
+                    Image(systemName: "doc.richtext")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.blue)
+                    Text(attachment.filename.isEmpty ? "Document.pdf" : attachment.filename)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                }
+                .padding(8)
+                .frame(width: 120, height: 80, alignment: .leading)
+            }
+
+            Button(action: {
+                onRemove(0)
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Circle().fill(Color.black.opacity(0.6)))
+                    .padding(4)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
     }
 }

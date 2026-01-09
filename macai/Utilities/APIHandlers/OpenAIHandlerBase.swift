@@ -77,6 +77,36 @@ class OpenAIHandlerBase {
         return nil
     }
 
+    struct FileAttachmentPayload {
+        let data: Data
+        let filename: String?
+        let mimeType: String?
+    }
+
+    func loadFileFromCoreData(uuid: UUID) -> FileAttachmentPayload? {
+        let viewContext = PersistenceController.shared.container.viewContext
+
+        let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+        fetchRequest.fetchLimit = 1
+
+        do {
+            let results = try viewContext.fetch(fetchRequest)
+            if let documentEntity = results.first, let fileData = documentEntity.fileData {
+                return FileAttachmentPayload(
+                    data: fileData,
+                    filename: documentEntity.filename,
+                    mimeType: documentEntity.mimeType
+                )
+            }
+        }
+        catch {
+            print("Error fetching file from CoreData: \(error)")
+        }
+
+        return nil
+    }
+
     func isNotSSEComment(_ string: String) -> Bool {
         return !string.starts(with: ":")
     }

@@ -16,6 +16,7 @@ enum APIError: Error {
     case serverError(String)
     case unknown(String)
     case noApiService(String)
+    case attachmentNotReady(String)
 }
 
 protocol APIService {

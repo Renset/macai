@@ -66,6 +66,7 @@ enum APIServiceTemplateProvider {
                             "contextSize": 30,
                             "useStreaming": true,
                             "allowImageUploads": true,
+                            "allowPdfUploads": true,
                             "imageGenerationSupported": true
                         }
                     }

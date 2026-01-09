@@ -8,6 +8,7 @@
         <attribute name="generateChatNames" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="pdfUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="imageGenerationSupported" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" renamingIdentifier="imageGenerationAllowed"/>
         <attribute name="model" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
@@ -44,6 +45,12 @@
         <attribute name="image" optional="YES" attributeType="Binary"/>
         <attribute name="imageFormat" optional="YES" attributeType="String" defaultValueString="jpeg"/>
         <attribute name="thumbnail" optional="YES" attributeType="Binary"/>
+    </entity>
+    <entity name="DocumentEntity" representedClassName="DocumentEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="fileData" optional="YES" attributeType="Binary"/>
+        <attribute name="filename" optional="YES" attributeType="String"/>
+        <attribute name="mimeType" optional="YES" attributeType="String"/>
     </entity>
     <entity name="MessageEntity" representedClassName=".MessageEntity" syncable="YES">
         <attribute name="body" optional="YES" attributeType="String" spotlightIndexingEnabled="YES"/>

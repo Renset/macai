@@ -27,7 +27,7 @@ class ChatLogicHandler: ObservableObject {
         self.store = store
     }
     
-    func sendMessage(messageText: String, attachedImages: [ImageAttachment]) {
+    func sendMessage(messageText: String, attachedImages: [ImageAttachment], attachedFiles: [DocumentAttachment]) {
         guard !chat.waitingForResponse, !isStreaming else { return }
         guard chatViewModel.canSendMessage else {
             currentError = ErrorMessage(
@@ -38,6 +38,17 @@ class ChatLogicHandler: ObservableObject {
         }
 
         resetError()
+
+        let pendingImages = attachedImages.filter { !$0.isReadyForUpload }
+        let pendingFiles = attachedFiles.filter { !$0.isReadyForUpload }
+        if !pendingImages.isEmpty || !pendingFiles.isEmpty {
+            let hasErrors = pendingImages.contains { $0.error != nil } || pendingFiles.contains { $0.error != nil }
+            let message = hasErrors
+                ? "One or more attachments failed to load. Remove them or try again."
+                : "Attachments are still loading. Please wait until they finish."
+            currentError = ErrorMessage(type: .attachmentNotReady(message), timestamp: Date())
+            return
+        }
 
         var messageContents: [MessageContent] = []
 
@@ -52,10 +63,17 @@ class ChatLogicHandler: ObservableObject {
             messageContents.append(MessageContent(imageAttachment: attachment))
         }
 
-        let messageBody: String
-        let hasImages = !attachedImages.isEmpty
+        for attachment in attachedFiles {
+            if attachment.documentEntity?.fileData == nil {
+                attachment.saveToEntity(context: viewContext, waitForCompletion: true)
+            }
+            messageContents.append(MessageContent(fileAttachment: attachment))
+        }
 
-        if hasImages {
+        let messageBody: String
+        let hasAttachments = !attachedImages.isEmpty || !attachedFiles.isEmpty
+
+        if hasAttachments {
             messageBody = messageContents.toString()
         } else {
             messageBody = messageText
@@ -95,6 +113,31 @@ class ChatLogicHandler: ObservableObject {
             }
         }
     }
+
+    func selectAndAddPDFs(completion: @escaping ([DocumentAttachment]) -> Void) {
+        guard supportsPDFUploads() else { return }
+
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.pdf]
+        panel.title = "Select PDFs"
+        panel.message = "Choose PDF documents to upload"
+
+        panel.begin { response in
+            if response == .OK {
+                var newAttachments: [DocumentAttachment] = []
+                for url in panel.urls {
+                    let attachment = DocumentAttachment(url: url, context: self.viewContext)
+                    newAttachments.append(attachment)
+                }
+                DispatchQueue.main.async {
+                    completion(newAttachments)
+                }
+            }
+        }
+    }
     
     func handleRetryMessage(newMessage: inout String) {
         guard !chat.waitingForResponse && !isStreaming else { return }
@@ -105,7 +148,7 @@ class ChatLogicHandler: ObservableObject {
 
         removeLastAttemptMessages()
 
-        sendMessage(messageText: messageToResend, attachedImages: [])
+        sendMessage(messageText: messageToResend, attachedImages: [], attachedFiles: [])
     }
 
     private func removeLastAttemptMessages() {
@@ -225,5 +268,9 @@ class ChatLogicHandler: ObservableObject {
     
     private func resetError() {
         currentError = nil
+    }
+
+    private func supportsPDFUploads() -> Bool {
+        return chat.apiService?.pdfUploadsAllowed == true
     }
 }

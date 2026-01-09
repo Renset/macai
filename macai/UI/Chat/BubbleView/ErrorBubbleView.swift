@@ -30,6 +30,8 @@ struct ErrorMessage {
             return "Unknown Error"
         case .noApiService(_):
             return "No API Service selected"
+        case .attachmentNotReady(_):
+            return "Attachment Error"
         }
     }
 
@@ -50,6 +52,8 @@ struct ErrorMessage {
         case .unknown(let message):
             return message
         case .noApiService(let message):
+            return message
+        case .attachmentNotReady(let message):
             return message
         }
     }

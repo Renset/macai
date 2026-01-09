@@ -218,11 +218,14 @@ struct PersonaDetailView: View {
                 MessageInputView(
                     text: $systemMessage,
                     attachedImages: .constant([]),
+                    attachedFiles: .constant([]),
                     isInferenceInProgress: false,
                     imageUploadsAllowed: false,
+                    pdfUploadsAllowed: false,
                     imageGenerationSupported: false,
                     onEnter: {},
                     onAddImage: {},
+                    onAddFile: {},
                     onStopInference: {},
                     inputPlaceholderText: "Enter system message here",
                     cornerRadius: 4

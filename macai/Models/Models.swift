@@ -310,6 +310,7 @@ extension APIServiceEntity: NSCopying {
         copy.useStreamResponse = self.useStreamResponse
         copy.generateChatNames = self.generateChatNames
         copy.imageUploadsAllowed = self.imageUploadsAllowed
+        copy.pdfUploadsAllowed = self.pdfUploadsAllowed
         copy.imageGenerationSupported = self.imageGenerationSupported
         copy.defaultPersona = self.defaultPersona
         copy.id = UUID()

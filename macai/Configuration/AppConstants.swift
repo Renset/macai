@@ -49,6 +49,7 @@ struct AppConstants {
     static let personaOrderingPatchCompletedKey = "PersonaOrderingPatchCompleted"
     static let imageUploadsPatchCompletedKey = "ImageUploadsPatchCompleted"
     static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
+    static let pdfUploadsPatchCompletedKey = "PdfUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
     static let entityIDBackfillCompletedKey = "EntityIDBackfillCompleted"
     static let messageSequenceBackfillCompletedKey = "MessageSequenceBackfillCompleted"
@@ -168,6 +169,7 @@ struct AppConstants {
         var inherits: String? = nil
         var modelsFetching: Bool = true
         var imageUploadsSupported: Bool = false
+        var pdfUploadsSupported: Bool = false
         var imageGenerationSupported: Bool = false
         var autoEnableImageGenerationModels: [String] = []
     }
@@ -183,6 +185,7 @@ struct AppConstants {
                 "gpt-5",
             ],
             imageUploadsSupported: true,
+            pdfUploadsSupported: true,
             imageGenerationSupported: true
         ),
         "chatgpt": defaultApiConfiguration(
@@ -194,7 +197,8 @@ struct AppConstants {
             models: [
                 "gpt-5"
             ],
-            imageUploadsSupported: true
+            imageUploadsSupported: true,
+            pdfUploadsSupported: false
         ),
         "ollama": defaultApiConfiguration(
             name: "Ollama",

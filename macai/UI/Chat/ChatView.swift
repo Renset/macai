@@ -21,6 +21,7 @@ struct ChatView: View {
     @State private var newMessage: String = ""
     @State private var editSystemMessage: Bool = false
     @State private var attachedImages: [ImageAttachment] = []
+    @State private var attachedFiles: [DocumentAttachment] = []
     @State private var isBottomContainerExpanded = false
     @State private var renderTime: Double = 0
     @State private var draftSaveWorkItem: DispatchWorkItem?
@@ -53,6 +54,8 @@ struct ChatView: View {
 
     // MARK: - Body
     var body: some View {
+        let pdfUploadsAllowed = chat.apiService?.pdfUploadsAllowed ?? false
+
         VStack(spacing: 0) {
             // Messages view
             ChatMessagesView(
@@ -73,17 +76,21 @@ struct ChatView: View {
                 newMessage: $newMessage,
                 editSystemMessage: $editSystemMessage,
                 attachedImages: $attachedImages,
+                attachedFiles: $attachedFiles,
                 isBottomContainerExpanded: $isBottomContainerExpanded,
                 isInferenceInProgress: logicHandler.isStreaming || chat.waitingForResponse,
                 imageUploadsAllowed: chat.apiService?.imageUploadsAllowed ?? false,
+                pdfUploadsAllowed: pdfUploadsAllowed,
                 imageGenerationSupported: chat.apiService?.imageGenerationSupported ?? false,
                 onSendMessage: {
                     logicHandler.sendMessage(
                         messageText: newMessage,
-                        attachedImages: attachedImages
+                        attachedImages: attachedImages,
+                        attachedFiles: attachedFiles
                     )
                     newMessage = ""
                     attachedImages = []
+                    attachedFiles = []
                     chat.newMessage = ""
                     store.saveInCoreData()
                     
@@ -97,6 +104,13 @@ struct ChatView: View {
                     logicHandler.selectAndAddImages { newAttachments in
                         withAnimation {
                             self.attachedImages.append(contentsOf: newAttachments)
+                        }
+                    }
+                },
+                onAddFile: {
+                    logicHandler.selectAndAddPDFs { newAttachments in
+                        withAnimation {
+                            self.attachedFiles.append(contentsOf: newAttachments)
                         }
                     }
                 },

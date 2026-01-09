@@ -13,13 +13,16 @@ struct ChatInputView: View {
     @Binding var newMessage: String
     @Binding var editSystemMessage: Bool
     @Binding var attachedImages: [ImageAttachment]
+    @Binding var attachedFiles: [DocumentAttachment]
     @Binding var isBottomContainerExpanded: Bool
     let isInferenceInProgress: Bool
     
     let imageUploadsAllowed: Bool
+    let pdfUploadsAllowed: Bool
     let imageGenerationSupported: Bool
     let onSendMessage: () -> Void
     let onAddImage: () -> Void
+    let onAddFile: () -> Void
     let onStopInference: () -> Void
     let onCancelSystemMessageEdit: () -> Void
     
@@ -31,9 +34,11 @@ struct ChatInputView: View {
             newMessage: $newMessage,
             isExpanded: $isBottomContainerExpanded,
             attachedImages: $attachedImages,
+            attachedFiles: $attachedFiles,
             isInferenceInProgress: isInferenceInProgress,
             isEditingSystemMessage: editSystemMessage,
             imageUploadsAllowed: imageUploadsAllowed,
+            pdfUploadsAllowed: pdfUploadsAllowed,
             imageGenerationSupported: imageGenerationSupported,
             onSendMessage: {
                 if editSystemMessage {
@@ -48,6 +53,7 @@ struct ChatInputView: View {
                 }
             },
             onAddImage: onAddImage,
+            onAddFile: onAddFile,
             onStopInference: onStopInference,
             onCancelEdit: onCancelSystemMessageEdit
         )
@@ -60,12 +66,15 @@ struct ChatInputView: View {
         newMessage: .constant("Test message"),
         editSystemMessage: .constant(false),
         attachedImages: .constant([]),
+        attachedFiles: .constant([]),
         isBottomContainerExpanded: .constant(false),
         isInferenceInProgress: false,
         imageUploadsAllowed: true,
+        pdfUploadsAllowed: true,
         imageGenerationSupported: true,
         onSendMessage: {},
         onAddImage: {},
+        onAddFile: {},
         onStopInference: {},
         onCancelSystemMessageEdit: {}
     )

@@ -65,6 +65,7 @@ struct ButtonTestApiTokenAndModel: View {
                         case .serverError(let message): message
                         case .unknown(let message): message
                         case .noApiService(let message): message
+                        case .attachmentNotReady(let message): message
                         }
                     showErrorAlert(error: errorMessage)
                 }

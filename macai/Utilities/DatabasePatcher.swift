@@ -19,7 +19,8 @@ class DatabasePatcher {
             AppConstants.messageSequenceBackfillCompletedKey,
             AppConstants.personaOrderingPatchCompletedKey,
             AppConstants.imageUploadsPatchCompletedKey,
-            AppConstants.imageGenerationPatchCompletedKey
+            AppConstants.imageGenerationPatchCompletedKey,
+            AppConstants.pdfUploadsPatchCompletedKey
         ]
 
         for key in keys {
@@ -43,7 +44,8 @@ class DatabasePatcher {
         let patchKeys = [
             AppConstants.personaOrderingPatchCompletedKey,
             AppConstants.imageUploadsPatchCompletedKey,
-            AppConstants.imageGenerationPatchCompletedKey
+            AppConstants.imageGenerationPatchCompletedKey,
+            AppConstants.pdfUploadsPatchCompletedKey
         ]
 
         for key in patchKeys {
@@ -72,6 +74,12 @@ class DatabasePatcher {
         if persistence.getMetadata(forKey: AppConstants.imageGenerationPatchCompletedKey) as? Bool != true {
             if patchImageGenerationForAPIServices(context: context) {
                 persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
+            }
+        }
+
+        if persistence.getMetadata(forKey: AppConstants.pdfUploadsPatchCompletedKey) as? Bool != true {
+            if patchPdfUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
             }
         }
         
@@ -115,6 +123,7 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.personaOrderingPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
             
             // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
             persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
@@ -131,6 +140,7 @@ class DatabasePatcher {
         setMetadataIfMissing(true, forKey: AppConstants.personaOrderingPatchCompletedKey, persistence: persistence)
         setMetadataIfMissing(true, forKey: AppConstants.imageUploadsPatchCompletedKey, persistence: persistence)
         setMetadataIfMissing(true, forKey: AppConstants.imageGenerationPatchCompletedKey, persistence: persistence)
+        setMetadataIfMissing(true, forKey: AppConstants.pdfUploadsPatchCompletedKey, persistence: persistence)
         if persistence.getMetadata(forKey: "DB_VERSION") == nil {
             persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
         }
@@ -234,6 +244,39 @@ class DatabasePatcher {
         }
         catch {
             print("Error patching image uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchPdfUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices {
+                guard let type = service.type,
+                      let config = AppConstants.defaultApiConfigurations[type],
+                      config.pdfUploadsSupported,
+                      service.pdfUploadsAllowed == false else {
+                    continue
+                }
+
+                service.pdfUploadsAllowed = true
+                needsSave = true
+                print("Enabled PDF uploads for API service: \(service.name ?? "Unnamed")")
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched PDF uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching PDF uploads for API services: \(error)")
             return false
         }
     }

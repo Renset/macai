@@ -41,7 +41,7 @@ struct MessageContentView: View {
     }
 
     private func containsImageData(_ message: String) -> Bool {
-        if message.contains("<image-uuid>") {
+        if message.contains("<image-uuid>") || message.contains("<file-uuid>") {
             return true
         }
         return false
@@ -141,6 +141,9 @@ struct MessageContentView: View {
 
         case .image(let image):
             renderImage(image)
+
+        case .file(let fileInfo):
+            renderFile(fileInfo)
         }
     }
 
@@ -274,6 +277,29 @@ struct MessageContentView: View {
                 )
 
             }
+    }
+
+    @ViewBuilder
+    private func renderFile(_ fileInfo: FileAttachmentInfo) -> some View {
+        let displayName = fileInfo.filename.isEmpty ? "Document.pdf" : fileInfo.filename
+        HStack(spacing: 10) {
+            Image(systemName: "doc.richtext")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName)
+                    .font(.system(size: effectiveFontSize, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text("PDF document")
+                    .font(.system(size: max(10, effectiveFontSize - 2)))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+        .cornerRadius(10)
     }
 
 }

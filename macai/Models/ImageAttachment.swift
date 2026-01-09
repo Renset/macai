@@ -23,6 +23,19 @@ class ImageAttachment: Identifiable, ObservableObject {
     private(set) var originalFileType: UTType
     private(set) var convertedToJPEG: Bool = false
 
+    var isReadyForUpload: Bool {
+        if isLoading || error != nil {
+            return false
+        }
+        if image != nil {
+            return true
+        }
+        if imageEntity?.image != nil {
+            return true
+        }
+        return false
+    }
+
     init(url: URL, context: NSManagedObjectContext? = nil) {
         self.url = url
         self.originalFileType = url.getUTType() ?? .jpeg

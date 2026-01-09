@@ -407,6 +407,8 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             return (content, "thinking")
         case .image(_):
             return ("", "image") // Images don't have searchable text content
+        case .file(let fileInfo):
+            return (fileInfo.filename, "file")
         }
     }
 

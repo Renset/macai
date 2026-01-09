@@ -73,7 +73,7 @@ struct ChatListView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(filteredChats, id: \.id) { chat in
+                    ForEach(filteredChats, id: \.objectID) { chat in
                         ChatListRow(
                             chat: chat,
                             showsAttentionIndicator: attentionStore.contains(chat.id),
@@ -81,7 +81,7 @@ struct ChatListView: View {
                             viewContext: viewContext,
                             searchText: debouncedSearchText
                         )
-                        .id(chat.id)
+                        .id(chat.objectID)
                     }
                 }
                 .padding(12)

@@ -254,7 +254,26 @@ struct APIServiceDetailView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .help(
-                                "If enabled, you can upload images to be processed by the AI. This feature is only available for certain models that support vision capabilities."
+                                "If enabled, you can upload images to be processed by the AI. PDFs are supported for OpenAI Responses models."
+                            )
+
+                            Spacer()
+                        }
+                    }
+                }
+
+                if viewModel.supportsPdfUploads {
+                    Toggle(isOn: $viewModel.pdfUploadsAllowed) {
+                        HStack {
+                            Text("Allow PDF uploads")
+                            Button(action: {
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help(
+                                "If enabled, you can upload PDF documents to be processed by the AI."
                             )
 
                             Spacer()

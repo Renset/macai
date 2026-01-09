@@ -20,6 +20,7 @@ struct MessageParser {
         case formulaLine
         case thinking
         case imageUUID
+        case fileUUID
     }
 
     func detectBlockType(line: String) -> BlockType {
@@ -39,6 +40,9 @@ struct MessageParser {
         }
         else if trimmedLine.hasPrefix("\\]") {
             return .formulaLine
+        }
+        else if trimmedLine.hasPrefix("<file-uuid>") {
+            return .fileUUID
         }
         else if trimmedLine.hasPrefix("<image-uuid>") {
             return .imageUUID
@@ -168,21 +172,17 @@ struct MessageParser {
             }
         }
 
-        func handleLineWithInlineImages(_ line: String, isLastLine: Bool) {
-            let pattern = "<image-uuid>(.*?)</image-uuid>"
-            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+        func handleLineWithInlineAttachments(_ line: String, isLastLine: Bool) {
+            let imagePattern = "<image-uuid>(.*?)</image-uuid>"
+            let filePattern = "<file-uuid>(.*?)</file-uuid>"
+
+            guard let imageRegex = try? NSRegularExpression(pattern: imagePattern, options: []),
+                  let fileRegex = try? NSRegularExpression(pattern: filePattern, options: []) else {
                 textLines.append(line)
                 return
             }
 
             let nsString = line as NSString
-            let matches = regex.matches(in: line, options: [], range: NSRange(location: 0, length: nsString.length))
-
-            guard !matches.isEmpty else {
-                textLines.append(line)
-                return
-            }
-
             var currentLocation = 0
             var pendingText = ""
 
@@ -192,8 +192,27 @@ struct MessageParser {
                 pendingText = ""
             }
 
-            for match in matches {
-                let matchRange = match.range
+            func nextMatch(after location: Int) -> (type: BlockType, match: NSTextCheckingResult)? {
+                let searchRange = NSRange(location: location, length: nsString.length - location)
+                let nextImage = imageRegex.firstMatch(in: line, options: [], range: searchRange)
+                let nextFile = fileRegex.firstMatch(in: line, options: [], range: searchRange)
+
+                switch (nextImage, nextFile) {
+                case let (image?, file?):
+                    return image.range.location <= file.range.location
+                        ? (.imageUUID, image)
+                        : (.fileUUID, file)
+                case let (image?, nil):
+                    return (.imageUUID, image)
+                case let (nil, file?):
+                    return (.fileUUID, file)
+                default:
+                    return nil
+                }
+            }
+
+            while let next = nextMatch(after: currentLocation) {
+                let matchRange = next.match.range
                 let textLength = matchRange.location - currentLocation
                 if textLength > 0 {
                     let segment = nsString.substring(with: NSRange(location: currentLocation, length: textLength))
@@ -204,17 +223,29 @@ struct MessageParser {
                     flushPendingText()
                 }
 
-                var appendedImage = false
-                if match.numberOfRanges > 1 {
-                    let uuidRange = match.range(at: 1)
+                var appendedAttachment = false
+                if next.match.numberOfRanges > 1 {
+                    let uuidRange = next.match.range(at: 1)
                     let uuidString = nsString.substring(with: uuidRange)
-                    if let uuid = UUID(uuidString: uuidString), let image = loadImageFromCoreData(uuid: uuid) {
-                        elements.append(.image(image))
-                        appendedImage = true
+                    if let uuid = UUID(uuidString: uuidString) {
+                        switch next.type {
+                        case .imageUUID:
+                            if let image = loadImageFromCoreData(uuid: uuid) {
+                                elements.append(.image(image))
+                                appendedAttachment = true
+                            }
+                        case .fileUUID:
+                            if let fileInfo = loadFileFromCoreData(uuid: uuid) {
+                                elements.append(.file(fileInfo))
+                                appendedAttachment = true
+                            }
+                        default:
+                            break
+                        }
                     }
                 }
 
-                if !appendedImage {
+                if !appendedAttachment {
                     let placeholder = nsString.substring(with: matchRange)
                     pendingText += placeholder
                 }
@@ -254,6 +285,17 @@ struct MessageParser {
             return nil
         }
 
+        func extractFileUUID(_ line: String) -> UUID? {
+            let pattern = "<file-uuid>(.*?)</file-uuid>"
+            if let range = line.range(of: pattern, options: .regularExpression) {
+                let uuidString = String(line[range])
+                    .replacingOccurrences(of: "<file-uuid>", with: "")
+                    .replacingOccurrences(of: "</file-uuid>", with: "")
+                return UUID(uuidString: uuidString)
+            }
+            return nil
+        }
+
         func loadImageFromCoreData(uuid: UUID) -> NSImage? {
             let viewContext = PersistenceController.shared.container.viewContext
 
@@ -269,6 +311,31 @@ struct MessageParser {
             }
             catch {
                 print("Error fetching image from CoreData: \(error)")
+            }
+
+            return nil
+        }
+
+        func loadFileFromCoreData(uuid: UUID) -> FileAttachmentInfo? {
+            let viewContext = PersistenceController.shared.container.viewContext
+
+            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            do {
+                let results = try viewContext.fetch(fetchRequest)
+                if let documentEntity = results.first {
+                    let filename = documentEntity.filename ?? "Document.pdf"
+                    return FileAttachmentInfo(
+                        id: uuid,
+                        filename: filename,
+                        mimeType: documentEntity.mimeType
+                    )
+                }
+            }
+            catch {
+                print("Error fetching file from CoreData: \(error)")
             }
 
             return nil
@@ -361,6 +428,18 @@ struct MessageParser {
                     textLines.append(line)
                 }
 
+            case .fileUUID:
+                if let uuid = extractFileUUID(line), let fileInfo = loadFileFromCoreData(uuid: uuid) {
+                    combineTextLinesIfNeeded()
+                    elements.append(.file(fileInfo))
+                    if !isLastLine {
+                        elements.append(.text("\n"))
+                    }
+                }
+                else {
+                    textLines.append(line)
+                }
+
             case .text:
                 if isThinkingBlockOpened {
                     if line.contains("</think>") {
@@ -387,10 +466,10 @@ struct MessageParser {
                     handleFormulaLine(line: line)
                 }
                 else {
-                    if line.contains("<image-uuid>") {
+                    if line.contains("<image-uuid>") || line.contains("<file-uuid>") {
                         combineTextLinesIfNeeded()
                         appendTableIfNeeded()
-                        handleLineWithInlineImages(line, isLastLine: isLastLine)
+                        handleLineWithInlineAttachments(line, isLastLine: isLastLine)
                         continue
                     }
                     if !currentTableData.isEmpty {
