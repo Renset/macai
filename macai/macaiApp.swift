@@ -9,7 +9,6 @@ import AppKit
 import CloudKit
 import CoreData
 import Sparkle
-import SQLite3
 import SwiftUI
 import UserNotifications
 
@@ -137,14 +136,6 @@ class PersistenceController {
         // Import exported data if we have it (migration scenario)
         migrator.importIfNeeded(state: migrationState, into: container)
 
-        print("Persistent stores loaded, scheduling WAL checkpoint...")
-
-        // Perform WAL checkpoint on background thread to avoid blocking app launch
-        // For large databases (>100MB), this can take seconds
-        DispatchQueue.global(qos: .utility).async { [weak container] in
-            self.performWALCheckpoint(container: container)
-        }
-
         print("Initialization complete")
 
         // Initialize CloudSyncManager if CloudKit is enabled
@@ -182,36 +173,6 @@ class PersistenceController {
         // Save the context to ensure metadata is persisted to disk if it was updated
         if container.viewContext.hasChanges {
             try? container.viewContext.save()
-        }
-    }
-
-    private func performWALCheckpoint(container: NSPersistentContainer?) {
-        guard let container = container else {
-            print("WAL checkpoint skipped: container deallocated")
-            return
-        }
-        
-        let storeCoordinator = container.persistentStoreCoordinator
-        guard let store = storeCoordinator.persistentStores.first,
-              let storeURL = store.url else {
-            return
-        }
-
-        // Perform WAL checkpoint using raw SQL
-        var db: OpaquePointer?
-
-        if sqlite3_open(storeURL.path, &db) == SQLITE_OK {
-            var errMsg: UnsafeMutablePointer<CChar>?
-            let result = sqlite3_exec(db, "PRAGMA wal_checkpoint(TRUNCATE);", nil, nil, &errMsg)
-            if result != SQLITE_OK {
-                if let errMsg = errMsg {
-                    print("WAL checkpoint failed: \(String(cString: errMsg))")
-                    sqlite3_free(errMsg)
-                }
-            } else {
-                print("WAL checkpoint completed successfully")
-            }
-            sqlite3_close(db)
         }
     }
 

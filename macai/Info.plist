@@ -6,6 +6,8 @@
 	<string>fonts</string>
 	<key>CloudKitContainerIdentifier</key>
 	<string>iCloud.notfullin.com.macai</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>macai lets you attach photos from your library to chats.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>macai uses notifications to inform you about new features, important updates, and new messages from chats</string>
 	<key>SUAllowsAutomaticUpdates</key>

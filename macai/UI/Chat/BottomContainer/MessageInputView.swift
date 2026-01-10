@@ -5,6 +5,7 @@
 //  Created by Renat on 2024-07-15
 //
 
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -30,6 +31,8 @@ struct MessageInputView: View {
     @State private var isHoveringDropZone = false
     @State private var attachmentOrder: [AttachmentKey] = []
     @State private var draggingAttachment: AttachmentKey?
+    @State private var isShowingPhotosPicker = false
+    @State private var photoPickerItems: [PhotosPickerItem] = []
 
     private let maxInputHeight = 160.0
     private let initialInputSize = 16.0
@@ -71,6 +74,19 @@ struct MessageInputView: View {
 
     private var shouldShowAccessoryButton: Bool {
         isInferenceInProgress || isEditingSystemMessage
+    }
+
+    private var attachmentButtonIcon: String? {
+        switch (imageUploadsAllowed, pdfUploadsAllowed) {
+        case (true, true):
+            return "paperclip"
+        case (true, false):
+            return "photo.badge.plus"
+        case (false, true):
+            return "doc.badge.plus"
+        case (false, false):
+            return nil
+        }
     }
 
     private var accessoryButtonConfig: (systemName: String, foregroundColor: Color, backgroundColor: Color, helpText: String, action: () -> Void) {
@@ -195,25 +211,24 @@ struct MessageInputView: View {
             .frame(height: (attachedImages.isEmpty && attachedFiles.isEmpty) ? 0 : 100)
             
             HStack(spacing: 8) {
-                if pdfUploadsAllowed {
-                    Button(action: onAddFile) {
-                        Image(systemName: "doc.badge.plus")
+                if let attachmentButtonIcon {
+                    Menu {
+                        if pdfUploadsAllowed {
+                            Button("Add PDF", action: onAddFile)
+                        }
+                        if imageUploadsAllowed {
+                            Button("Add Image from File", action: onAddImage)
+                            Button("Add Image from Photos") {
+                                isShowingPhotosPicker = true
+                            }
+                        }
+                    } label: {
+                        Image(systemName: attachmentButtonIcon)
                             .font(.system(size: 16))
                             .foregroundColor(.accentColor)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help("Add PDF")
-                }
-                
-                if imageUploadsAllowed {
-                    Button(action: onAddImage) {
-                        Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 16))
-                            .foregroundColor(.accentColor)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .help("Add image")
-
+                    .help("Add attachment")
                 }
                 
                 MacaiTextField(
@@ -281,6 +296,29 @@ struct MessageInputView: View {
         .onAppear {
             DispatchQueue.main.async {
                 isFocused = .focused
+            }
+        }
+        .photosPicker(isPresented: $isShowingPhotosPicker, selection: $photoPickerItems, matching: .images, photoLibrary: .shared())
+        .onChange(of: photoPickerItems) { newItems in
+            guard imageUploadsAllowed, !newItems.isEmpty else { return }
+            Task {
+                var newAttachments: [ImageAttachment] = []
+                for item in newItems {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let image = NSImage(data: data) {
+                        newAttachments.append(ImageAttachment(image: image))
+                    }
+                }
+                if !newAttachments.isEmpty {
+                    await MainActor.run {
+                        withAnimation {
+                            attachedImages.append(contentsOf: newAttachments)
+                        }
+                    }
+                }
+                await MainActor.run {
+                    photoPickerItems = []
+                }
             }
         }
     }
