@@ -231,7 +231,7 @@ struct MessageParser {
                         switch next.type {
                         case .imageUUID:
                             if let image = loadImageFromCoreData(uuid: uuid) {
-                                elements.append(.image(image))
+                                elements.append(.image(image, uuid))
                                 appendedAttachment = true
                             }
                         case .fileUUID:
@@ -419,7 +419,7 @@ struct MessageParser {
             case .imageUUID:
                 if let uuid = extractImageUUID(line), let image = loadImageFromCoreData(uuid: uuid) {
                     combineTextLinesIfNeeded()
-                    elements.append(.image(image))
+                    elements.append(.image(image, uuid))
                     if !isLastLine {
                         elements.append(.text("\n"))
                     }

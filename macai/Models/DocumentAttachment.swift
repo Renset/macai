@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -16,13 +17,18 @@ class DocumentAttachment: Identifiable, ObservableObject {
     @Published var filename: String
     @Published var mimeType: String
     @Published var fileSize: Int?
+    @Published var thumbnail: NSImage?
     @Published var isLoading: Bool = false
+    @Published var isPreparingPreview: Bool = false
+    @Published var previewUnavailable: Bool = false
     @Published var error: Error?
 
     internal var documentEntity: DocumentEntity?
     private var managedObjectContext: NSManagedObjectContext?
     private(set) var originalFileType: UTType
     private var fileData: Data?
+    private var cachedPreviewURL: URL?
+    private var pendingPreviewCompletions: [(URL?) -> Void] = []
 
     var isReadyForUpload: Bool {
         guard !isLoading, error == nil else { return false }
@@ -81,10 +87,12 @@ class DocumentAttachment: Identifiable, ObservableObject {
                 }
 
                 self.fileData = data
-                self.fileSize = data.count
                 self.saveToEntity(fileData: data)
+                self.generateThumbnail(from: data)
+                self.preparePreviewURLIfNeeded(using: data)
 
                 DispatchQueue.main.async {
+                    self.fileSize = data.count
                     self.isLoading = false
                 }
             }
@@ -105,6 +113,11 @@ class DocumentAttachment: Identifiable, ObservableObject {
 
             let data = documentEntity.fileData
             let size = data?.count
+
+            if let data {
+                self.generateThumbnail(from: data)
+                self.preparePreviewURLIfNeeded(using: data)
+            }
 
             DispatchQueue.main.async {
                 self.fileData = data
@@ -161,5 +174,128 @@ class DocumentAttachment: Identifiable, ObservableObject {
         guard let fileData = fileData else { return nil }
         let base64 = fileData.base64EncodedString()
         return "data:\(mimeType);base64,\(base64)"
+    }
+
+    func previewURL() -> URL? {
+        if let url, FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+
+        if let cachedPreviewURL, FileManager.default.fileExists(atPath: cachedPreviewURL.path) {
+            return cachedPreviewURL
+        }
+
+        if let cached = PreviewFileHelper.cachedPreviewURL(for: id) {
+            cachedPreviewURL = cached
+            return cached
+        }
+
+        return nil
+    }
+
+    func openPreview() {
+        let title = filename.isEmpty ? "Document.pdf" : filename
+        if let url = previewURL() {
+            let request = QuickLookPreviewer.PreviewItemRequest(id: id, title: title, url: url)
+            QuickLookPreviewer.shared.preview(requests: [request], selectedIndex: 0)
+            return
+        }
+
+        let request = QuickLookPreviewer.PreviewItemRequest(id: id, title: title) { completion in
+            self.fetchPreviewURL(completion: completion)
+        }
+        QuickLookPreviewer.shared.preview(requests: [request], selectedIndex: 0)
+    }
+
+    private func generateThumbnail(from data: Data) {
+        guard let document = PDFDocument(data: data), let page = document.page(at: 0) else {
+            DispatchQueue.main.async {
+                self.previewUnavailable = true
+            }
+            return
+        }
+        let targetSize = NSSize(width: AppConstants.thumbnailSize, height: AppConstants.thumbnailSize)
+        let image = page.thumbnail(of: targetSize, for: .mediaBox)
+
+        DispatchQueue.main.async {
+            self.thumbnail = image
+            self.previewUnavailable = false
+        }
+    }
+
+    private func preparePreviewURLIfNeeded(using data: Data) {
+        guard cachedPreviewURL == nil else { return }
+        guard url == nil else { return }
+        let suggestedName = filename.isEmpty ? "Document.pdf" : filename
+        let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+        let name = "\(baseName).pdf"
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            guard let previewURL = PreviewFileHelper.previewURL(
+                for: self.id,
+                data: data,
+                filename: name,
+                defaultExtension: "pdf"
+            ) else { return }
+
+            DispatchQueue.main.async {
+                self.cachedPreviewURL = previewURL
+            }
+        }
+    }
+
+    func fetchPreviewURL(completion: @escaping (URL?) -> Void) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.fetchPreviewURL(completion: completion)
+            }
+            return
+        }
+
+        if let url = previewURL() {
+            completion(url)
+            return
+        }
+
+        if isPreparingPreview {
+            pendingPreviewCompletions.append(completion)
+            return
+        }
+
+        pendingPreviewCompletions.append(completion)
+
+        guard let fileData else {
+            let completions = pendingPreviewCompletions
+            pendingPreviewCompletions.removeAll()
+            completions.forEach { $0(nil) }
+            return
+        }
+
+        isPreparingPreview = true
+
+        let suggestedName = filename.isEmpty ? "Document.pdf" : filename
+        let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+        let name = "\(baseName).pdf"
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let url = PreviewFileHelper.previewURL(
+                for: self.id,
+                data: fileData,
+                filename: name,
+                defaultExtension: "pdf"
+            )
+
+            DispatchQueue.main.async {
+                self.isPreparingPreview = false
+                if let url {
+                    self.cachedPreviewURL = url
+                }
+                let completions = self.pendingPreviewCompletions
+                self.pendingPreviewCompletions.removeAll()
+                completions.forEach { $0(url) }
+            }
+        }
     }
 }

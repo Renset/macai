@@ -5,6 +5,8 @@
 //  Created by Renat Notfullin on 18.03.2023.
 //
 
+import AppKit
+import CoreData
 import Foundation
 import SwiftUI
 
@@ -14,7 +16,7 @@ enum MessageElements {
     case code(code: String, lang: String, indent: Int)
     case formula(String)
     case thinking(String, isExpanded: Bool)
-    case image(NSImage)
+    case image(NSImage, UUID)
     case file(FileAttachmentInfo)
 }
 
@@ -69,6 +71,9 @@ struct ChatBubbleView: View, Equatable {
     }
 
     var body: some View {
+        let prefetchedElements = prefetchedElementsIfNeeded(from: content.message)
+        let attachments = prefetchedElements.map(extractAttachments) ?? []
+
         VStack {
             HStack {
                 if content.own {
@@ -76,62 +81,17 @@ struct ChatBubbleView: View, Equatable {
                         .frame(width: 80)
                     Spacer()
                 }
+                VStack(alignment: content.own ? .trailing : .leading, spacing: 6) {
+                    if content.own,
+                       !(content.waitingForResponse ?? false),
+                       content.errorMessage == nil,
+                       !attachments.isEmpty
+                    {
+                        attachmentRow(attachments: attachments)
+                    }
 
-                VStack(alignment: .leading) {
-                    if content.waitingForResponse ?? false {
-                        HStack {
-                            Text("Thinking")
-                                .foregroundColor(.primary)
-                                .font(.system(size: 14))
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 6, height: 6)
-                                .modifier(PulsatingCircle())
-                                .padding(.top, 4)
-                        }
-                    }
-                    else if let errorMessage = content.errorMessage {
-                        ErrorBubbleView(
-                            error: errorMessage,
-                            onRetry: {
-                                NotificationCenter.default.post(
-                                    name: NSNotification.Name("RetryMessage"),
-                                    object: nil
-                                )
-                            },
-                            onIgnore: {
-                                NotificationCenter.default.post(
-                                    name: NSNotification.Name("IgnoreError"),
-                                    object: nil
-                                )
-                            }
-                        )
-                    }
-                    else {
-                        MessageContentView(
-                            message: message,
-                            content: content.message,
-                            isStreaming: content.isStreaming,
-                            own: content.own,
-                            effectiveFontSize: effectiveFontSize,
-                            colorScheme: colorScheme,
-                            searchText: $searchText,
-                            currentSearchOccurrence: currentSearchOccurrence
-                        )
-                    }
+                    bubbleContent(prefetchedElements: prefetchedElements)
                 }
-                .foregroundColor(Color(content.own ? incomingLabelColor : incomingLabelColor))
-                .multilineTextAlignment(.leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    content.systemMessage
-                        ? (color != nil ? (Color(hex: color!) ?? Color(NSColor.systemGray)) : Color(NSColor.systemGray)).opacity(0.6)
-                        : colorScheme == .dark
-                            ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
-                            : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
-                )
-                .cornerRadius(16)
 
                 if !content.own {
                     Spacer()
@@ -190,6 +150,213 @@ struct ChatBubbleView: View, Equatable {
             )
         }
     }
+
+    @ViewBuilder
+    private func bubbleContent(prefetchedElements: [MessageElements]?) -> some View {
+        Group {
+            if content.waitingForResponse ?? false {
+                HStack {
+                    Text("Thinking")
+                        .foregroundColor(.primary)
+                        .font(.system(size: 14))
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 6, height: 6)
+                        .modifier(PulsatingCircle())
+                        .padding(.top, 4)
+                }
+            }
+            else if let errorMessage = content.errorMessage {
+                ErrorBubbleView(
+                    error: errorMessage,
+                    onRetry: {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("RetryMessage"),
+                            object: nil
+                        )
+                    },
+                    onIgnore: {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("IgnoreError"),
+                            object: nil
+                        )
+                    }
+                )
+            }
+            else {
+                MessageContentView(
+                    message: message,
+                    content: content.message,
+                    isStreaming: content.isStreaming,
+                    own: content.own,
+                    effectiveFontSize: effectiveFontSize,
+                    colorScheme: colorScheme,
+                    inlineAttachments: !content.own,
+                    prefetchedElements: prefetchedElements,
+                    searchText: $searchText,
+                    currentSearchOccurrence: currentSearchOccurrence
+                )
+            }
+        }
+        .foregroundColor(Color(content.own ? incomingLabelColor : incomingLabelColor))
+        .multilineTextAlignment(.leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            content.systemMessage
+                ? (color != nil ? (Color(hex: color!) ?? Color(NSColor.systemGray)) : Color(NSColor.systemGray)).opacity(0.6)
+                : colorScheme == .dark
+                    ? (content.own ? outgoingBubbleColorDark : incomingBubbleColorDark)
+                    : (content.own ? outgoingBubbleColorLight : incomingBubbleColorLight)
+        )
+        .cornerRadius(16)
+    }
+
+    private func prefetchedElementsIfNeeded(from message: String) -> [MessageElements]? {
+        guard content.own else { return nil }
+        guard message.contains("<image-uuid>") || message.contains("<file-uuid>") else { return nil }
+        let parser = MessageParser(colorScheme: colorScheme)
+        return parser.parseMessageFromString(input: message)
+    }
+
+    private func extractAttachments(from elements: [MessageElements]) -> [MessageElements] {
+        elements.compactMap { element in
+            switch element {
+            case .image, .file:
+                return element
+            default:
+                return nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func attachmentRow(attachments: [MessageElements]) -> some View {
+        let tileSize: CGFloat = 160
+        let columns = [
+            GridItem(.adaptive(minimum: tileSize, maximum: tileSize), spacing: 8, alignment: .trailing)
+        ]
+        let previewRequests = attachmentPreviewRequests(from: attachments)
+        let previewIndexById = previewRequests.enumerated().reduce(into: [UUID: Int]()) { result, entry in
+            result[entry.element.id] = entry.offset
+        }
+
+        let orderedIndices = Array(attachments.indices.reversed())
+
+        return HStack {
+            Spacer(minLength: 0)
+            LazyVGrid(columns: columns, alignment: .trailing, spacing: 8) {
+                ForEach(orderedIndices, id: \.self) { index in
+                    let attachment = attachments[index]
+                    switch attachment {
+                    case .image(let image, let id):
+                        ImageAttachmentTileView(
+                            image: image,
+                            size: tileSize,
+                            onPreview: {
+                                if let index = previewIndexById[id] {
+                                    QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
+                                }
+                            }
+                        )
+                    case .file(let fileInfo):
+                        PDFAttachmentTileView(
+                            fileInfo: fileInfo,
+                            size: tileSize,
+                            onPreview: {
+                                if let index = previewIndexById[fileInfo.id] {
+                                    QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
+                                }
+                            }
+                        )
+                    default:
+                        EmptyView()
+                    }
+                }
+            }
+            .environment(\.layoutDirection, .rightToLeft)
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    private func attachmentPreviewRequests(from attachments: [MessageElements]) -> [QuickLookPreviewer.PreviewItemRequest] {
+        attachments.map(makePreviewRequest)
+    }
+
+    private func makePreviewRequest(for element: MessageElements) -> QuickLookPreviewer.PreviewItemRequest {
+        switch element {
+        case .image(_, let id):
+            if let cached = PreviewFileHelper.cachedPreviewURL(for: id) {
+                return QuickLookPreviewer.PreviewItemRequest(
+                    id: id,
+                    title: cached.lastPathComponent,
+                    url: cached
+                )
+            }
+            return QuickLookPreviewer.PreviewItemRequest(id: id, title: "Image.jpg") { completion in
+                PersistenceController.shared.container.performBackgroundTask { context in
+                    let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+
+                    guard let imageEntity = try? context.fetch(fetchRequest).first,
+                          let imageData = imageEntity.image else {
+                        completion(nil)
+                        return
+                    }
+
+                    let rawExtension = (imageEntity.imageFormat?.isEmpty == false)
+                        ? imageEntity.imageFormat!.lowercased()
+                        : "jpg"
+                    let fileExtension = (rawExtension == "jpeg") ? "jpg" : rawExtension
+                    let filename = "Image.\(fileExtension)"
+                    let url = PreviewFileHelper.previewURL(
+                        for: id,
+                        data: imageData,
+                        filename: filename,
+                        defaultExtension: fileExtension
+                    )
+                    completion(url)
+                }
+            }
+        case .file(let fileInfo):
+            let displayName = fileInfo.filename.isEmpty ? "Document.pdf" : fileInfo.filename
+            if let cached = PreviewFileHelper.cachedPreviewURL(for: fileInfo.id) {
+                return QuickLookPreviewer.PreviewItemRequest(
+                    id: fileInfo.id,
+                    title: displayName,
+                    url: cached
+                )
+            }
+            return QuickLookPreviewer.PreviewItemRequest(id: fileInfo.id, title: displayName) { completion in
+                PersistenceController.shared.container.performBackgroundTask { context in
+                    let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", fileInfo.id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+
+                    guard let documentEntity = try? context.fetch(fetchRequest).first,
+                          let fileData = documentEntity.fileData else {
+                        completion(nil)
+                        return
+                    }
+
+                    let suggestedName = fileInfo.filename.isEmpty ? "Document.pdf" : fileInfo.filename
+                    let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+                    let name = "\(baseName).pdf"
+                    let url = PreviewFileHelper.previewURL(
+                        for: fileInfo.id,
+                        data: fileData,
+                        filename: name,
+                        defaultExtension: "pdf"
+                    )
+                    completion(url)
+                }
+            }
+        default:
+            return QuickLookPreviewer.PreviewItemRequest(id: UUID(), title: nil, url: nil)
+        }
+    }
+
 
     private func copyMessageToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general

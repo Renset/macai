@@ -28,6 +28,8 @@ struct MessageInputView: View {
     private let inputPlaceholderText: String
     private let cornerRadius: Double
     @State private var isHoveringDropZone = false
+    @State private var attachmentOrder: [AttachmentKey] = []
+    @State private var draggingAttachment: AttachmentKey?
 
     private let maxInputHeight = 160.0
     private let initialInputSize = 16.0
@@ -117,25 +119,73 @@ struct MessageInputView: View {
     }
 
     var body: some View {
+        let orderedAttachments = orderedAttachmentItems()
+        let previewRequests = attachmentPreviewRequests(from: orderedAttachments)
+        let previewIndexById = previewRequests.enumerated().reduce(into: [UUID: Int]()) { result, entry in
+            result[entry.element.id] = entry.offset
+        }
+
         VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(attachedImages) { attachment in
-                        ImagePreviewView(attachment: attachment) { index in
-                            if let index = attachedImages.firstIndex(where: { $0.id == attachment.id }) {
-                                withAnimation {
-                                    attachedImages.remove(at: index)
+                    ForEach(orderedAttachments) { attachment in
+                        switch attachment {
+                        case .image(let imageAttachment):
+                            ImagePreviewView(
+                                attachment: imageAttachment,
+                                onPreview: {
+                                    if let index = previewIndexById[imageAttachment.id] {
+                                        QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
+                                    }
+                                }
+                            ) { _ in
+                                if let index = attachedImages.firstIndex(where: { $0.id == imageAttachment.id }) {
+                                    withAnimation {
+                                        attachedImages.remove(at: index)
+                                    }
                                 }
                             }
-                        }
-                    }
-                    ForEach(attachedFiles) { attachment in
-                        FilePreviewView(attachment: attachment) { index in
-                            if let index = attachedFiles.firstIndex(where: { $0.id == attachment.id }) {
-                                withAnimation {
-                                    attachedFiles.remove(at: index)
+                            .onDrag {
+                                draggingAttachment = .image(imageAttachment.id)
+                                return NSItemProvider(object: attachment.dragIdentifier as NSString)
+                            }
+                            .onDrop(
+                                of: [.text],
+                                delegate: AttachmentDropDelegate(
+                                    item: .image(imageAttachment.id),
+                                    order: $attachmentOrder,
+                                    dragging: $draggingAttachment,
+                                    onMove: applyAttachmentOrder
+                                )
+                            )
+                        case .file(let fileAttachment):
+                            FilePreviewView(
+                                attachment: fileAttachment,
+                                onPreview: {
+                                    if let index = previewIndexById[fileAttachment.id] {
+                                        QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
+                                    }
+                                }
+                            ) { _ in
+                                if let index = attachedFiles.firstIndex(where: { $0.id == fileAttachment.id }) {
+                                    withAnimation {
+                                        attachedFiles.remove(at: index)
+                                    }
                                 }
                             }
+                            .onDrag {
+                                draggingAttachment = .file(fileAttachment.id)
+                                return NSItemProvider(object: attachment.dragIdentifier as NSString)
+                            }
+                            .onDrop(
+                                of: [.text],
+                                delegate: AttachmentDropDelegate(
+                                    item: .file(fileAttachment.id),
+                                    order: $attachmentOrder,
+                                    dragging: $draggingAttachment,
+                                    onMove: applyAttachmentOrder
+                                )
+                            )
                         }
                     }
                 }
@@ -218,6 +268,15 @@ struct MessageInputView: View {
             return handleDrop(providers: providers)
         }
         .onAppear {
+            syncAttachmentOrder()
+        }
+        .onChange(of: attachedImages.map { $0.id }) { _ in
+            syncAttachmentOrder()
+        }
+        .onChange(of: attachedFiles.map { $0.id }) { _ in
+            syncAttachmentOrder()
+        }
+        .onAppear {
             DispatchQueue.main.async {
                 isFocused = .focused
             }
@@ -228,39 +287,12 @@ struct MessageInputView: View {
         var didHandleDrop = false
 
         for provider in providers {
-            if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                guard imageUploadsAllowed else { continue }
-                provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { (data, error) in
-                    if let url = data as? URL {
-                        DispatchQueue.main.async {
-                            let attachment = ImageAttachment(url: url)
-                            withAnimation {
-                                attachedImages.append(attachment)
-                            }
-                        }
-                        didHandleDrop = true
-                    }
-                }
-            }
-            else if provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
-                guard pdfUploadsAllowed else { continue }
-                provider.loadItem(forTypeIdentifier: UTType.pdf.identifier, options: nil) { (data, error) in
-                    if let url = data as? URL {
-                        DispatchQueue.main.async {
-                            let attachment = DocumentAttachment(url: url)
-                            withAnimation {
-                                attachedFiles.append(attachment)
-                            }
-                        }
-                        didHandleDrop = true
-                    }
-                }
-            }
-            else if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (data, error) in
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                didHandleDrop = didHandleDrop || imageUploadsAllowed || pdfUploadsAllowed
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (data, _) in
                     if let urlData = data as? Data,
-                        let url = URL(dataRepresentation: urlData, relativeTo: nil),
-                        (isValidImageFile(url: url) || isValidPDFFile(url: url))
+                       let url = URL(dataRepresentation: urlData, relativeTo: nil),
+                       (isValidImageFile(url: url) || isValidPDFFile(url: url))
                     {
                         DispatchQueue.main.async {
                             if isValidPDFFile(url: url) {
@@ -277,7 +309,65 @@ struct MessageInputView: View {
                                 }
                             }
                         }
-                        didHandleDrop = true
+                    }
+                }
+                continue
+            }
+
+            if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                guard imageUploadsAllowed else { continue }
+                didHandleDrop = true
+                provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { (item, _) in
+                    let attachment: ImageAttachment?
+
+                    if let url = item as? URL {
+                        attachment = ImageAttachment(url: url)
+                    } else if let image = item as? NSImage {
+                        attachment = ImageAttachment(image: image)
+                    } else if let data = item as? Data, let image = NSImage(data: data) {
+                        attachment = ImageAttachment(image: image)
+                    } else {
+                        attachment = nil
+                    }
+
+                    guard let attachment else { return }
+
+                    DispatchQueue.main.async {
+                        withAnimation {
+                            attachedImages.append(attachment)
+                        }
+                    }
+                }
+                continue
+            }
+
+            if provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
+                guard pdfUploadsAllowed else { continue }
+                didHandleDrop = true
+                provider.loadItem(forTypeIdentifier: UTType.pdf.identifier, options: nil) { (item, _) in
+                    if let url = item as? URL {
+                        DispatchQueue.main.async {
+                            let attachment = DocumentAttachment(url: url)
+                            withAnimation {
+                                attachedFiles.append(attachment)
+                            }
+                        }
+                        return
+                    }
+
+                    if let data = item as? Data,
+                       let url = PreviewFileHelper.writeTemporaryFile(
+                        data: data,
+                        filename: (provider.suggestedName ?? "Document.pdf"),
+                        defaultExtension: "pdf"
+                       )
+                    {
+                        DispatchQueue.main.async {
+                            let attachment = DocumentAttachment(url: url)
+                            withAnimation {
+                                attachedFiles.append(attachment)
+                            }
+                        }
                     }
                 }
             }
@@ -293,6 +383,183 @@ struct MessageInputView: View {
 
     private func isValidPDFFile(url: URL) -> Bool {
         return url.pathExtension.lowercased() == "pdf"
+    }
+
+    private func attachmentPreviewRequests(
+        from attachments: [AttachmentItem]
+    ) -> [QuickLookPreviewer.PreviewItemRequest] {
+        var requests: [QuickLookPreviewer.PreviewItemRequest] = []
+
+        for attachment in attachments {
+            switch attachment {
+            case .image(let imageAttachment):
+                if let url = imageAttachment.previewURL() {
+                    requests.append(
+                        QuickLookPreviewer.PreviewItemRequest(
+                            id: imageAttachment.id,
+                            title: url.lastPathComponent,
+                            url: url
+                        )
+                    )
+                } else {
+                    let title = imageAttachment.url?.lastPathComponent ?? "Image.jpg"
+                    requests.append(
+                        QuickLookPreviewer.PreviewItemRequest(
+                            id: imageAttachment.id,
+                            title: title
+                        ) { completion in
+                            imageAttachment.fetchPreviewURL(completion: completion)
+                        }
+                    )
+                }
+            case .file(let fileAttachment):
+                let title = fileAttachment.filename.isEmpty ? "Document.pdf" : fileAttachment.filename
+                if let url = fileAttachment.previewURL() {
+                    requests.append(
+                        QuickLookPreviewer.PreviewItemRequest(
+                            id: fileAttachment.id,
+                            title: title,
+                            url: url
+                        )
+                    )
+                } else {
+                    requests.append(
+                        QuickLookPreviewer.PreviewItemRequest(
+                            id: fileAttachment.id,
+                            title: title
+                        ) { completion in
+                            fileAttachment.fetchPreviewURL(completion: completion)
+                        }
+                    )
+                }
+            }
+        }
+
+        return requests
+    }
+
+    private func orderedAttachmentItems() -> [AttachmentItem] {
+        let imageMap = Dictionary(uniqueKeysWithValues: attachedImages.map { ($0.id, $0) })
+        let fileMap = Dictionary(uniqueKeysWithValues: attachedFiles.map { ($0.id, $0) })
+
+        return attachmentOrder.compactMap { key in
+            switch key {
+            case .image(let id):
+                if let attachment = imageMap[id] {
+                    return .image(attachment)
+                }
+            case .file(let id):
+                if let attachment = fileMap[id] {
+                    return .file(attachment)
+                }
+            }
+            return nil
+        }
+    }
+
+    private func syncAttachmentOrder() {
+        let currentKeys = attachedImages.map { AttachmentKey.image($0.id) }
+            + attachedFiles.map { AttachmentKey.file($0.id) }
+
+        if attachmentOrder.isEmpty {
+            attachmentOrder = currentKeys
+            return
+        }
+
+        let currentSet = Set(currentKeys)
+        attachmentOrder.removeAll { !currentSet.contains($0) }
+
+        let existingSet = Set(attachmentOrder)
+        let newKeys = currentKeys.filter { !existingSet.contains($0) }
+        attachmentOrder.append(contentsOf: newKeys)
+    }
+
+    private func applyAttachmentOrder(_ order: [AttachmentKey]) {
+        let imageMap = Dictionary(uniqueKeysWithValues: attachedImages.map { ($0.id, $0) })
+        let fileMap = Dictionary(uniqueKeysWithValues: attachedFiles.map { ($0.id, $0) })
+
+        var newImages: [ImageAttachment] = []
+        var newFiles: [DocumentAttachment] = []
+
+        for key in order {
+            switch key {
+            case .image(let id):
+                if let attachment = imageMap[id] {
+                    newImages.append(attachment)
+                }
+            case .file(let id):
+                if let attachment = fileMap[id] {
+                    newFiles.append(attachment)
+                }
+            }
+        }
+
+        attachedImages = newImages
+        attachedFiles = newFiles
+    }
+
+    private enum AttachmentKey: Hashable {
+        case image(UUID)
+        case file(UUID)
+    }
+
+    private enum AttachmentItem: Identifiable {
+        case image(ImageAttachment)
+        case file(DocumentAttachment)
+
+        var id: AttachmentKey {
+            switch self {
+            case .image(let attachment):
+                return .image(attachment.id)
+            case .file(let attachment):
+                return .file(attachment.id)
+            }
+        }
+
+        var dragIdentifier: String {
+            switch self {
+            case .image(let attachment):
+                return "image:\(attachment.id.uuidString)"
+            case .file(let attachment):
+                return "file:\(attachment.id.uuidString)"
+            }
+        }
+    }
+
+    private struct AttachmentDropDelegate: DropDelegate {
+        let item: AttachmentKey
+        @Binding var order: [AttachmentKey]
+        @Binding var dragging: AttachmentKey?
+        let onMove: ([AttachmentKey]) -> Void
+
+        func dropEntered(info: DropInfo) {
+            guard let dragging, dragging != item else { return }
+            guard let fromIndex = order.firstIndex(of: dragging),
+                  let toIndex = order.firstIndex(of: item) else {
+                return
+            }
+
+            if order[toIndex] != dragging {
+                let updated = move(order, fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex)
+                order = updated
+                onMove(updated)
+            }
+        }
+
+        func dropUpdated(info: DropInfo) -> DropProposal? {
+            DropProposal(operation: .move)
+        }
+
+        func performDrop(info: DropInfo) -> Bool {
+            dragging = nil
+            return true
+        }
+
+        private func move(_ values: [AttachmentKey], fromOffsets: IndexSet, toOffset: Int) -> [AttachmentKey] {
+            var updated = values
+            updated.move(fromOffsets: fromOffsets, toOffset: toOffset)
+            return updated
+        }
     }
 }
 
@@ -324,90 +591,57 @@ private struct InputAccessoryButton: View {
 
 struct ImagePreviewView: View {
     @ObservedObject var attachment: ImageAttachment
+    var onPreview: () -> Void
     var onRemove: (Int) -> Void
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            if attachment.isLoading {
+            Button(action: {
+                onPreview()
+            }) {
+                Group {
+                    if attachment.isLoading {
+                        ProgressView()
+                            .frame(width: 80, height: 80)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                    else if let thumbnail = attachment.thumbnail ?? attachment.image {
+                        Image(nsImage: thumbnail)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 80, height: 80)
+                            .clipped()
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                            )
+                    }
+                    else if let error = attachment.error {
+                        VStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.red)
+                            Text("Error")
+                                .font(.caption)
+                        }
+                        .frame(width: 80, height: 80)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                        .help(error.localizedDescription)
+                    }
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(attachment.isLoading || attachment.error != nil)
+
+            if attachment.isPreparingPreview {
                 ProgressView()
-                    .frame(width: 80, height: 80)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-            }
-            else if let thumbnail = attachment.thumbnail ?? attachment.image {
-                Image(nsImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 80, height: 80)
-                    .clipped()
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
-                    )
-
-                Button(action: {
-                    onRemove(0)
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.white)
-                        .background(Circle().fill(Color.black.opacity(0.6)))
-                        .padding(4)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            else if let error = attachment.error {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(.red)
-                    Text("Error")
-                        .font(.caption)
-                }
-                .frame(width: 80, height: 80)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-                .help(error.localizedDescription)
-            }
-        }
-    }
-}
-
-struct FilePreviewView: View {
-    @ObservedObject var attachment: DocumentAttachment
-    var onRemove: (Int) -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.1))
-                .frame(width: 120, height: 80)
-
-            if attachment.isLoading {
-                ProgressView()
-                    .frame(width: 120, height: 80)
-            }
-            else if let error = attachment.error {
-                VStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(.red)
-                    Text("Error")
-                        .font(.caption)
-                }
-                .frame(width: 120, height: 80)
-                .help(error.localizedDescription)
-            }
-            else {
-                VStack(alignment: .leading, spacing: 6) {
-                    Image(systemName: "doc.richtext")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.blue)
-                    Text(attachment.filename.isEmpty ? "Document.pdf" : attachment.filename)
-                        .font(.caption)
-                        .lineLimit(2)
-                        .truncationMode(.middle)
-                }
-                .padding(8)
-                .frame(width: 120, height: 80, alignment: .leading)
+                    .scaleEffect(0.7)
+                    .padding(6)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .padding(6)
             }
 
             Button(action: {
@@ -420,5 +654,153 @@ struct FilePreviewView: View {
             }
             .buttonStyle(PlainButtonStyle())
         }
+    }
+}
+
+struct FilePreviewView: View {
+    @ObservedObject var attachment: DocumentAttachment
+    var onPreview: () -> Void
+    var onRemove: (Int) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let previewSize: CGFloat = 80
+        let overlayHeight: CGFloat = previewSize * 0.45
+
+        ZStack(alignment: .topTrailing) {
+            Button(action: {
+                onPreview()
+            }) {
+                ZStack(alignment: .bottomLeading) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: previewSize, height: previewSize)
+
+                    if attachment.isLoading {
+                        ProgressView()
+                            .frame(width: previewSize, height: previewSize)
+                    }
+                    else if let error = attachment.error {
+                        VStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.red)
+                            Text("Error")
+                                .font(.caption)
+                        }
+                        .frame(width: previewSize, height: previewSize)
+                        .help(error.localizedDescription)
+                    }
+                    else {
+                        let displayName = attachment.filename.isEmpty ? "Document.pdf" : attachment.filename
+                        let hasThumbnail = (attachment.thumbnail != nil)
+
+                        if let thumbnail = attachment.thumbnail {
+                            Image(nsImage: thumbnail)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: previewSize, height: previewSize)
+                        }
+
+                        if hasThumbnail {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                                .mask(
+                                    LinearGradient(
+                                        colors: [.clear, .black],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .overlay(
+                                    LinearGradient(
+                                        colors: gradientColors,
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                    .opacity(0.85)
+                                )
+                                .frame(height: overlayHeight)
+                                .frame(maxWidth: previewSize)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            if attachment.previewUnavailable && !hasThumbnail {
+                                Text("Preview unavailable")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundColor(secondaryTextColor)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                            Text(displayName)
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(2)
+                                .truncationMode(.middle)
+                                .foregroundColor(primaryTextColor)
+                                .shadow(color: shadowColor, radius: 1, x: 0, y: 1)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 6)
+                        .frame(width: previewSize, height: previewSize, alignment: .bottomLeading)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(borderColor, lineWidth: 1)
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(attachment.isLoading || attachment.error != nil)
+
+            if attachment.isPreparingPreview {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .padding(6)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .padding(6)
+            }
+
+            Button(action: {
+                onRemove(0)
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Circle().fill(Color.black.opacity(0.6)))
+                    .padding(4)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+    }
+
+    private var gradientColors: [Color] {
+        if colorScheme == .dark {
+            return [
+                Color.black.opacity(0.0),
+                Color.black.opacity(0.6),
+                Color.black.opacity(0.85),
+            ]
+        }
+        return [
+            Color.white.opacity(0.0),
+            Color.white.opacity(0.7),
+            Color.white.opacity(0.92),
+        ]
+    }
+
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? .white.opacity(0.85) : .black.opacity(0.65)
+    }
+
+    private var shadowColor: Color {
+        colorScheme == .dark ? .black.opacity(0.55) : .white.opacity(0.6)
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
     }
 }
