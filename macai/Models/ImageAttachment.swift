@@ -129,8 +129,15 @@ class ImageAttachment: Identifiable, ObservableObject {
                     self.image = fullImage
                     self.thumbnail = thumbnailImage
                     self.isLoading = false
+                    
+                    // We can reuse the already loaded image data for preview if needed,
+                    // but we will do it lazily in fetchPreviewURL to save memory/startup time
+                    // unless we want to pre-warm the cache.
+                    // Given the new "check disk first" logic, we might just want to ensure
+                    // the file exists if we have data ready.
                 }
 
+                // Prepare preview in background, capitalizing on the raw data we just fetched
                 self.preparePreviewURLIfNeeded(
                     imageData: imageData,
                     format: imageEntity.imageFormat
@@ -506,8 +513,29 @@ class ImageAttachment: Identifiable, ObservableObject {
                       let tiffData = image.tiffRepresentation,
                       let bitmap = NSBitmapImageRep(data: tiffData)
             {
-                previewData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-                fileExtension = "jpg"
+                // Match the intended format based on extension if supported by NSBitmapImageRep
+                let ext = fileExtension.lowercased()
+                var fileType: NSBitmapImageRep.FileType?
+                
+                switch ext {
+                case "png": fileType = .png
+                case "jpg", "jpeg": fileType = .jpeg
+                case "tif", "tiff": fileType = .tiff
+                case "bmp": fileType = .bmp
+                case "gif": fileType = .gif
+                case "jp2": fileType = .jpeg2000
+                default: fileType = nil
+                }
+                
+                if let type = fileType,
+                   let data = bitmap.representation(using: type, properties: [.compressionFactor: 0.9]) {
+                    previewData = data
+                    // fileExtension remains as is
+                } else {
+                    // Fallback to JPEG for unsupported types (e.g. HEIC, WebP if not supported by simple export)
+                    previewData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+                    fileExtension = "jpg"
+                }
             }
 
             guard let data = previewData else {
@@ -522,6 +550,8 @@ class ImageAttachment: Identifiable, ObservableObject {
 
             let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
             let name = "\(baseName).\(fileExtension)"
+            
+            // Pass the ID to efficiently manage file caching
             let url = PreviewFileHelper.previewURL(
                 for: self.id,
                 data: data,

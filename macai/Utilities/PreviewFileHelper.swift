@@ -11,7 +11,7 @@ enum PreviewFileHelper {
     private static let previewDirectoryName = "macai-previews"
     private static let urlCache = NSCache<NSUUID, NSURL>()
 
-    static func writeTemporaryFile(data: Data, filename: String, defaultExtension: String) -> URL? {
+    static func writeTemporaryFile(data: Data, filename: String, defaultExtension: String, id: UUID) -> URL? {
         guard !data.isEmpty else { return nil }
 
         let directory = FileManager.default.temporaryDirectory
@@ -24,19 +24,16 @@ enum PreviewFileHelper {
             return nil
         }
 
-        let sanitizedName = sanitizeFilename(filename.isEmpty ? "file" : filename)
-        var fileURL = directory.appendingPathComponent(sanitizedName)
+        // Use the ID to create a stable, unique filename for this attachment
+        // This ensures that subsequent previews of the same attachment reuse the same file
+        // preventing unnecessary disk I/O.
+        let fileExtension = !filename.isEmpty ? (filename as NSString).pathExtension : defaultExtension
+        let stableFilename = "\(id.uuidString).\(fileExtension.isEmpty ? defaultExtension : fileExtension)"
+        let fileURL = directory.appendingPathComponent(stableFilename)
 
-        if fileURL.pathExtension.isEmpty {
-            fileURL.appendPathExtension(defaultExtension)
-        }
-
+        // If the file already exists, return it immediately
         if FileManager.default.fileExists(atPath: fileURL.path) {
-            let base = fileURL.deletingPathExtension().lastPathComponent
-            let ext = fileURL.pathExtension
-            fileURL = directory
-                .appendingPathComponent("\(base)-\(UUID().uuidString)")
-                .appendingPathExtension(ext)
+            return fileURL
         }
 
         do {
@@ -50,8 +47,35 @@ enum PreviewFileHelper {
     }
 
     static func cachedPreviewURL(for id: UUID) -> URL? {
-        guard let url = urlCache.object(forKey: id as NSUUID) as URL? else { return nil }
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        // First check in-memory cache
+        if let url = urlCache.object(forKey: id as NSUUID) as URL?,
+           FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        
+        // If not in memory, check if a file with this ID exists in the temp directory
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(previewDirectoryName, isDirectory: true)
+        
+        // We need to find any file that starts with the UUID, regardless of extension
+        // Since we don't know the extension here easily without scanning, and the scan might be slow,
+        // we might rely on the extensive writeTemporaryFile check.
+        // However, `cachedPreviewURL` is often called when we suspect we might have it.
+        // For now, let's rely on the explicit passed-in data flow or the memory cache.
+        // But to be robust:
+        
+        do {
+             let contents = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+             if let match = contents.first(where: { $0.lastPathComponent.hasPrefix(id.uuidString) }) {
+                 // Update memory cache
+                 urlCache.setObject(match as NSURL, forKey: id as NSUUID)
+                 return match
+             }
+        } catch {
+            return nil
+        }
+
+        return nil
     }
 
     static func previewURL(
@@ -67,7 +91,8 @@ enum PreviewFileHelper {
         guard let url = writeTemporaryFile(
             data: data,
             filename: filename,
-            defaultExtension: defaultExtension
+            defaultExtension: defaultExtension,
+            id: id
         ) else {
             return nil
         }

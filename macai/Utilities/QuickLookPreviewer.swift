@@ -55,8 +55,9 @@ final class QuickLookPreviewer: NSObject {
                 completion()
                 return
             }
+            // If we are already loading, do nothing. Calling completion() here would trigger
+            // a refresh panel loop because the URL is still nil.
             guard let load, !isLoading else {
-                completion()
                 return
             }
             isLoading = true
@@ -114,7 +115,8 @@ final class QuickLookPreviewer: NSObject {
     func preview(image: NSImage, filename: String? = nil) {
         let trimmed = filename?.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = (trimmed?.isEmpty == false) ? trimmed! : "Image.jpg"
-        let request = PreviewItemRequest(id: UUID(), title: name) { completion in
+        let id = UUID()
+        let request = PreviewItemRequest(id: id, title: name) { completion in
             guard let data = image.jpegData(compression: 0.9) else {
                 completion(nil)
                 return
@@ -122,7 +124,8 @@ final class QuickLookPreviewer: NSObject {
             let url = PreviewFileHelper.writeTemporaryFile(
                 data: data,
                 filename: name,
-                defaultExtension: "jpg"
+                defaultExtension: "jpg",
+                id: id
             )
             completion(url)
         }

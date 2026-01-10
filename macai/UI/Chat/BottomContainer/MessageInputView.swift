@@ -263,6 +263,8 @@ struct MessageInputView: View {
             }
             .animation(stopButtonAnimation, value: shouldShowAccessoryButton)
         }
+        .scaleEffect(isHoveringDropZone ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHoveringDropZone)
         .onDrop(of: [.image, .pdf, .fileURL], isTargeted: $isHoveringDropZone) { providers in
             guard imageUploadsAllowed || pdfUploadsAllowed else { return false }
             return handleDrop(providers: providers)
@@ -359,7 +361,8 @@ struct MessageInputView: View {
                        let url = PreviewFileHelper.writeTemporaryFile(
                         data: data,
                         filename: (provider.suggestedName ?? "Document.pdf"),
-                        defaultExtension: "pdf"
+                        defaultExtension: "pdf",
+                        id: UUID()
                        )
                     {
                         DispatchQueue.main.async {

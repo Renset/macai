@@ -233,50 +233,59 @@ struct ChatBubbleView: View, Equatable {
     @ViewBuilder
     private func attachmentRow(attachments: [MessageElements]) -> some View {
         let tileSize: CGFloat = 160
-        let columns = [
-            GridItem(.adaptive(minimum: tileSize, maximum: tileSize), spacing: 8, alignment: .trailing)
-        ]
+        let spacing: CGFloat = 8
         let previewRequests = attachmentPreviewRequests(from: attachments)
         let previewIndexById = previewRequests.enumerated().reduce(into: [UUID: Int]()) { result, entry in
             result[entry.element.id] = entry.offset
         }
-
-        let orderedIndices = Array(attachments.indices.reversed())
-
-        return HStack {
-            Spacer(minLength: 0)
-            LazyVGrid(columns: columns, alignment: .trailing, spacing: 8) {
-                ForEach(orderedIndices, id: \.self) { index in
-                    let attachment = attachments[index]
-                    switch attachment {
-                    case .image(let image, let id):
-                        ImageAttachmentTileView(
-                            image: image,
-                            size: tileSize,
-                            onPreview: {
-                                if let index = previewIndexById[id] {
-                                    QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
-                                }
-                            }
-                        )
-                    case .file(let fileInfo):
-                        PDFAttachmentTileView(
-                            fileInfo: fileInfo,
-                            size: tileSize,
-                            onPreview: {
-                                if let index = previewIndexById[fileInfo.id] {
-                                    QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
-                                }
-                            }
-                        )
-                    default:
-                        EmptyView()
-                    }
-                }
+        TrailingAttachmentFlowLayout(
+            itemSize: CGSize(width: tileSize, height: tileSize),
+            spacing: spacing
+        ) {
+            ForEach(attachments.indices, id: \.self) { index in
+                let attachment = attachments[index]
+                attachmentTileView(
+                    attachment: attachment,
+                    tileSize: tileSize,
+                    previewIndexById: previewIndexById,
+                    previewRequests: previewRequests
+                )
             }
-            .environment(\.layoutDirection, .rightToLeft)
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+    
+    @ViewBuilder
+    private func attachmentTileView(
+        attachment: MessageElements,
+        tileSize: CGFloat,
+        previewIndexById: [UUID: Int],
+        previewRequests: [QuickLookPreviewer.PreviewItemRequest]
+    ) -> some View {
+        switch attachment {
+        case .image(let image, let id):
+            ImageAttachmentTileView(
+                image: image,
+                size: tileSize,
+                onPreview: {
+                    if let index = previewIndexById[id] {
+                        QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
+                    }
+                }
+            )
+        case .file(let fileInfo):
+            PDFAttachmentTileView(
+                fileInfo: fileInfo,
+                size: tileSize,
+                onPreview: {
+                    if let index = previewIndexById[fileInfo.id] {
+                        QuickLookPreviewer.shared.preview(requests: previewRequests, selectedIndex: index)
+                    }
+                }
+            )
+        default:
+            EmptyView()
+        }
     }
 
     private func attachmentPreviewRequests(from attachments: [MessageElements]) -> [QuickLookPreviewer.PreviewItemRequest] {
@@ -428,6 +437,70 @@ struct ChatBubbleView: View, Equatable {
                 )
             }
         }
+    }
+}
+
+private struct TrailingAttachmentFlowLayout: Layout {
+    var itemSize: CGSize
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
+
+        let availableWidth = proposal.width ?? idealWidth(for: subviews.count)
+        let itemsPerRow = itemsPerRow(for: availableWidth, fallbackCount: subviews.count)
+        let rowCount = Int(ceil(Double(subviews.count) / Double(itemsPerRow)))
+        let height = CGFloat(rowCount) * itemSize.height + CGFloat(max(0, rowCount - 1)) * spacing
+
+        if let proposedWidth = proposal.width {
+            return CGSize(width: proposedWidth, height: height)
+        }
+
+        let maxItemsInRow = min(itemsPerRow, subviews.count)
+        let width = CGFloat(maxItemsInRow) * itemSize.width + CGFloat(max(0, maxItemsInRow - 1)) * spacing
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+
+        let availableWidth = bounds.width
+        let itemsPerRow = itemsPerRow(for: availableWidth, fallbackCount: subviews.count)
+        var rowStart = 0
+        var y = bounds.minY
+
+        while rowStart < subviews.count {
+            let rowEnd = min(rowStart + itemsPerRow, subviews.count)
+            let rowCount = rowEnd - rowStart
+            let rowWidth = CGFloat(rowCount) * itemSize.width + CGFloat(max(0, rowCount - 1)) * spacing
+            var x = bounds.maxX - rowWidth
+
+            for index in rowStart..<rowEnd {
+                subviews[index].place(
+                    at: CGPoint(x: x, y: y),
+                    proposal: ProposedViewSize(width: itemSize.width, height: itemSize.height)
+                )
+                x += itemSize.width + spacing
+            }
+
+            y += itemSize.height + spacing
+            rowStart = rowEnd
+        }
+    }
+
+    private func idealWidth(for count: Int) -> CGFloat {
+        guard count > 0 else { return 0 }
+        let totalSpacing = CGFloat(max(0, count - 1)) * spacing
+        return CGFloat(count) * itemSize.width + totalSpacing
+    }
+
+    private func itemsPerRow(for availableWidth: CGFloat, fallbackCount: Int) -> Int {
+        guard availableWidth.isFinite, availableWidth > 0, itemSize.width > 0 else {
+            return max(1, fallbackCount)
+        }
+        let raw = (availableWidth + spacing) / (itemSize.width + spacing)
+        guard raw.isFinite, raw > 0 else { return max(1, fallbackCount) }
+        return max(1, Int(raw))
     }
 }
 
