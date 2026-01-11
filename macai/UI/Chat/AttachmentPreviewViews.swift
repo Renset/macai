@@ -28,6 +28,14 @@ struct ImageAttachmentTileView: View {
             .onTapGesture {
                 onPreview()
             }
+            .contextMenu {
+                Button("Copy") {
+                    AttachmentActionHelper.copyImage(image)
+                }
+                Button("Save") {
+                    AttachmentActionHelper.saveImage(image, suggestedName: "Image.jpg")
+                }
+            }
     }
 
     private var borderColor: Color {
@@ -127,6 +135,18 @@ struct PDFAttachmentTileView: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            Button("Copy") {
+                withDocumentData { data in
+                    AttachmentActionHelper.copyPDF(id: fileInfo.id, filename: displayName, data: data)
+                }
+            }
+            Button("Save") {
+                withDocumentData { data in
+                    AttachmentActionHelper.savePDF(filename: displayName, data: data)
+                }
+            }
+        }
         .onAppear {
             loader.loadIfNeeded()
         }
@@ -161,6 +181,23 @@ struct PDFAttachmentTileView: View {
 
     private var borderColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+    }
+
+    private func withDocumentData(_ completion: @escaping (Data) -> Void) {
+        PersistenceController.shared.container.performBackgroundTask { context in
+            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", fileInfo.id as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            guard let documentEntity = try? context.fetch(fetchRequest).first,
+                  let fileData = documentEntity.fileData else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                completion(fileData)
+            }
+        }
     }
 }
 

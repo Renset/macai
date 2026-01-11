@@ -29,7 +29,6 @@ struct APIServiceDetailView: View {
 
     private let types = AppConstants.apiTypes
     @State private var previousModel = ""
-    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
     @State private var loadingIconIndex = 0
 
     var body: some View {

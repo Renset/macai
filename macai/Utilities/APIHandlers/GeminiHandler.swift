@@ -912,23 +912,26 @@ class GeminiHandler: APIService {
 
     private func loadImageFromCoreData(uuid: UUID) -> (data: Data, mimeType: String)? {
         let viewContext = PersistenceController.shared.container.viewContext
+        var payload: (data: Data, mimeType: String)?
 
-        let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-        fetchRequest.fetchLimit = 1
+        viewContext.performAndWait {
+            let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+            fetchRequest.fetchLimit = 1
 
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            if let imageEntity = results.first, let imageData = imageEntity.image {
-                let format = imageEntity.imageFormat ?? "jpeg"
-                return (imageData, mimeTypeForImageFormat(format))
+            do {
+                let results = try viewContext.fetch(fetchRequest)
+                if let imageEntity = results.first, let imageData = imageEntity.image {
+                    let format = imageEntity.imageFormat ?? "jpeg"
+                    payload = (imageData, mimeTypeForImageFormat(format))
+                }
+            }
+            catch {
+                print("Error fetching image from CoreData: \(error)")
             }
         }
-        catch {
-            print("Error fetching image from CoreData: \(error)")
-        }
 
-        return nil
+        return payload
     }
 
     private func mimeTypeForImageFormat(_ format: String) -> String {

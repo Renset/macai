@@ -117,40 +117,58 @@ class ImageAttachment: Identifiable, ObservableObject {
 
     private func loadFromEntity() {
         isLoading = true
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self, let imageEntity = self.imageEntity else { return }
-
-            if let imageData = imageEntity.image, let thumbnailData = imageEntity.thumbnail {
-                let fullImage = NSImage(data: imageData)
-                let thumbnailImage = NSImage(data: thumbnailData)
-
-                DispatchQueue.main.async {
-                    self.image = fullImage
-                    self.thumbnail = thumbnailImage
-                    self.isLoading = false
-                    
-                    // We can reuse the already loaded image data for preview if needed,
-                    // but we will do it lazily in fetchPreviewURL to save memory/startup time
-                    // unless we want to pre-warm the cache.
-                    // Given the new "check disk first" logic, we might just want to ensure
-                    // the file exists if we have data ready.
-                }
-
-                // Prepare preview in background, capitalizing on the raw data we just fetched
-                self.preparePreviewURLIfNeeded(
-                    imageData: imageData,
-                    format: imageEntity.imageFormat
+        guard let imageEntity = imageEntity else { return }
+        guard let context = imageEntity.managedObjectContext ?? managedObjectContext else {
+            DispatchQueue.main.async {
+                self.error = NSError(
+                    domain: "ImageAttachment",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing Core Data context for image"]
                 )
+                self.isLoading = false
             }
-            else {
-                DispatchQueue.main.async {
-                    self.error = NSError(
-                        domain: "ImageAttachment",
-                        code: 2,
-                        userInfo: [NSLocalizedDescriptionKey: "Failed to load image from database"]
+            return
+        }
+
+        context.perform { [weak self] in
+            guard let self else { return }
+            let imageData = imageEntity.image
+            let thumbnailData = imageEntity.thumbnail
+            let format = imageEntity.imageFormat
+
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self else { return }
+
+                if let imageData, let thumbnailData {
+                    let fullImage = NSImage(data: imageData)
+                    let thumbnailImage = NSImage(data: thumbnailData)
+
+                    DispatchQueue.main.async {
+                        self.image = fullImage
+                        self.thumbnail = thumbnailImage
+                        self.isLoading = false
+
+                        // We can reuse the already loaded image data for preview if needed,
+                        // but we will do it lazily in fetchPreviewURL to save memory/startup time
+                        // unless we want to pre-warm the cache.
+                        // Given the new "check disk first" logic, we might just want to ensure
+                        // the file exists if we have data ready.
+                    }
+
+                    // Prepare preview in background, capitalizing on the raw data we just fetched
+                    self.preparePreviewURLIfNeeded(
+                        imageData: imageData,
+                        format: format
                     )
-                    self.isLoading = false
+                } else {
+                    DispatchQueue.main.async {
+                        self.error = NSError(
+                            domain: "ImageAttachment",
+                            code: 2,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to load image from database"]
+                        )
+                        self.isLoading = false
+                    }
                 }
             }
         }

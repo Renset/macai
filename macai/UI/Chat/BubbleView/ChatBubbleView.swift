@@ -371,7 +371,34 @@ struct ChatBubbleView: View, Equatable {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        markCopied()
+    }
 
+    private func copyFirstImageToClipboard() {
+        let imageIDs = AttachmentParser.extractImageUUIDs(from: content.message)
+        guard let firstID = imageIDs.first,
+              let image = loadImageFromCoreData(id: firstID) else {
+            return
+        }
+
+        AttachmentActionHelper.copyImage(image)
+        markCopied()
+    }
+
+    private func loadImageFromCoreData(id: UUID) -> NSImage? {
+        let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        fetchRequest.fetchLimit = 1
+
+        guard let imageEntity = try? viewContext.fetch(fetchRequest).first,
+              let imageData = imageEntity.image else {
+            return nil
+        }
+
+        return NSImage(data: imageData)
+    }
+
+    private func markCopied() {
         withAnimation {
             isCopied = true
         }
@@ -396,6 +423,10 @@ struct ChatBubbleView: View, Equatable {
 
     private var toolbarContent: some View {
         HStack(spacing: 12) {
+            let isImageOnlyMessage = AttachmentParser.stripAttachments(from: content.message).isEmpty
+                && !AttachmentParser.extractImageUUIDs(from: content.message).isEmpty
+                && AttachmentParser.extractFileUUIDs(from: content.message).isEmpty
+            let copyIcon = isImageOnlyMessage ? "photo" : "doc.on.doc"
             if content.systemMessage {
                 ToolbarButton(
                     icon: "pencil",
@@ -420,10 +451,15 @@ struct ChatBubbleView: View, Equatable {
             }
 
             ToolbarButton(
-                icon: isCopied ? "checkmark" : "doc.on.doc",
+                icon: isCopied ? "checkmark" : copyIcon,
                 text: "Copy",
                 action: {
-                    copyMessageToClipboard(content.message)
+                    if isImageOnlyMessage {
+                        copyFirstImageToClipboard()
+                    }
+                    else {
+                        copyMessageToClipboard(content.message)
+                    }
                 }
             )
 

@@ -18,6 +18,8 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var top_p: Double
     @NSManaged public var behavior: String?
     @NSManaged public var newMessage: String?
+    @NSManaged public var draftImageIDs: String?
+    @NSManaged public var draftFileIDs: String?
     @NSManaged public var createdDate: Date
     @NSManaged public var updatedDate: Date
     @NSManaged public var systemMessage: String
@@ -313,6 +315,7 @@ extension APIServiceEntity: NSCopying {
         copy.pdfUploadsAllowed = self.pdfUploadsAllowed
         copy.imageGenerationSupported = self.imageGenerationSupported
         copy.defaultPersona = self.defaultPersona
+        copy.isDefault = false
         copy.id = UUID()
         copy.tokenIdentifier = UUID().uuidString
         return copy

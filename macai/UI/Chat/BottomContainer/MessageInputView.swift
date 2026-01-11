@@ -10,6 +10,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct MessageInputView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @Binding var text: String
     @Binding var attachedImages: [ImageAttachment]
     @Binding var attachedFiles: [DocumentAttachment]
@@ -306,7 +307,9 @@ struct MessageInputView: View {
                 for item in newItems {
                     if let data = try? await item.loadTransferable(type: Data.self),
                        let image = NSImage(data: data) {
-                        newAttachments.append(ImageAttachment(image: image))
+                        let attachment = ImageAttachment(image: image)
+                        attachment.saveToEntity(image: image, context: self.viewContext)
+                        newAttachments.append(attachment)
                     }
                 }
                 if !newAttachments.isEmpty {
@@ -337,13 +340,13 @@ struct MessageInputView: View {
                         DispatchQueue.main.async {
                             if isValidPDFFile(url: url) {
                                 guard pdfUploadsAllowed else { return }
-                                let attachment = DocumentAttachment(url: url)
+                                let attachment = DocumentAttachment(url: url, context: self.viewContext)
                                 withAnimation {
                                     attachedFiles.append(attachment)
                                 }
                             } else {
                                 guard imageUploadsAllowed else { return }
-                                let attachment = ImageAttachment(url: url)
+                                let attachment = ImageAttachment(url: url, context: self.viewContext)
                                 withAnimation {
                                     attachedImages.append(attachment)
                                 }
@@ -361,11 +364,15 @@ struct MessageInputView: View {
                     let attachment: ImageAttachment?
 
                     if let url = item as? URL {
-                        attachment = ImageAttachment(url: url)
+                        attachment = ImageAttachment(url: url, context: self.viewContext)
                     } else if let image = item as? NSImage {
-                        attachment = ImageAttachment(image: image)
+                        let newAttachment = ImageAttachment(image: image)
+                        newAttachment.saveToEntity(image: image, context: self.viewContext)
+                        attachment = newAttachment
                     } else if let data = item as? Data, let image = NSImage(data: data) {
-                        attachment = ImageAttachment(image: image)
+                        let newAttachment = ImageAttachment(image: image)
+                        newAttachment.saveToEntity(image: image, context: self.viewContext)
+                        attachment = newAttachment
                     } else {
                         attachment = nil
                     }
@@ -387,7 +394,7 @@ struct MessageInputView: View {
                 provider.loadItem(forTypeIdentifier: UTType.pdf.identifier, options: nil) { (item, _) in
                     if let url = item as? URL {
                         DispatchQueue.main.async {
-                            let attachment = DocumentAttachment(url: url)
+                            let attachment = DocumentAttachment(url: url, context: self.viewContext)
                             withAnimation {
                                 attachedFiles.append(attachment)
                             }
@@ -404,7 +411,7 @@ struct MessageInputView: View {
                        )
                     {
                         DispatchQueue.main.async {
-                            let attachment = DocumentAttachment(url: url)
+                            let attachment = DocumentAttachment(url: url, context: self.viewContext)
                             withAnimation {
                                 attachedFiles.append(attachment)
                             }

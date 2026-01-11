@@ -24,12 +24,12 @@ struct ChatView: View {
     @State private var attachedFiles: [DocumentAttachment] = []
     @State private var isBottomContainerExpanded = false
     @State private var renderTime: Double = 0
-    @State private var draftSaveWorkItem: DispatchWorkItem?
     
     // View models and logic
     @StateObject private var chatViewModel: ChatViewModel
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
     @StateObject private var logicHandler: ChatLogicHandler
+    @StateObject private var draftManager: ChatDraftManager
     
     // Environment
     @Environment(\.colorScheme) private var colorScheme
@@ -50,89 +50,53 @@ struct ChatView: View {
         let handler = ChatLogicHandler(viewContext: viewContext, chat: chat, chatViewModel: viewModel, store: store)
         self._logicHandler = StateObject(wrappedValue: handler)
         self._store = StateObject(wrappedValue: store)
+        self._draftManager = StateObject(wrappedValue: ChatDraftManager(viewContext: viewContext))
+    }
+
+    private var pdfUploadsAllowed: Bool {
+        chat.apiService?.pdfUploadsAllowed ?? false
+    }
+
+    private var imageUploadsAllowed: Bool {
+        chat.apiService?.imageUploadsAllowed ?? false
+    }
+
+    private var imageGenerationSupported: Bool {
+        chat.apiService?.imageGenerationSupported ?? false
+    }
+
+    private var isInferenceInProgress: Bool {
+        logicHandler.isStreaming || chat.waitingForResponse
+    }
+
+    private var draftSignature: DraftSignature {
+        DraftSignature(
+            message: newMessage,
+            imageIDs: attachedImages.map(\.id),
+            fileIDs: attachedFiles.map(\.id),
+            imageReadyStates: attachedImages.map(\.isReadyForUpload),
+            fileReadyStates: attachedFiles.map(\.isReadyForUpload)
+        )
     }
 
     // MARK: - Body
     var body: some View {
-        let pdfUploadsAllowed = chat.apiService?.pdfUploadsAllowed ?? false
-
         VStack(spacing: 0) {
-            // Messages view
-            ChatMessagesView(
-                chat: chat,
-                chatViewModel: chatViewModel,
-                newMessage: $newMessage,
-                editSystemMessage: $editSystemMessage,
-                isStreaming: $logicHandler.isStreaming,
-                currentError: $logicHandler.currentError,
-                userIsScrolling: $logicHandler.userIsScrolling,
-                searchText: $searchText
-            )
-            .modifier(MeasureModifier(renderTime: $renderTime))
-            
-            // Input view
-            ChatInputView(
-                chat: chat,
-                newMessage: $newMessage,
-                editSystemMessage: $editSystemMessage,
-                attachedImages: $attachedImages,
-                attachedFiles: $attachedFiles,
-                isBottomContainerExpanded: $isBottomContainerExpanded,
-                isInferenceInProgress: logicHandler.isStreaming || chat.waitingForResponse,
-                imageUploadsAllowed: chat.apiService?.imageUploadsAllowed ?? false,
-                pdfUploadsAllowed: pdfUploadsAllowed,
-                imageGenerationSupported: chat.apiService?.imageGenerationSupported ?? false,
-                onSendMessage: {
-                    logicHandler.sendMessage(
-                        messageText: newMessage,
-                        attachedImages: attachedImages,
-                        attachedFiles: attachedFiles
-                    )
-                    newMessage = ""
-                    attachedImages = []
-                    attachedFiles = []
-                    chat.newMessage = ""
-                    store.saveInCoreData()
-                    
-                    if chatViewModel.sortedMessages.count == 1 { // First message just sent
-                        withAnimation {
-                            isBottomContainerExpanded = false
-                        }
-                    }
-                },
-                onAddImage: {
-                    logicHandler.selectAndAddImages { newAttachments in
-                        withAnimation {
-                            self.attachedImages.append(contentsOf: newAttachments)
-                        }
-                    }
-                },
-                onAddFile: {
-                    logicHandler.selectAndAddPDFs { newAttachments in
-                        withAnimation {
-                            self.attachedFiles.append(contentsOf: newAttachments)
-                        }
-                    }
-                },
-                onStopInference: {
-                    logicHandler.stopInference()
-                },
-                onCancelSystemMessageEdit: {
-                    cancelSystemMessageEdit()
-                }
-            )
+            chatMessagesView
+            chatInputView
         }
         .background(backgroundColor)
-        .navigationTitle(
-            chat.name != "" ? chat.name : chat.persona?.name ?? "macai LLM chat"
-        )
+        .navigationTitle(chat.name != "" ? chat.name : chat.persona?.name ?? "macai LLM chat")
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
             Self._printChanges()
-            if newMessage.isEmpty {
-                newMessage = chat.newMessage ?? ""
-            }
+            draftManager.restoreDraftIfNeeded(
+                chat: chat,
+                newMessage: &newMessage,
+                attachedImages: &attachedImages,
+                attachedFiles: &attachedFiles
+            )
             DispatchQueue.main.asyncAfter(deadline: .now()) {
                 let startTime = CFAbsoluteTimeGetCurrent()
                 _ = self.body
@@ -140,7 +104,13 @@ struct ChatView: View {
             }
         })
         .onDisappear {
-            persistDraftImmediately()
+            draftManager.persistImmediately(
+                chat: chat,
+                message: newMessage,
+                images: attachedImages,
+                files: attachedFiles,
+                isEditingSystemMessage: editSystemMessage
+            )
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RecreateMessageManager"))) { notification in
             if let chatId = notification.userInfo?["chatId"] as? UUID,
@@ -177,9 +147,9 @@ struct ChatView: View {
         .onChange(of: searchText) { newSearchText in
             chatViewModel.updateSearchOccurrences(searchText: newSearchText)
         }
-        .onChange(of: newMessage) { updatedMessage in
+        .onChange(of: draftSignature) { _ in
             guard !editSystemMessage else { return }
-            scheduleDraftSave(updatedMessage)
+            scheduleDraftSave()
         }
         .onChange(of: editSystemMessage) { isEditing in
             if !isEditing, newMessage.isEmpty {
@@ -193,21 +163,82 @@ struct ChatView: View {
         }
     }
 
-    private func scheduleDraftSave(_ message: String) {
-        draftSaveWorkItem?.cancel()
-        let workItem = DispatchWorkItem { [chat, store] in
-            chat.newMessage = message
-            store.saveInCoreData()
-        }
-        draftSaveWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
+    private var chatMessagesView: some View {
+        ChatMessagesView(
+            chat: chat,
+            chatViewModel: chatViewModel,
+            newMessage: $newMessage,
+            editSystemMessage: $editSystemMessage,
+            isStreaming: $logicHandler.isStreaming,
+            currentError: $logicHandler.currentError,
+            userIsScrolling: $logicHandler.userIsScrolling,
+            searchText: $searchText
+        )
+        .modifier(MeasureModifier(renderTime: $renderTime))
     }
 
-    private func persistDraftImmediately() {
-        guard !editSystemMessage else { return }
-        draftSaveWorkItem?.cancel()
-        chat.newMessage = newMessage
-        store.saveInCoreData()
+    private var chatInputView: some View {
+        ChatInputView(
+            chat: chat,
+            newMessage: $newMessage,
+            editSystemMessage: $editSystemMessage,
+            attachedImages: $attachedImages,
+            attachedFiles: $attachedFiles,
+            isBottomContainerExpanded: $isBottomContainerExpanded,
+            isInferenceInProgress: isInferenceInProgress,
+            imageUploadsAllowed: imageUploadsAllowed,
+            pdfUploadsAllowed: pdfUploadsAllowed,
+            imageGenerationSupported: imageGenerationSupported,
+            onSendMessage: handleSendMessage,
+            onAddImage: handleAddImage,
+            onAddFile: handleAddFile,
+            onStopInference: logicHandler.stopInference,
+            onCancelSystemMessageEdit: cancelSystemMessageEdit
+        )
+    }
+
+    private func handleSendMessage() {
+        logicHandler.sendMessage(
+            messageText: newMessage,
+            attachedImages: attachedImages,
+            attachedFiles: attachedFiles
+        )
+        newMessage = ""
+        attachedImages = []
+        attachedFiles = []
+        draftManager.clearDraft(chat: chat)
+
+        if chatViewModel.sortedMessages.count == 1 { // First message just sent
+            withAnimation {
+                isBottomContainerExpanded = false
+            }
+        }
+    }
+
+    private func handleAddImage() {
+        logicHandler.selectAndAddImages { newAttachments in
+            withAnimation {
+                attachedImages.append(contentsOf: newAttachments)
+            }
+        }
+    }
+
+    private func handleAddFile() {
+        logicHandler.selectAndAddPDFs { newAttachments in
+            withAnimation {
+                attachedFiles.append(contentsOf: newAttachments)
+            }
+        }
+    }
+
+    private func scheduleDraftSave() {
+        draftManager.scheduleSave(
+            chat: chat,
+            message: newMessage,
+            images: attachedImages,
+            files: attachedFiles,
+            isEditingSystemMessage: editSystemMessage
+        )
     }
 
     private func cancelSystemMessageEdit() {
@@ -215,6 +246,14 @@ struct ChatView: View {
         newMessage = chat.newMessage ?? ""
         editSystemMessage = false
     }
+}
+
+private struct DraftSignature: Equatable {
+    let message: String
+    let imageIDs: [UUID]
+    let fileIDs: [UUID]
+    let imageReadyStates: [Bool]
+    let fileReadyStates: [Bool]
 }
 
 struct SearchNavigationView: View {

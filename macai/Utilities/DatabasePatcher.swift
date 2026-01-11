@@ -20,7 +20,8 @@ class DatabasePatcher {
             AppConstants.personaOrderingPatchCompletedKey,
             AppConstants.imageUploadsPatchCompletedKey,
             AppConstants.imageGenerationPatchCompletedKey,
-            AppConstants.pdfUploadsPatchCompletedKey
+            AppConstants.pdfUploadsPatchCompletedKey,
+            AppConstants.defaultApiServiceMigrationCompletedKey
         ]
 
         for key in keys {
@@ -82,6 +83,8 @@ class DatabasePatcher {
                 persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
             }
         }
+
+        migrateDefaultAPIServiceSelectionIfNeeded(context: context, persistence: persistence)
         
         backfillMessageSequencesIfNeeded(context: context, persistence: persistence)
         patchGeminiLegacyEndpoint(context: context, persistence: persistence)
@@ -124,6 +127,7 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
             
             // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
             persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
@@ -146,6 +150,36 @@ class DatabasePatcher {
         }
         
         persistence.setMetadata(value: true, forKey: initializationKey)
+    }
+
+    private static func migrateDefaultAPIServiceSelectionIfNeeded(
+        context: NSManagedObjectContext,
+        persistence: PersistenceController
+    ) {
+        if persistence.getMetadata(forKey: AppConstants.defaultApiServiceMigrationCompletedKey) as? Bool == true {
+            return
+        }
+
+        let defaults = UserDefaults.standard
+        if let defaultServiceIDString = defaults.string(forKey: "defaultApiService"),
+           let url = URL(string: defaultServiceIDString),
+           let objectID = context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
+           let defaultService = try? context.existingObject(with: objectID) as? APIServiceEntity
+        {
+            let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+            if let services = try? context.fetch(fetchRequest) {
+                for service in services {
+                    service.isDefault = (service.objectID == defaultService.objectID)
+                }
+            } else {
+                defaultService.isDefault = true
+            }
+
+            defaults.removeObject(forKey: "defaultApiService")
+            context.saveWithRetry(attempts: 1)
+        }
+
+        persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
     }
 
     static func addDefaultPersonasIfNeeded(context: NSManagedObjectContext, force: Bool = false) {
@@ -638,7 +672,8 @@ class DatabasePatcher {
             print("Error updating existing chats: \(error)")
         }
 
-        defaults.set(apiService.objectID.uriRepresentation().absoluteString, forKey: "defaultApiService")
+        apiService.isDefault = true
+        try? context.save()
 
         // Migration completed in metadata
         persistence.setMetadata(value: true, forKey: AppConstants.apiServiceMigrationCompletedKey)

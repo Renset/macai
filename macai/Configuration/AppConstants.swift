@@ -51,6 +51,8 @@ struct AppConstants {
     static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
     static let pdfUploadsPatchCompletedKey = "PdfUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
+    static let defaultApiServiceMigrationCompletedKey = "DefaultAPIServiceMigrationCompleted"
+    static let draftTransactionAuthor = "Drafts"
     static let entityIDBackfillCompletedKey = "EntityIDBackfillCompleted"
     static let messageSequenceBackfillCompletedKey = "MessageSequenceBackfillCompleted"
     static let openAiReasoningModels: [String] = [

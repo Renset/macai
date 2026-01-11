@@ -321,6 +321,14 @@ struct MessageContentView: View {
                     QuickLookPreviewer.shared.preview(image: image, filename: "Image.jpg")
                 }
             }
+            .contextMenu {
+                Button("Copy") {
+                    AttachmentActionHelper.copyImage(image)
+                }
+                Button("Save") {
+                    AttachmentActionHelper.saveImage(image, suggestedName: "Image.jpg")
+                }
+            }
 
         if isOwn {
             imageView
@@ -363,6 +371,18 @@ struct MessageContentView: View {
         .cornerRadius(10)
         .frame(maxWidth: 320, alignment: .leading)
         .contentShape(Rectangle())
+        .contextMenu {
+            Button("Copy") {
+                withDocumentData(fileInfo) { data in
+                    AttachmentActionHelper.copyPDF(id: fileInfo.id, filename: displayName, data: data)
+                }
+            }
+            Button("Save") {
+                withDocumentData(fileInfo) { data in
+                    AttachmentActionHelper.savePDF(filename: displayName, data: data)
+                }
+            }
+        }
         .onTapGesture {
             if elementIndex < attachmentIndexMap.count,
                let attachmentIndex = attachmentIndexMap[elementIndex] {
@@ -379,6 +399,23 @@ struct MessageContentView: View {
     private func previewFile(_ fileInfo: FileAttachmentInfo) {
         let request = makePreviewRequest(for: .file(fileInfo))
         QuickLookPreviewer.shared.preview(requests: [request], selectedIndex: 0)
+    }
+
+    private func withDocumentData(_ fileInfo: FileAttachmentInfo, completion: @escaping (Data) -> Void) {
+        PersistenceController.shared.container.performBackgroundTask { context in
+            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", fileInfo.id as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            guard let documentEntity = try? context.fetch(fetchRequest).first,
+                  let fileData = documentEntity.fileData else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                completion(fileData)
+            }
+        }
     }
 
     private func openAttachmentPreview(

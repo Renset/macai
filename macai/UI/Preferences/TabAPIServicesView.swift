@@ -20,11 +20,13 @@ struct TabAPIServicesView: View {
     @State private var selectedServiceID: NSManagedObjectID?
     @State private var refreshID = UUID()
     @State private var pendingPreferredType: String?
-    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
 
     private var isSelectedServiceDefault: Bool {
-        guard let selectedServiceID = selectedServiceID else { return false }
-        return selectedServiceID.uriRepresentation().absoluteString == defaultApiServiceID
+        guard let selectedServiceID = selectedServiceID,
+              let selectedService = apiServices.first(where: { $0.objectID == selectedServiceID }) else {
+            return false
+        }
+        return selectedService.isDefault
     }
 
     var body: some View {
@@ -47,7 +49,7 @@ struct TabAPIServicesView: View {
 
                     if !isSelectedServiceDefault {
                         Button(action: {
-                            defaultApiServiceID = selectedServiceID?.uriRepresentation().absoluteString
+                            setDefaultService()
                         }) {
                             Label("Set as Default", systemImage: "star")
                         }
@@ -111,7 +113,7 @@ struct TabAPIServicesView: View {
             onRefresh: refreshList,
             getEntityColor: { _ in nil },
             getEntityName: { $0.name ?? "Untitled Service" },
-            getEntityDefault: { $0.objectID.uriRepresentation().absoluteString == defaultApiServiceID },
+            getEntityDefault: { $0.isDefault },
             getEntityIcon: { "logo_" + ($0.type ?? "") },
             onEdit: {
                 if let objectID = selectedServiceID {
@@ -183,6 +185,19 @@ struct TabAPIServicesView: View {
         if let objectID = selectedServiceID {
             presentedSheet = .edit(objectID)
         }
+    }
+
+    private func setDefaultService() {
+        guard let selectedServiceID = selectedServiceID,
+              let selectedService = apiServices.first(where: { $0.objectID == selectedServiceID }) else {
+            return
+        }
+
+        apiServices.forEach { service in
+            service.isDefault = (service.objectID == selectedService.objectID)
+        }
+        viewContext.saveWithRetry(attempts: 1)
+        refreshList()
     }
 
     private func presentSimpleAdd() {

@@ -49,6 +49,7 @@ class PersistenceController {
     let container: NSPersistentContainer
     let isCloudKitEnabled: Bool
     private let migrator = ProgrammaticMigrator(containerName: "macaiDataModel")
+    private var contextMergeObserver: NSObjectProtocol?
 
     init(inMemory: Bool = false) {
         let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
@@ -114,8 +115,9 @@ class PersistenceController {
                 print("Successfully loaded persistent store in \(elapsed)s: \(storeDescription.url?.lastPathComponent ?? "unknown")")
                 
                 // Configure view context only after store is loaded
-                self.container.viewContext.automaticallyMergesChangesFromParent = true
+                self.container.viewContext.automaticallyMergesChangesFromParent = false
                 self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                self.configureContextMerging()
                 CoreDataBackupManager.clearMigrationRetrySkipBackupFlag()
             }
             semaphore.signal()
@@ -173,6 +175,34 @@ class PersistenceController {
         // Save the context to ensure metadata is persisted to disk if it was updated
         if container.viewContext.hasChanges {
             try? container.viewContext.save()
+        }
+    }
+
+    private func configureContextMerging() {
+        if contextMergeObserver != nil {
+            return
+        }
+
+        contextMergeObserver = NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextDidSave,
+            object: nil,
+            queue: nil
+        ) { [weak self] notification in
+            guard let self,
+                  let context = notification.object as? NSManagedObjectContext else {
+                return
+            }
+
+            let viewContext = self.container.viewContext
+            guard context !== viewContext else { return }
+
+            if context.transactionAuthor == AppConstants.draftTransactionAuthor {
+                return
+            }
+
+            viewContext.perform {
+                viewContext.mergeChanges(fromContextDidSave: notification)
+            }
         }
     }
 

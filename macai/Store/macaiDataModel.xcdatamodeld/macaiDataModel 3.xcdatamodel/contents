@@ -7,6 +7,7 @@
         <attribute name="editedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="generateChatNames" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isDefault" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="imageUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="pdfUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="imageGenerationSupported" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" renamingIdentifier="imageGenerationAllowed"/>
@@ -29,6 +30,8 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="draftFileIDs" optional="YES" attributeType="String"/>
+        <attribute name="draftImageIDs" optional="YES" attributeType="String"/>
         <attribute name="requestMessages" optional="YES" attributeType="Transformable" valueTransformerName="RequestMessagesTransformer"/>
         <attribute name="systemMessage" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="systemMessageProcessed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

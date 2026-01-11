@@ -59,22 +59,25 @@ class OpenAIHandlerBase {
 
     func loadImageFromCoreData(uuid: UUID) -> Data? {
         let viewContext = PersistenceController.shared.container.viewContext
+        var imageData: Data?
 
-        let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-        fetchRequest.fetchLimit = 1
+        viewContext.performAndWait {
+            let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+            fetchRequest.fetchLimit = 1
 
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            if let imageEntity = results.first, let imageData = imageEntity.image {
-                return imageData
+            do {
+                let results = try viewContext.fetch(fetchRequest)
+                if let imageEntity = results.first {
+                    imageData = imageEntity.image
+                }
+            }
+            catch {
+                print("Error fetching image from CoreData: \(error)")
             }
         }
-        catch {
-            print("Error fetching image from CoreData: \(error)")
-        }
 
-        return nil
+        return imageData
     }
 
     struct FileAttachmentPayload {
@@ -85,26 +88,29 @@ class OpenAIHandlerBase {
 
     func loadFileFromCoreData(uuid: UUID) -> FileAttachmentPayload? {
         let viewContext = PersistenceController.shared.container.viewContext
+        var payload: FileAttachmentPayload?
 
-        let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-        fetchRequest.fetchLimit = 1
+        viewContext.performAndWait {
+            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+            fetchRequest.fetchLimit = 1
 
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            if let documentEntity = results.first, let fileData = documentEntity.fileData {
-                return FileAttachmentPayload(
-                    data: fileData,
-                    filename: documentEntity.filename,
-                    mimeType: documentEntity.mimeType
-                )
+            do {
+                let results = try viewContext.fetch(fetchRequest)
+                if let documentEntity = results.first, let fileData = documentEntity.fileData {
+                    payload = FileAttachmentPayload(
+                        data: fileData,
+                        filename: documentEntity.filename,
+                        mimeType: documentEntity.mimeType
+                    )
+                }
+            }
+            catch {
+                print("Error fetching file from CoreData: \(error)")
             }
         }
-        catch {
-            print("Error fetching file from CoreData: \(error)")
-        }
 
-        return nil
+        return payload
     }
 
     func isNotSSEComment(_ string: String) -> Bool {

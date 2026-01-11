@@ -298,47 +298,54 @@ struct MessageParser {
 
         func loadImageFromCoreData(uuid: UUID) -> NSImage? {
             let viewContext = PersistenceController.shared.container.viewContext
+            var imageData: Data?
 
-            let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-            fetchRequest.fetchLimit = 1
+            viewContext.performAndWait {
+                let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+                fetchRequest.fetchLimit = 1
 
-            do {
-                let results = try viewContext.fetch(fetchRequest)
-                if let imageEntity = results.first, let imageData = imageEntity.image {
-                    return NSImage(data: imageData)
+                do {
+                    let results = try viewContext.fetch(fetchRequest)
+                    if let imageEntity = results.first {
+                        imageData = imageEntity.image
+                    }
+                }
+                catch {
+                    print("Error fetching image from CoreData: \(error)")
                 }
             }
-            catch {
-                print("Error fetching image from CoreData: \(error)")
-            }
 
-            return nil
+            guard let imageData else { return nil }
+            return NSImage(data: imageData)
         }
 
         func loadFileFromCoreData(uuid: UUID) -> FileAttachmentInfo? {
             let viewContext = PersistenceController.shared.container.viewContext
+            var payload: FileAttachmentInfo?
 
-            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-            fetchRequest.fetchLimit = 1
+            viewContext.performAndWait {
+                let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+                fetchRequest.fetchLimit = 1
 
-            do {
-                let results = try viewContext.fetch(fetchRequest)
-                if let documentEntity = results.first {
-                    let filename = documentEntity.filename ?? "Document.pdf"
-                    return FileAttachmentInfo(
-                        id: uuid,
-                        filename: filename,
-                        mimeType: documentEntity.mimeType
-                    )
+                do {
+                    let results = try viewContext.fetch(fetchRequest)
+                    if let documentEntity = results.first {
+                        let filename = documentEntity.filename ?? "Document.pdf"
+                        payload = FileAttachmentInfo(
+                            id: uuid,
+                            filename: filename,
+                            mimeType: documentEntity.mimeType
+                        )
+                    }
+                }
+                catch {
+                    print("Error fetching file from CoreData: \(error)")
                 }
             }
-            catch {
-                print("Error fetching file from CoreData: \(error)")
-            }
 
-            return nil
+            return payload
         }
 
         var thinkingLines: [String] = []

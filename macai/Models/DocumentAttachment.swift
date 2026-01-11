@@ -107,22 +107,37 @@ class DocumentAttachment: Identifiable, ObservableObject {
 
     private func loadFromEntity() {
         isLoading = true
+        guard let documentEntity = documentEntity else { return }
+        guard let context = documentEntity.managedObjectContext ?? managedObjectContext else {
+            DispatchQueue.main.async {
+                self.error = NSError(
+                    domain: "DocumentAttachment",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing Core Data context for document"]
+                )
+                self.isLoading = false
+            }
+            return
+        }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self, let documentEntity = self.documentEntity else { return }
-
+        context.perform { [weak self] in
+            guard let self else { return }
             let data = documentEntity.fileData
             let size = data?.count
 
-            if let data {
-                self.generateThumbnail(from: data)
-                self.preparePreviewURLIfNeeded(using: data)
-            }
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self else { return }
 
-            DispatchQueue.main.async {
-                self.fileData = data
-                self.fileSize = size
-                self.isLoading = false
+                if let data {
+                    self.generateThumbnail(from: data)
+                    self.preparePreviewURLIfNeeded(using: data)
+                }
+
+                DispatchQueue.main.async {
+                    self.fileData = data
+                    self.fileSize = size
+                    self.isLoading = false
+                }
             }
         }
     }
