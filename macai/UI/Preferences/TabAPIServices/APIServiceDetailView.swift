@@ -253,7 +253,7 @@ struct APIServiceDetailView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .help(
-                                "If enabled, you can upload images to be processed by the AI. PDFs are supported for OpenAI Responses models."
+                                "If enabled, you can upload images to be processed by the AI. PDFs are supported for OpenAI Responses and Gemini models."
                             )
 
                             Spacer()

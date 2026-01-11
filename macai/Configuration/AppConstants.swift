@@ -50,6 +50,7 @@ struct AppConstants {
     static let imageUploadsPatchCompletedKey = "ImageUploadsPatchCompleted"
     static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
     static let pdfUploadsPatchCompletedKey = "PdfUploadsPatchCompleted"
+    static let geminiPdfUploadsPatchCompletedKey = "GeminiPdfUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
     static let defaultApiServiceMigrationCompletedKey = "DefaultAPIServiceMigrationCompleted"
     static let draftTransactionAuthor = "Drafts"
@@ -267,6 +268,7 @@ struct AppConstants {
                 "gemini-1.5-flash-8b",
             ],
             imageUploadsSupported: true,
+            pdfUploadsSupported: true,
             imageGenerationSupported: true,
             autoEnableImageGenerationModels: ["gemini-2.5-flash-image-preview"]
         ),

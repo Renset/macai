@@ -21,6 +21,7 @@ class DatabasePatcher {
             AppConstants.imageUploadsPatchCompletedKey,
             AppConstants.imageGenerationPatchCompletedKey,
             AppConstants.pdfUploadsPatchCompletedKey,
+            AppConstants.geminiPdfUploadsPatchCompletedKey,
             AppConstants.defaultApiServiceMigrationCompletedKey
         ]
 
@@ -84,6 +85,12 @@ class DatabasePatcher {
             }
         }
 
+        if persistence.getMetadata(forKey: AppConstants.geminiPdfUploadsPatchCompletedKey) as? Bool != true {
+            if patchGeminiPdfUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
+            }
+        }
+
         migrateDefaultAPIServiceSelectionIfNeeded(context: context, persistence: persistence)
         
         backfillMessageSequencesIfNeeded(context: context, persistence: persistence)
@@ -127,6 +134,7 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
             
             // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
@@ -311,6 +319,37 @@ class DatabasePatcher {
         }
         catch {
             print("Error patching PDF uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchGeminiPdfUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        guard AppConstants.defaultApiConfigurations["gemini"]?.pdfUploadsSupported == true else {
+            return true
+        }
+
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        fetchRequest.predicate = NSPredicate(format: "type == %@", "gemini")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices where service.pdfUploadsAllowed == false {
+                service.pdfUploadsAllowed = true
+                needsSave = true
+                print("Enabled PDF uploads for Gemini API service: \(service.name ?? "Unnamed")")
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched Gemini PDF uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching Gemini PDF uploads for API services: \(error)")
             return false
         }
     }

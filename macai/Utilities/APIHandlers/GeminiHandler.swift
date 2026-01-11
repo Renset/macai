@@ -378,7 +378,7 @@ class GeminiHandler: APIService {
 
             switch role {
             case "system":
-                let text = Self.stripImagePlaceholders(from: content).trimmingCharacters(in: .whitespacesAndNewlines)
+                let text = AttachmentParser.stripAttachments(from: content).trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !text.isEmpty else { continue }
                 systemInstruction = GeminiContentRequest(
                     role: "system",
@@ -608,12 +608,6 @@ class GeminiHandler: APIService {
         }
     }
 
-    private static func stripImagePlaceholders(from content: String) -> String {
-        let pattern = "<image-uuid>.*?</image-uuid>"
-        return content.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
     private func parseStreamPayload(
         _ payload: String,
         decoder: JSONDecoder,
@@ -663,17 +657,33 @@ class GeminiHandler: APIService {
     private func buildParts(from content: String, allowInlineData: Bool) -> [GeminiPartRequest] {
         var parts: [GeminiPartRequest] = []
 
-        let pattern = "<image-uuid>(.*?)</image-uuid>"
-        let regex = try? NSRegularExpression(pattern: pattern, options: [])
+        guard let imageRegex = try? NSRegularExpression(pattern: AttachmentParser.imagePattern, options: []),
+              let fileRegex = try? NSRegularExpression(pattern: AttachmentParser.filePattern, options: []) else {
+            let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? [] : [GeminiPartRequest(text: content)]
+        }
+
         let nsString = content as NSString
         let fullRange = NSRange(location: 0, length: nsString.length)
+        var matches: [(range: NSRange, type: String, uuid: String)] = []
 
+        for match in imageRegex.matches(in: content, options: [], range: fullRange) {
+            guard match.numberOfRanges > 1 else { continue }
+            let uuid = nsString.substring(with: match.range(at: 1))
+            matches.append((match.range, "image", uuid))
+        }
+
+        for match in fileRegex.matches(in: content, options: [], range: fullRange) {
+            guard match.numberOfRanges > 1 else { continue }
+            let uuid = nsString.substring(with: match.range(at: 1))
+            matches.append((match.range, "file", uuid))
+        }
+
+        matches.sort { $0.range.location < $1.range.location }
         var currentLocation = 0
-        let matches = regex?.matches(in: content, options: [], range: fullRange) ?? []
 
         for match in matches {
-            let matchRange = match.range
-            let textLength = matchRange.location - currentLocation
+            let textLength = match.range.location - currentLocation
             if textLength > 0 {
                 let textSegment = nsString.substring(with: NSRange(location: currentLocation, length: textLength))
                 if !textSegment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -681,19 +691,26 @@ class GeminiHandler: APIService {
                 }
             }
 
-            if allowInlineData, match.numberOfRanges > 1 {
-                let uuidRange = match.range(at: 1)
-                let uuidString = nsString.substring(with: uuidRange)
-                if let uuid = UUID(uuidString: uuidString),
-                    let image = loadImageFromCoreData(uuid: uuid)
-                {
-                    let base64 = image.data.base64EncodedString()
-                    let inlineData = GeminiInlineData(mimeType: image.mimeType, data: base64)
-                    parts.append(GeminiPartRequest(inlineData: inlineData))
+            if allowInlineData, let uuid = UUID(uuidString: match.uuid) {
+                switch match.type {
+                case "image":
+                    if let image = loadImageFromCoreData(uuid: uuid) {
+                        let base64 = image.data.base64EncodedString()
+                        let inlineData = GeminiInlineData(mimeType: image.mimeType, data: base64)
+                        parts.append(GeminiPartRequest(inlineData: inlineData))
+                    }
+                case "file":
+                    if let file = loadFileFromCoreData(uuid: uuid) {
+                        let base64 = file.data.base64EncodedString()
+                        let inlineData = GeminiInlineData(mimeType: file.mimeType, data: base64)
+                        parts.append(GeminiPartRequest(inlineData: inlineData))
+                    }
+                default:
+                    break
                 }
             }
 
-            currentLocation = matchRange.location + matchRange.length
+            currentLocation = match.range.location + match.range.length
         }
 
         let remainingLength = nsString.length - currentLocation
@@ -928,6 +945,32 @@ class GeminiHandler: APIService {
             }
             catch {
                 print("Error fetching image from CoreData: \(error)")
+            }
+        }
+
+        return payload
+    }
+
+    private func loadFileFromCoreData(uuid: UUID) -> (data: Data, mimeType: String)? {
+        let viewContext = PersistenceController.shared.container.viewContext
+        var payload: (data: Data, mimeType: String)?
+
+        viewContext.performAndWait {
+            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            do {
+                let results = try viewContext.fetch(fetchRequest)
+                if let documentEntity = results.first, let fileData = documentEntity.fileData {
+                    let mimeType = (documentEntity.mimeType?.isEmpty == false)
+                        ? (documentEntity.mimeType ?? "application/pdf")
+                        : "application/pdf"
+                    payload = (fileData, mimeType)
+                }
+            }
+            catch {
+                print("Error fetching file from CoreData: \(error)")
             }
         }
 

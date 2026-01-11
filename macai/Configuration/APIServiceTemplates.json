@@ -78,6 +78,7 @@
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
                         "imageGenerationSupported": true
                     }
                 },
@@ -90,17 +91,19 @@
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
                         "imageGenerationSupported": false
                     }
                 },
                 {
-                    "id": "gemini-2.5-flash",
-                    "displayName": "Gemini 2.5 Flash",
+                    "id": "gemini-3-flash-preview",
+                    "displayName": "Gemini 3 Flash",
                     "settings": {
                         "generateChatNames": true,
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
                         "imageGenerationSupported": false
                     }
                 }
