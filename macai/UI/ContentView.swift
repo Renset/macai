@@ -102,6 +102,16 @@ struct ContentView: View {
                             return nil
                         }
                     }
+
+                    // Cmd+Shift+Delete -> Clear currently selected chat
+                    // keyCode 51 corresponds to the Delete (backspace) key on macOS keyboards
+                    if event.keyCode == 51 && event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) {
+                        if selectedChat != nil {
+                            clearSelectedChat()
+                            return nil
+                        }
+                    }
+
                     return event
                 }
             }
@@ -359,6 +369,26 @@ struct ContentView: View {
         }
         else {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+    }
+
+    func clearSelectedChat() {
+        guard let chat = selectedChat else { return }
+        let alert = NSAlert()
+        alert.messageText = "Clear chat \(chat.name)?"
+        alert.informativeText = "Are you sure you want to delete all messages from this chat? Chat parameters will not be deleted. This action cannot be undone."
+        alert.addButton(withTitle: "Clear")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+            if response == .alertFirstButtonReturn {
+                chat.clearMessages()
+                do {
+                    try viewContext.save()
+                } catch {
+                    print("Error clearing chat: \(error.localizedDescription)")
+                }
+            }
         }
     }
 
