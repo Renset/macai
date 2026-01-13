@@ -34,11 +34,14 @@ struct ChatBubbleContent: Equatable {
     let systemMessage: Bool
     let isStreaming: Bool
     let isLatestMessage: Bool
+    let reasoningDuration: TimeInterval?
+    let isActiveReasoning: Bool
 
     static func == (lhs: ChatBubbleContent, rhs: ChatBubbleContent) -> Bool {
         return lhs.message == rhs.message && lhs.own == rhs.own && lhs.waitingForResponse == rhs.waitingForResponse
             && lhs.systemMessage == rhs.systemMessage && lhs.isStreaming == rhs.isStreaming
-            && lhs.isLatestMessage == rhs.isLatestMessage
+            && lhs.isLatestMessage == rhs.isLatestMessage && lhs.reasoningDuration == rhs.reasoningDuration
+            && lhs.isActiveReasoning == rhs.isActiveReasoning
     }
 }
 
@@ -156,14 +159,14 @@ struct ChatBubbleView: View, Equatable {
         Group {
             if content.waitingForResponse ?? false {
                 HStack {
-                    Text("Thinking")
-                        .foregroundColor(.primary)
-                        .font(.system(size: 14))
                     Circle()
                         .fill(Color.blue)
                         .frame(width: 6, height: 6)
                         .modifier(PulsatingCircle())
                         .padding(.top, 4)
+                    Text("Thinking")
+                        .foregroundColor(.primary)
+                        .font(.system(size: 14))
                 }
             }
             else if let errorMessage = content.errorMessage {
@@ -192,6 +195,8 @@ struct ChatBubbleView: View, Equatable {
                     effectiveFontSize: effectiveFontSize,
                     colorScheme: colorScheme,
                     inlineAttachments: !content.own,
+                    reasoningDuration: content.reasoningDuration,
+                    isActiveReasoning: content.isActiveReasoning,
                     prefetchedElements: prefetchedElements,
                     searchText: $searchText,
                     currentSearchOccurrence: currentSearchOccurrence

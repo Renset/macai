@@ -24,6 +24,10 @@ struct ChatView: View {
     @State private var attachedFiles: [DocumentAttachment] = []
     @State private var isBottomContainerExpanded = false
     @State private var renderTime: Double = 0
+    @State private var reasoningStartTimes: [NSManagedObjectID: Date] = [:]
+    @State private var reasoningDurations: [NSManagedObjectID: TimeInterval] = [:]
+    @State private var lastRequestStartTime: Date?
+    @State private var activeReasoningMessageID: NSManagedObjectID?
     
     // View models and logic
     @StateObject private var chatViewModel: ChatViewModel
@@ -34,6 +38,7 @@ struct ChatView: View {
     // Environment
     @Environment(\.colorScheme) private var colorScheme
     var backgroundColor = Color(NSColor.controlBackgroundColor)
+    private let reasoningTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     
     // MARK: - Initialization
     init(viewContext: NSManagedObjectContext, chat: ChatEntity, searchText: Binding<String>) {
@@ -121,10 +126,12 @@ struct ChatView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RetryMessage"))) { _ in
+            lastRequestStartTime = Date()
             logicHandler.handleRetryMessage(newMessage: &newMessage)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopInference"))) { _ in
             logicHandler.stopInference()
+            resetReasoningTimingState()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("IgnoreError"))) { _ in
             logicHandler.ignoreError()
@@ -138,6 +145,16 @@ struct ChatView: View {
             if !searchText.isEmpty {
                 chatViewModel.goToPreviousOccurrence()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChatResponseCompleted"))) { notification in
+            guard let notificationChat = notification.object as? ChatEntity, notificationChat == chat else { return }
+            if let lastMessage = chat.lastMessage, !lastMessage.own {
+                finalizeReasoningTimingIfNeeded(for: lastMessage)
+            }
+            lastRequestStartTime = nil
+        }
+        .onReceive(reasoningTimer) { _ in
+            updateLiveReasoningDurationIfNeeded()
         }
         .toolbar {
             if !searchText.isEmpty && !chatViewModel.searchOccurrences.isEmpty {
@@ -156,6 +173,10 @@ struct ChatView: View {
                 newMessage = chat.newMessage ?? ""
             }
         }
+        .onChange(of: chat.lastMessage?.body) { _ in
+            guard let lastMessage = chat.lastMessage, !lastMessage.own else { return }
+            updateReasoningTiming(for: lastMessage, isStreamingActive: logicHandler.isStreaming)
+        }
         .onExitCommand {
             if editSystemMessage {
                 cancelSystemMessageEdit()
@@ -172,7 +193,9 @@ struct ChatView: View {
             isStreaming: $logicHandler.isStreaming,
             currentError: $logicHandler.currentError,
             userIsScrolling: $logicHandler.userIsScrolling,
-            searchText: $searchText
+            searchText: $searchText,
+            reasoningDurations: reasoningDurations,
+            activeReasoningMessageID: activeReasoningMessageID
         )
         .modifier(MeasureModifier(renderTime: $renderTime))
     }
@@ -192,12 +215,13 @@ struct ChatView: View {
             onSendMessage: handleSendMessage,
             onAddImage: handleAddImage,
             onAddFile: handleAddFile,
-            onStopInference: logicHandler.stopInference,
+            onStopInference: handleStopInference,
             onCancelSystemMessageEdit: cancelSystemMessageEdit
         )
     }
 
     private func handleSendMessage() {
+        lastRequestStartTime = Date()
         logicHandler.sendMessage(
             messageText: newMessage,
             attachedImages: attachedImages,
@@ -231,6 +255,11 @@ struct ChatView: View {
         }
     }
 
+    private func handleStopInference() {
+        logicHandler.stopInference()
+        resetReasoningTimingState()
+    }
+
     private func scheduleDraftSave() {
         draftManager.scheduleSave(
             chat: chat,
@@ -245,6 +274,64 @@ struct ChatView: View {
         guard editSystemMessage else { return }
         newMessage = chat.newMessage ?? ""
         editSystemMessage = false
+    }
+
+    private func updateReasoningTiming(for message: MessageEntity, isStreamingActive: Bool) {
+        let body = message.body
+        guard body.contains("<think>") else { return }
+
+        let messageID = message.objectID
+        if message.reasoningDuration > 0 {
+            return
+        }
+
+        if reasoningStartTimes[messageID] == nil {
+            guard isStreamingActive || lastRequestStartTime != nil else { return }
+            let startTime = isStreamingActive ? Date() : (lastRequestStartTime ?? Date())
+            reasoningStartTimes[messageID] = startTime
+            activeReasoningMessageID = messageID
+            reasoningDurations[messageID] = 0
+        }
+
+        if body.contains("</think>"), let startTime = reasoningStartTimes[messageID] {
+            let duration = max(0, Date().timeIntervalSince(startTime))
+            reasoningDurations[messageID] = duration
+            persistReasoningDuration(duration, for: message)
+            activeReasoningMessageID = nil
+            reasoningStartTimes.removeValue(forKey: messageID)
+        }
+    }
+
+    private func updateLiveReasoningDurationIfNeeded() {
+        guard let messageID = activeReasoningMessageID,
+              let startTime = reasoningStartTimes[messageID] else { return }
+        reasoningDurations[messageID] = max(0, Date().timeIntervalSince(startTime))
+    }
+
+    private func finalizeReasoningTimingIfNeeded(for message: MessageEntity) {
+        let messageID = message.objectID
+        guard message.reasoningDuration == 0 else { return }
+        guard let startTime = reasoningStartTimes[messageID] else { return }
+        let duration = max(0, Date().timeIntervalSince(startTime))
+        reasoningDurations[messageID] = duration
+        persistReasoningDuration(duration, for: message)
+        activeReasoningMessageID = nil
+        reasoningStartTimes.removeValue(forKey: messageID)
+    }
+
+    private func persistReasoningDuration(_ duration: TimeInterval, for message: MessageEntity) {
+        guard duration > 0 else { return }
+        message.reasoningDuration = duration
+        viewContext.saveWithRetry(attempts: 1)
+    }
+
+    private func resetReasoningTimingState() {
+        lastRequestStartTime = nil
+        for messageID in reasoningStartTimes.keys {
+            reasoningDurations.removeValue(forKey: messageID)
+        }
+        reasoningStartTimes.removeAll()
+        activeReasoningMessageID = nil
     }
 }
 

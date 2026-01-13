@@ -18,12 +18,15 @@ struct MessageContentView: View {
     let effectiveFontSize: Double
     let colorScheme: ColorScheme
     let inlineAttachments: Bool
+    let reasoningDuration: TimeInterval?
+    let isActiveReasoning: Bool
     let prefetchedElements: [MessageElements]?
     @Binding var searchText: String
     var currentSearchOccurrence: SearchOccurrence?
 
     @State private var showFullMessage = false
     @State private var isParsingFullMessage = false
+    @State private var expandedReasoningElements: Set<String> = []
 
     private let largeMessageSymbolsThreshold = AppConstants.largeMessageSymbolsThreshold
 
@@ -131,6 +134,28 @@ struct MessageContentView: View {
         return "\(messageIDString)_element_\(elementIndex)"
     }
 
+    private func reasoningElementKey(for elementIndex: Int) -> String {
+        guard let messageID = message?.objectID else {
+            return "thinking_\(elementIndex)"
+        }
+        let messageIDString = messageID.uriRepresentation().absoluteString
+        return "\(messageIDString)_thinking_\(elementIndex)"
+    }
+
+    private func reasoningExpansionBinding(for elementIndex: Int) -> Binding<Bool> {
+        let key = reasoningElementKey(for: elementIndex)
+        return Binding(
+            get: { expandedReasoningElements.contains(key) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedReasoningElements.insert(key)
+                } else {
+                    expandedReasoningElements.remove(key)
+                }
+            }
+        )
+    }
+
     @ViewBuilder
     private func renderElement(
         _ element: MessageElements,
@@ -140,7 +165,12 @@ struct MessageContentView: View {
     ) -> some View {
         switch element {
         case .thinking(let content, _):
-            ThinkingProcessView(content: content)
+            ThinkingProcessView(
+                content: content,
+                duration: reasoningDuration,
+                isActive: isActiveReasoning,
+                isExpanded: reasoningExpansionBinding(for: elementIndex)
+            )
                 .padding(.vertical, 4)
 
         case .text(let text):

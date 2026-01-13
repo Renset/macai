@@ -217,6 +217,7 @@ public class MessageEntity: NSManagedObject, Identifiable {
     @NSManaged public var messageParts: Data?
     @NSManaged public var sequence: Int64
     @NSManaged public var chat: ChatEntity?
+    @NSManaged public var reasoningDuration: Double
 }
 
 /// Legacy Chat struct, used for migration from old storage, for exporting and importing data in JSON

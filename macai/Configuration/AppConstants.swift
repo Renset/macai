@@ -51,6 +51,7 @@ struct AppConstants {
     static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
     static let pdfUploadsPatchCompletedKey = "PdfUploadsPatchCompleted"
     static let geminiPdfUploadsPatchCompletedKey = "GeminiPdfUploadsPatchCompleted"
+    static let openRouterUploadsPatchCompletedKey = "OpenRouterUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
     static let defaultApiServiceMigrationCompletedKey = "DefaultAPIServiceMigrationCompleted"
     static let draftTransactionAuthor = "Drafts"
@@ -309,7 +310,9 @@ struct AppConstants {
             models: [
                 "openai/gpt-4o",
                 "deepseek/deepseek-r1:free",
-            ]
+            ],
+            imageUploadsSupported: true,
+            pdfUploadsSupported: true
         ),
     ]
 

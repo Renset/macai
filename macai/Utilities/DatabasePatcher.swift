@@ -22,6 +22,7 @@ class DatabasePatcher {
             AppConstants.imageGenerationPatchCompletedKey,
             AppConstants.pdfUploadsPatchCompletedKey,
             AppConstants.geminiPdfUploadsPatchCompletedKey,
+            AppConstants.openRouterUploadsPatchCompletedKey,
             AppConstants.defaultApiServiceMigrationCompletedKey
         ]
 
@@ -91,6 +92,12 @@ class DatabasePatcher {
             }
         }
 
+        if persistence.getMetadata(forKey: AppConstants.openRouterUploadsPatchCompletedKey) as? Bool != true {
+            if patchOpenRouterUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.openRouterUploadsPatchCompletedKey)
+            }
+        }
+
         migrateDefaultAPIServiceSelectionIfNeeded(context: context, persistence: persistence)
         
         backfillMessageSequencesIfNeeded(context: context, persistence: persistence)
@@ -135,6 +142,7 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.openRouterUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
             
             // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
@@ -350,6 +358,51 @@ class DatabasePatcher {
         }
         catch {
             print("Error patching Gemini PDF uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchOpenRouterUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        guard let config = AppConstants.defaultApiConfigurations["openrouter"],
+              config.imageUploadsSupported || config.pdfUploadsSupported else {
+            return true
+        }
+
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        fetchRequest.predicate = NSPredicate(format: "type == %@", "openrouter")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices {
+                var didUpdate = false
+
+                if config.imageUploadsSupported && service.imageUploadsAllowed == false {
+                    service.imageUploadsAllowed = true
+                    didUpdate = true
+                }
+
+                if config.pdfUploadsSupported && service.pdfUploadsAllowed == false {
+                    service.pdfUploadsAllowed = true
+                    didUpdate = true
+                }
+
+                if didUpdate {
+                    needsSave = true
+                    print("Enabled uploads for OpenRouter API service: \(service.name ?? "Unnamed")")
+                }
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched OpenRouter uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching OpenRouter uploads for API services: \(error)")
             return false
         }
     }

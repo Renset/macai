@@ -195,6 +195,45 @@ enum APIServiceTemplateProvider {
                         "description": "Switches to Expert mode so you can configure any Grok variant or custom endpoint."
                     }
                 ]
+            },
+            {
+                "id": "openrouter",
+                "displayName": "OpenRouter",
+                "defaultName": "OpenRouter",
+                "note": "Requires an API key from openrouter.ai",
+                "models": [
+                    {
+                        "id": "openai/gpt-4o",
+                        "displayName": "GPT-4o",
+                        "isDefault": true,
+                        "settings": {
+                            "generateChatNames": true,
+                            "contextSize": 32,
+                            "useStreaming": true,
+                            "allowImageUploads": true,
+                            "allowPdfUploads": true,
+                            "imageGenerationSupported": false
+                        }
+                    },
+                    {
+                        "id": "deepseek/deepseek-r1:free",
+                        "displayName": "DeepSeek R1 (Free)",
+                        "settings": {
+                            "generateChatNames": true,
+                            "contextSize": 32,
+                            "useStreaming": true,
+                            "allowImageUploads": true,
+                            "allowPdfUploads": true,
+                            "imageGenerationSupported": false
+                        }
+                    },
+                    {
+                        "id": "custom",
+                        "displayName": "Custom",
+                        "requiresExpertMode": true,
+                        "description": "Switches to Expert mode so you can configure any OpenRouter model."
+                    }
+                ]
             }
         ]
     }

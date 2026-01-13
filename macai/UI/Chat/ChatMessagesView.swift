@@ -17,6 +17,8 @@ struct ChatMessagesView: View {
     @Binding var currentError: ErrorMessage?
     @Binding var userIsScrolling: Bool
     @Binding var searchText: String
+    let reasoningDurations: [NSManagedObjectID: TimeInterval]
+    let activeReasoningMessageID: NSManagedObjectID?
     @State private var scrollDebounceWorkItem: DispatchWorkItem?
     @State private var codeBlocksRendered = false
     @State private var pendingCodeBlocks = 0
@@ -43,6 +45,7 @@ struct ChatMessagesView: View {
 
                     if !chatViewModel.sortedMessages.isEmpty {
                         ForEach(chatViewModel.sortedMessages, id: \.objectID) { messageEntity in
+                            let storedDuration = messageEntity.reasoningDuration > 0 ? messageEntity.reasoningDuration : nil
                             let bubbleContent = ChatBubbleContent(
                                 message: messageEntity.body,
                                 own: messageEntity.own,
@@ -50,7 +53,9 @@ struct ChatMessagesView: View {
                                 errorMessage: nil,
                                 systemMessage: false,
                                 isStreaming: isStreaming,
-                                isLatestMessage: messageEntity.objectID == chatViewModel.sortedMessages.last?.objectID
+                                isLatestMessage: messageEntity.objectID == chatViewModel.sortedMessages.last?.objectID,
+                                reasoningDuration: reasoningDurations[messageEntity.objectID] ?? storedDuration,
+                                isActiveReasoning: messageEntity.objectID == activeReasoningMessageID
                             )
                             ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText, currentSearchOccurrence: chatViewModel.currentSearchOccurrence)
                                 .id(messageEntity.objectID)
@@ -65,7 +70,9 @@ struct ChatMessagesView: View {
                             errorMessage: nil,
                             systemMessage: false,
                             isStreaming: isStreaming,
-                            isLatestMessage: false
+                            isLatestMessage: false,
+                            reasoningDuration: nil,
+                            isActiveReasoning: false
                         )
 
                         ChatBubbleView(content: bubbleContent, searchText: $searchText)
@@ -79,7 +86,9 @@ struct ChatMessagesView: View {
                             errorMessage: error,
                             systemMessage: false,
                             isStreaming: isStreaming,
-                            isLatestMessage: true
+                            isLatestMessage: true,
+                            reasoningDuration: nil,
+                            isActiveReasoning: false
                         )
 
                         ChatBubbleView(content: bubbleContent, searchText: $searchText)

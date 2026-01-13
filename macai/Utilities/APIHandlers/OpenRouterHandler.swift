@@ -175,7 +175,9 @@ class OpenRouterHandler: ChatGPTHandler {
         }
     }
     
-    override internal func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool) -> URLRequest {
+    override internal func prepareRequest(requestMessages: [[String: String]], model: String, temperature: Float, stream: Bool)
+        -> URLRequest
+    {
         let filteredMessages = requestMessages.map { message -> [String: String] in
             var newMessage = message
             if let content = message["content"] {
@@ -183,13 +185,91 @@ class OpenRouterHandler: ChatGPTHandler {
             }
             return newMessage
         }
-        
-        var request = super.prepareRequest(requestMessages: filteredMessages, model: model, temperature: temperature, stream: stream)
-        
+
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
         // Add OpenRouter specific headers
         request.setValue("https://github.com/Renset/macai", forHTTPHeaderField: "HTTP-Referer")
         request.setValue("macai", forHTTPHeaderField: "X-Title")
-        
+
+        var temperatureOverride = temperature
+
+        if AppConstants.openAiReasoningModels.contains(self.model) {
+            temperatureOverride = 1
+        }
+
+        var processedMessages: [[String: Any]] = []
+
+        for message in filteredMessages {
+            var processedMessage: [String: Any] = [:]
+
+            if let role = message["role"] {
+                processedMessage["role"] = role
+            }
+
+            if let content = message["content"] {
+                let imageUUIDs = AttachmentParser.extractImageUUIDs(from: content)
+                let fileUUIDs = AttachmentParser.extractFileUUIDs(from: content)
+                let textContent = AttachmentParser.stripAttachments(from: content)
+
+                if !imageUUIDs.isEmpty || !fileUUIDs.isEmpty {
+                    var contentArray: [[String: Any]] = []
+
+                    if !textContent.isEmpty {
+                        contentArray.append(["type": "text", "text": textContent])
+                    }
+
+                    for uuid in imageUUIDs {
+                        if let imageData = self.loadImageFromCoreData(uuid: uuid) {
+                            contentArray.append([
+                                "type": "image_url",
+                                "image_url": ["url": "data:image/jpeg;base64,\(imageData.base64EncodedString())"],
+                            ])
+                        }
+                    }
+
+                    for uuid in fileUUIDs {
+                        if let filePayload = self.loadFileFromCoreData(uuid: uuid) {
+                            let mimeType = filePayload.mimeType ?? "application/pdf"
+                            let base64 = filePayload.data.base64EncodedString()
+                            let safeFilename = (filePayload.filename?.isEmpty == false)
+                                ? (filePayload.filename ?? "document.pdf")
+                                : "document.pdf"
+                            contentArray.append([
+                                "type": "file",
+                                "file": [
+                                    "filename": safeFilename,
+                                    "file_data": "data:\(mimeType);base64,\(base64)",
+                                ],
+                            ])
+                        }
+                    }
+
+                    processedMessage["content"] = contentArray
+                }
+                else if textContent != content {
+                    processedMessage["content"] = textContent
+                }
+                else {
+                    processedMessage["content"] = content
+                }
+            }
+
+            processedMessages.append(processedMessage)
+        }
+
+        let jsonDict: [String: Any] = [
+            "model": self.model,
+            "stream": stream,
+            "messages": processedMessages,
+            "temperature": temperatureOverride,
+        ]
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: jsonDict, options: [])
+
         return request
     }
     

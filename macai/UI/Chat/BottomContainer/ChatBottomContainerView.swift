@@ -70,27 +70,7 @@ struct ChatBottomContainerView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            HStack {
-                Spacer()
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isExpanded.toggle()
-                        onExpandedStateChange?(isExpanded)
-                    }
-                }) {
-                    HStack {
-                        Text(chat.persona?.name ?? "Select Assistant")
-                            .font(.caption)
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.caption)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                .padding(.horizontal)
-                .padding(.top, -16)
-            }
-
+        ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
                 VStack {
                     if isExpanded {
@@ -122,6 +102,23 @@ struct ChatBottomContainerView: View {
                 }
                 .border(width: 1, edges: [.top], color: Color(NSColor.windowBackgroundColor).opacity(0.8))
             }
+
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                    onExpandedStateChange?(isExpanded)
+                }
+            }) {
+                HStack {
+                    Text(chat.persona?.name ?? "Select Assistant")
+                        .font(.caption)
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal)
+            .offset(y: -16)
         }
 
     }

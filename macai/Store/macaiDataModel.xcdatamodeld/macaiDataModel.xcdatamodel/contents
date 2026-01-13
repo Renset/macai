@@ -56,6 +56,7 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="own" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="messageParts" optional="YES" attributeType="Transformable"/>
+        <attribute name="reasoningDuration" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="waitingForResponse" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="chat" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ChatEntity" inverseName="messages" inverseEntity="ChatEntity" spotlightIndexingEnabled="YES"/>
