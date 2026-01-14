@@ -21,6 +21,7 @@ class DatabasePatcher {
             AppConstants.imageUploadsPatchCompletedKey,
             AppConstants.imageGenerationPatchCompletedKey,
             AppConstants.pdfUploadsPatchCompletedKey,
+            AppConstants.openAiResponsesPdfUploadsPatchCompletedKey,
             AppConstants.geminiPdfUploadsPatchCompletedKey,
             AppConstants.openRouterUploadsPatchCompletedKey,
             AppConstants.defaultApiServiceMigrationCompletedKey
@@ -86,6 +87,12 @@ class DatabasePatcher {
             }
         }
 
+        if persistence.getMetadata(forKey: AppConstants.openAiResponsesPdfUploadsPatchCompletedKey) as? Bool != true {
+            if patchOpenAiResponsesPdfUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.openAiResponsesPdfUploadsPatchCompletedKey)
+            }
+        }
+
         if persistence.getMetadata(forKey: AppConstants.geminiPdfUploadsPatchCompletedKey) as? Bool != true {
             if patchGeminiPdfUploadsForAPIServices(context: context) {
                 persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
@@ -141,6 +148,7 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.openAiResponsesPdfUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.openRouterUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
@@ -327,6 +335,37 @@ class DatabasePatcher {
         }
         catch {
             print("Error patching PDF uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchOpenAiResponsesPdfUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        guard AppConstants.defaultApiConfigurations["openai-responses"]?.pdfUploadsSupported == true else {
+            return true
+        }
+
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        fetchRequest.predicate = NSPredicate(format: "type == %@", "openai-responses")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices where service.pdfUploadsAllowed == false {
+                service.pdfUploadsAllowed = true
+                needsSave = true
+                print("Enabled PDF uploads for OpenAI Responses API service: " + (service.name ?? "Unnamed"))
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched OpenAI Responses PDF uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching OpenAI Responses PDF uploads for API services: \(error)")
             return false
         }
     }

@@ -50,6 +50,7 @@ struct AppConstants {
     static let imageUploadsPatchCompletedKey = "ImageUploadsPatchCompleted"
     static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
     static let pdfUploadsPatchCompletedKey = "PdfUploadsPatchCompleted"
+    static let openAiResponsesPdfUploadsPatchCompletedKey = "OpenAIResponsesPdfUploadsPatchCompleted"
     static let geminiPdfUploadsPatchCompletedKey = "GeminiPdfUploadsPatchCompleted"
     static let openRouterUploadsPatchCompletedKey = "OpenRouterUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
