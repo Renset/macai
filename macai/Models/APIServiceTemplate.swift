@@ -2,7 +2,7 @@
 //  APIServiceTemplate.swift
 //  macai
 //
-//  Created by Codex on 2025-03-12.
+//  Created by Renat Notfullin on 12.03.2025.
 //
 
 import Foundation

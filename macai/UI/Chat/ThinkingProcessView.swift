@@ -19,6 +19,7 @@ struct ThinkingProcessView: View {
                             .fill(Color.blue)
                             .frame(width: 6, height: 6)
                             .modifier(PulsatingCircle())
+                            .padding(.trailing, 4)
                     }
 
                     Text("Reasoning")

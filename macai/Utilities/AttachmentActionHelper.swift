@@ -2,7 +2,7 @@
 //  AttachmentActionHelper.swift
 //  macai
 //
-//  Created by Codex on 2026-01-10.
+//  Created by Renat Notfullin on 10.01.2026.
 //
 
 import AppKit

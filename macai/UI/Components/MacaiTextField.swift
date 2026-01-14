@@ -2,7 +2,7 @@
 //  MacaiTextField.swift
 //  macai
 //
-//  Created by Renat on 2025-12-20
+//  Created by Renat Notfullin on 20.12.2025
 //
 
 import SwiftUI

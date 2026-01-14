@@ -2,7 +2,7 @@
 //  ImageEnabledMessageInputView.swift
 //  macai
 //
-//  Created by Renat on 2024-07-15
+//  Created by Renat Notfullinon 15.07.2024
 //
 
 import PhotosUI

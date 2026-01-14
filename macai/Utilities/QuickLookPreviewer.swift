@@ -2,7 +2,7 @@
 //  QuickLookPreviewer.swift
 //  macai
 //
-//  Created by Codex on 2026-01-09
+//  Created by Renat Notfullin on 09.01.2026
 //
 
 import AppKit

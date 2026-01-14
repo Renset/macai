@@ -2,7 +2,7 @@
 //  ChatInputView.swift
 //  macai
 //
-//  Created by AI Assistant on 20.01.2025.
+//  Created by Renat Notfullin on 20.01.2025.
 //
 
 import SwiftUI
