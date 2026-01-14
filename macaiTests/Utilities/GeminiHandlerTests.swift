@@ -59,6 +59,53 @@ final class GeminiHandlerTests: XCTestCase {
         XCTAssertTrue(parts.contains(where: { $0.thoughtSignature == "sig" }))
     }
 
+    func testGeminiHandlerStreamConcatenatesTextChunks() async throws {
+        URLProtocolStub.requestHandler = { request in
+            let response = HTTPURLResponse(
+                url: request.url ?? URL(string: "https://example.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            let payload = """
+            data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"This is a test. \"}]}}]}
+
+            data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"The final image provides context.\"}]}}]}
+
+            data: [DONE]
+
+            """
+            return (response, Data(payload.utf8))
+        }
+
+        let sessionConfig = URLSessionConfiguration.ephemeral
+        sessionConfig.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: sessionConfig)
+
+        let config = APIServiceConfig(
+            name: "Gemini",
+            apiUrl: URL(string: "https://generativelanguage.googleapis.com/v1beta/models")!,
+            apiKey: "test-key",
+            model: "gemini-3-pro"
+        )
+        let handler = GeminiHandler(config: config, session: session)
+
+        let requestMessages: [[String: String]] = [
+            [
+                "role": "user",
+                "content": "Hi",
+            ],
+        ]
+
+        let stream = try await handler.sendMessageStream(requestMessages, temperature: 1.0)
+        var collected = ""
+        for try await chunk in stream {
+            collected += chunk
+        }
+
+        XCTAssertEqual(collected, "This is a test. The final image provides context.")
+    }
+
     func testGeminiHandlerPreservesSignatureOnlyPartInRequest() throws {
         let expectation = expectation(description: "Request captured")
         var capturedRequest: URLRequest?

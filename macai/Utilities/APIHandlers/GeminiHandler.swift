@@ -747,30 +747,7 @@ class GeminiHandler: APIService {
 
     private func mergeRawDelta(_ fragment: String, aggregatedText: inout String) -> String? {
         guard !fragment.isEmpty else { return nil }
-
-        if aggregatedText.isEmpty {
-            aggregatedText = fragment
-            return fragment
-        }
-
-        if fragment == aggregatedText {
-            return nil
-        }
-
-        if fragment.hasPrefix(aggregatedText) {
-            let delta = String(fragment.dropFirst(aggregatedText.count))
-            aggregatedText = fragment
-            return delta.isEmpty ? nil : delta
-        }
-
-        let commonPrefix = fragment.commonPrefix(with: aggregatedText)
-        if !commonPrefix.isEmpty {
-            let delta = String(fragment.dropFirst(commonPrefix.count))
-            aggregatedText = fragment
-            return delta.isEmpty ? nil : delta
-        }
-
-        aggregatedText.append(fragment)
+        aggregatedText += fragment
         return fragment
     }
 
