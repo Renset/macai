@@ -281,6 +281,14 @@ struct macaiApp: App {
                 }
                 .keyboardShortcut("f", modifiers: .command)
 
+                Button("Clear Chat") {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ClearChat"),
+                        object: nil
+                    )
+                }
+                .keyboardShortcut(.delete, modifiers: [.command, .shift])
+
                 Button("Retry Last Message") {
                     NotificationCenter.default.post(
                         name: NSNotification.Name("RetryMessage"),
