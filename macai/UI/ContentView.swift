@@ -41,6 +41,7 @@ struct ContentView: View {
     @State private var windowRef: NSWindow?
     @State private var openedChatId: String? = nil
     @State private var columnVisibility = NavigationSplitViewVisibility.all
+    @State private var lastChatCount = 0
     @State private var searchText = ""
     @State private var isSearchPresented = false
 
@@ -116,15 +117,17 @@ struct ContentView: View {
             }
         }
         .onAppear(perform: {
-            updateSidebarVisibilityForChatCount()
+            updateSidebarVisibilityForChatCount(previousCount: lastChatCount, newCount: chats.count)
+            lastChatCount = chats.count
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
                     selectedChat = lastOpenedChat
                 }
             }
         })
-        .onChange(of: chats.count) { _ in
-            updateSidebarVisibilityForChatCount()
+        .onChange(of: chats.count) { newCount in
+            updateSidebarVisibilityForChatCount(previousCount: lastChatCount, newCount: newCount)
+            lastChatCount = newCount
         }
         .background(WindowAccessor(window: $window))
         .onAppear {
@@ -278,6 +281,11 @@ struct ContentView: View {
                     title: chatName,
                     body: body
                 )
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ClearChat"))) { _ in
+            if selectedChat != nil {
+                clearSelectedChat()
             }
         }
         .environmentObject(previewStateManager)
@@ -434,8 +442,15 @@ struct ContentView: View {
         )
     }
 
-    private func updateSidebarVisibilityForChatCount() {
-        columnVisibility = chats.isEmpty ? .detailOnly : .all
+    private func updateSidebarVisibilityForChatCount(previousCount: Int, newCount: Int) {
+        if newCount == 0 {
+            columnVisibility = .detailOnly
+            return
+        }
+
+        if previousCount == 0 && newCount > 0 {
+            columnVisibility = .all
+        }
     }
 }
 
