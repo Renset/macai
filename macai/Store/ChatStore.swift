@@ -57,13 +57,27 @@ class ChatStore: ObservableObject {
 
     func saveToCoreData(chats: [Chat], completion: @escaping (Result<Int, Error>) -> Void) {
         do {
-            var defaultApiService: APIServiceEntity? = nil
-            if let defaultServiceIDString = UserDefaults.standard.string(forKey: "defaultApiService"),
-                let url = URL(string: defaultServiceIDString),
-                let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
-            {
-                defaultApiService = try viewContext.existingObject(with: objectID) as? APIServiceEntity
-            }
+            let defaultApiService: APIServiceEntity? = {
+                let request = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+                request.predicate = NSPredicate(format: "isDefault == YES")
+                request.fetchLimit = 1
+                if let service = try? viewContext.fetch(request).first {
+                    return service
+                }
+
+                if let defaultServiceIDString = UserDefaults.standard.string(forKey: "defaultApiService"),
+                   let url = URL(string: defaultServiceIDString),
+                   let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
+                   let service = try? viewContext.existingObject(with: objectID) as? APIServiceEntity
+                {
+                    service.isDefault = true
+                    viewContext.saveWithRetry(attempts: 1)
+                    UserDefaults.standard.removeObject(forKey: "defaultApiService")
+                    return service
+                }
+
+                return nil
+            }()
 
             for oldChat in chats {
                 let fetchRequest = ChatEntity.fetchRequest() as! NSFetchRequest<ChatEntity>

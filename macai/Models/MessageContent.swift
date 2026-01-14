@@ -12,20 +12,30 @@ import SwiftUI
 struct MessageContent {
     let content: String
     var imageAttachment: ImageAttachment?
+    var fileAttachment: DocumentAttachment?
 
     init(text: String) {
         self.content = text
         self.imageAttachment = nil
+        self.fileAttachment = nil
     }
 
     init(imageUUID: UUID) {
         self.content = "<image-uuid>\(imageUUID.uuidString)</image-uuid>"
         self.imageAttachment = nil
+        self.fileAttachment = nil
     }
 
     init(imageAttachment: ImageAttachment) {
         self.content = "<image-uuid>\(imageAttachment.id.uuidString)</image-uuid>"
         self.imageAttachment = imageAttachment
+        self.fileAttachment = nil
+    }
+
+    init(fileAttachment: DocumentAttachment) {
+        self.content = "<file-uuid>\(fileAttachment.id.uuidString)</file-uuid>"
+        self.imageAttachment = nil
+        self.fileAttachment = fileAttachment
     }
 }
 
@@ -36,29 +46,17 @@ extension Array where Element == MessageContent {
     }
 
     var textContent: String {
-        map {
-            $0.content.replacingOccurrences(of: "<image-uuid>.*?</image-uuid>", with: "", options: .regularExpression)
-        }
-        .joined(separator: "\n")
-        .trimmingCharacters(in: .whitespacesAndNewlines)
+        map { AttachmentParser.stripAttachments(from: $0.content) }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var imageUUIDs: [UUID] {
-        compactMap { content in
-            let pattern = "<image-uuid>(.*?)</image-uuid>"
-            let regex = try? NSRegularExpression(pattern: pattern, options: [])
-            let nsString = content.content as NSString
-            let matches =
-                regex?.matches(in: content.content, options: [], range: NSRange(location: 0, length: nsString.length))
-                ?? []
+        compactMap { AttachmentParser.extractImageUUIDs(from: $0.content).first }
+    }
 
-            if let match = matches.first, match.numberOfRanges > 1 {
-                let uuidRange = match.range(at: 1)
-                let uuidString = nsString.substring(with: uuidRange)
-                return UUID(uuidString: uuidString)
-            }
-            return nil
-        }
+    var fileUUIDs: [UUID] {
+        compactMap { AttachmentParser.extractFileUUIDs(from: $0.content).first }
     }
 }
 extension String {
@@ -67,18 +65,10 @@ extension String {
     }
 
     func extractImageUUIDs() -> [UUID] {
-        let pattern = "<image-uuid>(.*?)</image-uuid>"
-        let regex = try? NSRegularExpression(pattern: pattern, options: [])
-        let nsString = self as NSString
-        let matches = regex?.matches(in: self, options: [], range: NSRange(location: 0, length: nsString.length)) ?? []
+        AttachmentParser.extractImageUUIDs(from: self)
+    }
 
-        return matches.compactMap { match in
-            if match.numberOfRanges > 1 {
-                let uuidRange = match.range(at: 1)
-                let uuidString = nsString.substring(with: uuidRange)
-                return UUID(uuidString: uuidString)
-            }
-            return nil
-        }
+    func extractFileUUIDs() -> [UUID] {
+        AttachmentParser.extractFileUUIDs(from: self)
     }
 }

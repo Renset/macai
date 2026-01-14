@@ -338,6 +338,7 @@ private struct TemplateOptionEntityList: View {
                         subtitle: option.model.displayName,
                         isSelected: selectedID == option.id,
                         showsVisionBadge: settings?.allowImageUploads ?? false,
+                        showsPdfBadge: settings?.allowPdfUploads ?? false,
                         showsImageGenBadge: settings?.imageGenerationSupported ?? false
                     ) {
                         selectedID = option.id
@@ -351,6 +352,7 @@ private struct TemplateOptionEntityList: View {
                     subtitle: "Any model with any provider",
                     isSelected: selectedID == APIServiceTemplateAddView.otherProviderTag,
                     showsVisionBadge: false,
+                    showsPdfBadge: false,
                     showsImageGenBadge: false
                 ) {
                     selectedID = APIServiceTemplateAddView.otherProviderTag
@@ -371,6 +373,7 @@ private struct TemplateSelectableRow: View {
     let subtitle: String
     let isSelected: Bool
     let showsVisionBadge: Bool
+    let showsPdfBadge: Bool
     let showsImageGenBadge: Bool
     let action: () -> Void
 
@@ -400,6 +403,9 @@ private struct TemplateSelectableRow: View {
 
                     if showsVisionBadge {
                         CapabilityBadge(title: "Vision", color: .purple)
+                    }
+                    if showsPdfBadge {
+                        CapabilityBadge(title: "PDF", color: .green)
                     }
                     if showsImageGenBadge {
                         CapabilityBadge(title: "Image Gen", color: .blue)

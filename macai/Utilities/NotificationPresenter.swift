@@ -2,7 +2,7 @@
 //  NotificationPresenter.swift
 //  macai
 //
-//  Created by Codex on 19.09.2025.
+//  Created by Renat Notfullin on 19.09.2025.
 //
 
 import Foundation

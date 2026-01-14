@@ -16,12 +16,28 @@ class ImageAttachment: Identifiable, ObservableObject {
     @Published var image: NSImage?
     @Published var thumbnail: NSImage?
     @Published var isLoading: Bool = false
+    @Published var isPreparingPreview: Bool = false
     @Published var error: Error?
 
     internal var imageEntity: ImageEntity?
     private var managedObjectContext: NSManagedObjectContext?
     private(set) var originalFileType: UTType
     private(set) var convertedToJPEG: Bool = false
+    private var cachedPreviewURL: URL?
+    private var pendingPreviewCompletions: [(URL?) -> Void] = []
+
+    var isReadyForUpload: Bool {
+        if isLoading || error != nil {
+            return false
+        }
+        if image != nil {
+            return true
+        }
+        if imageEntity?.image != nil {
+            return true
+        }
+        return false
+    }
 
     init(url: URL, context: NSManagedObjectContext? = nil) {
         self.url = url
@@ -49,6 +65,7 @@ class ImageAttachment: Identifiable, ObservableObject {
         self.image = image
         self.originalFileType = .jpeg
         self.createThumbnail(from: image)
+        self.preparePreviewURLIfNeeded(from: image)
     }
 
     private func loadImage() {
@@ -100,28 +117,58 @@ class ImageAttachment: Identifiable, ObservableObject {
 
     private func loadFromEntity() {
         isLoading = true
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self, let imageEntity = self.imageEntity else { return }
-
-            if let imageData = imageEntity.image, let thumbnailData = imageEntity.thumbnail {
-                let fullImage = NSImage(data: imageData)
-                let thumbnailImage = NSImage(data: thumbnailData)
-
-                DispatchQueue.main.async {
-                    self.image = fullImage
-                    self.thumbnail = thumbnailImage
-                    self.isLoading = false
-                }
+        guard let imageEntity = imageEntity else { return }
+        guard let context = imageEntity.managedObjectContext ?? managedObjectContext else {
+            DispatchQueue.main.async {
+                self.error = NSError(
+                    domain: "ImageAttachment",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing Core Data context for image"]
+                )
+                self.isLoading = false
             }
-            else {
-                DispatchQueue.main.async {
-                    self.error = NSError(
-                        domain: "ImageAttachment",
-                        code: 2,
-                        userInfo: [NSLocalizedDescriptionKey: "Failed to load image from database"]
+            return
+        }
+
+        context.perform { [weak self] in
+            guard let self else { return }
+            let imageData = imageEntity.image
+            let thumbnailData = imageEntity.thumbnail
+            let format = imageEntity.imageFormat
+
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self else { return }
+
+                if let imageData, let thumbnailData {
+                    let fullImage = NSImage(data: imageData)
+                    let thumbnailImage = NSImage(data: thumbnailData)
+
+                    DispatchQueue.main.async {
+                        self.image = fullImage
+                        self.thumbnail = thumbnailImage
+                        self.isLoading = false
+
+                        // We can reuse the already loaded image data for preview if needed,
+                        // but we will do it lazily in fetchPreviewURL to save memory/startup time
+                        // unless we want to pre-warm the cache.
+                        // Given the new "check disk first" logic, we might just want to ensure
+                        // the file exists if we have data ready.
+                    }
+
+                    // Prepare preview in background, capitalizing on the raw data we just fetched
+                    self.preparePreviewURLIfNeeded(
+                        imageData: imageData,
+                        format: format
                     )
-                    self.isLoading = false
+                } else {
+                    DispatchQueue.main.async {
+                        self.error = NSError(
+                            domain: "ImageAttachment",
+                            code: 2,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to load image from database"]
+                        )
+                        self.isLoading = false
+                    }
                 }
             }
         }
@@ -411,6 +458,196 @@ class ImageAttachment: Identifiable, ObservableObject {
         }
 
         return resultData
+    }
+
+    func previewURL() -> URL? {
+        if let url, FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+
+        if let cachedPreviewURL, FileManager.default.fileExists(atPath: cachedPreviewURL.path) {
+            return cachedPreviewURL
+        }
+
+        if let cached = PreviewFileHelper.cachedPreviewURL(for: id) {
+            cachedPreviewURL = cached
+            return cached
+        }
+
+        return nil
+    }
+
+    func openPreview() {
+        if let url = previewURL() {
+            let title = url.lastPathComponent
+            let request = QuickLookPreviewer.PreviewItemRequest(id: id, title: title, url: url)
+            QuickLookPreviewer.shared.preview(requests: [request], selectedIndex: 0)
+            return
+        }
+
+        let title = url?.lastPathComponent ?? "Image.jpg"
+        let request = QuickLookPreviewer.PreviewItemRequest(id: id, title: title) { completion in
+            self.fetchPreviewURL(completion: completion)
+        }
+        QuickLookPreviewer.shared.preview(requests: [request], selectedIndex: 0)
+    }
+
+    func fetchPreviewURL(completion: @escaping (URL?) -> Void) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.fetchPreviewURL(completion: completion)
+            }
+            return
+        }
+
+        if let url = previewURL() {
+            completion(url)
+            return
+        }
+
+        if isPreparingPreview {
+            pendingPreviewCompletions.append(completion)
+            return
+        }
+
+        pendingPreviewCompletions.append(completion)
+        isPreparingPreview = true
+
+        let suggestedName = url?.lastPathComponent ?? "Image"
+        let existingData = imageEntity?.image
+        let existingFormat = imageEntity?.imageFormat
+        let sourceImage = image ?? thumbnail
+        let defaultExtension = previewFileExtension(from: existingFormat)
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+
+            var previewData: Data?
+            var fileExtension = defaultExtension
+
+            if let imageData = existingData, !imageData.isEmpty {
+                previewData = imageData
+            } else if let image = sourceImage,
+                      let tiffData = image.tiffRepresentation,
+                      let bitmap = NSBitmapImageRep(data: tiffData)
+            {
+                // Match the intended format based on extension if supported by NSBitmapImageRep
+                let ext = fileExtension.lowercased()
+                var fileType: NSBitmapImageRep.FileType?
+                
+                switch ext {
+                case "png": fileType = .png
+                case "jpg", "jpeg": fileType = .jpeg
+                case "tif", "tiff": fileType = .tiff
+                case "bmp": fileType = .bmp
+                case "gif": fileType = .gif
+                case "jp2": fileType = .jpeg2000
+                default: fileType = nil
+                }
+                
+                if let type = fileType,
+                   let data = bitmap.representation(using: type, properties: [.compressionFactor: 0.9]) {
+                    previewData = data
+                    // fileExtension remains as is
+                } else {
+                    // Fallback to JPEG for unsupported types (e.g. HEIC, WebP if not supported by simple export)
+                    previewData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+                    fileExtension = "jpg"
+                }
+            }
+
+            guard let data = previewData else {
+                DispatchQueue.main.async {
+                    self.isPreparingPreview = false
+                    let completions = self.pendingPreviewCompletions
+                    self.pendingPreviewCompletions.removeAll()
+                    completions.forEach { $0(nil) }
+                }
+                return
+            }
+
+            let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+            let name = "\(baseName).\(fileExtension)"
+            
+            // Pass the ID to efficiently manage file caching
+            let url = PreviewFileHelper.previewURL(
+                for: self.id,
+                data: data,
+                filename: name,
+                defaultExtension: fileExtension
+            )
+
+            DispatchQueue.main.async {
+                self.isPreparingPreview = false
+                if let url {
+                    self.cachedPreviewURL = url
+                }
+                let completions = self.pendingPreviewCompletions
+                self.pendingPreviewCompletions.removeAll()
+                completions.forEach { $0(url) }
+            }
+        }
+    }
+
+    private func preparePreviewURLIfNeeded(from image: NSImage) {
+        guard cachedPreviewURL == nil else { return }
+        guard url == nil else { return }
+
+        let suggestedName = url?.lastPathComponent ?? "Image"
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            guard let tiffData = image.tiffRepresentation,
+                  let bitmap = NSBitmapImageRep(data: tiffData),
+                  let data = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
+            else { return }
+
+            let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+            let name = "\(baseName).jpg"
+            guard let previewURL = PreviewFileHelper.previewURL(
+                for: self.id,
+                data: data,
+                filename: name,
+                defaultExtension: "jpg"
+            ) else { return }
+
+            DispatchQueue.main.async {
+                self.cachedPreviewURL = previewURL
+            }
+        }
+    }
+
+    private func preparePreviewURLIfNeeded(imageData: Data, format: String?) {
+        guard cachedPreviewURL == nil else { return }
+        guard url == nil else { return }
+        let suggestedName = url?.lastPathComponent ?? "Image"
+        let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+        let fileExtension = previewFileExtension(from: format)
+        let name = "\(baseName).\(fileExtension)"
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            guard let previewURL = PreviewFileHelper.previewURL(
+                for: self.id,
+                data: imageData,
+                filename: name,
+                defaultExtension: fileExtension
+            ) else { return }
+
+            DispatchQueue.main.async {
+                self.cachedPreviewURL = previewURL
+            }
+        }
+    }
+
+    private func previewFileExtension(from format: String?) -> String {
+        let normalized = format?.lowercased() ?? originalFileType.preferredFilenameExtension ?? "jpg"
+        switch normalized {
+        case "jpeg":
+            return "jpg"
+        default:
+            return normalized
+        }
     }
 }
 

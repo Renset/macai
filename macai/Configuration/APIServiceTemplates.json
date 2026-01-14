@@ -1,62 +1,55 @@
 {
     "providers": [
         {
-            "id": "openai-responses",
-            "displayName": "OpenAI",
-            "defaultName": "GPT-5",
+            "id": "openrouter",
+            "displayName": "OpenRouter",
+            "defaultName": "OpenRouter",
+            "note": "Requires an API key from openrouter.ai",
             "models": [
                 {
-                    "id": "gpt-5",
-                    "displayName": "GPT-5",
+                    "id": "z-ai/glm-4.7",
+                    "displayName": "GLM-4.7",
                     "isDefault": true,
                     "settings": {
                         "generateChatNames": true,
                         "contextSize": 20,
                         "useStreaming": true,
-                        "allowImageUploads": true,
-                        "imageGenerationSupported": true
+                        "allowImageUploads": false,
+                        "allowPdfUploads": true,
+                        "imageGenerationSupported": false
                     }
                 },
                 {
-                    "id": "gpt-4o",
-                    "displayName": "GPT-4o",
+                    "id": "anthropic/claude-sonnet-4.5",
+                    "displayName": "Claude Sonnet 4.5",
                     "isDefault": true,
                     "settings": {
                         "generateChatNames": true,
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
                         "imageGenerationSupported": false
                     }
                 }
             ]
         },
         {
-            "id": "claude",
-            "displayName": "Claude",
-            "defaultName": "Sonnet 4",
+            "id": "openai-responses",
+            "displayName": "OpenAI",
+            "defaultName": "GPT-5",
             "models": [
                 {
-                    "id": "claude-sonnet-4-20250514",
-                    "displayName": "Sonnet 4",
+                    "id": "gpt-5.2",
+                    "displayName": "GPT-5.2",
                     "isDefault": true,
                     "settings": {
                         "generateChatNames": true,
-                        "contextSize": 10,
+                        "contextSize": 20,
                         "useStreaming": true,
-                        "allowImageUploads": false,
-                        "imageGenerationSupported": false
-                    }
-                },
-                {
-                    "id": "claude-opus-4-5-20251101",
-                    "displayName": "Opus 4.5",
-                    "settings": {
-                        "generateChatNames": true,
-                        "contextSize": 10,
-                        "useStreaming": true,
-                        "allowImageUploads": false,
-                        "imageGenerationSupported": false
+                        "allowImageUploads": true,
+                        "allowPdfUploads": true,
+                        "imageGenerationSupported": true
                     }
                 }
             ]
@@ -76,6 +69,7 @@
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
                         "imageGenerationSupported": true
                     }
                 },
@@ -88,17 +82,49 @@
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
                         "imageGenerationSupported": false
                     }
                 },
                 {
-                    "id": "gemini-2.5-flash",
-                    "displayName": "Gemini 2.5 Flash",
+                    "id": "gemini-3-flash-preview",
+                    "displayName": "Gemini 3 Flash",
                     "settings": {
                         "generateChatNames": true,
                         "contextSize": 20,
                         "useStreaming": true,
                         "allowImageUploads": true,
+                        "allowPdfUploads": true,
+                        "imageGenerationSupported": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": "claude",
+            "displayName": "Claude",
+            "defaultName": "Sonnet 4",
+            "models": [
+                {
+                    "id": "claude-sonnet-4-5-20250929",
+                    "displayName": "Sonnet 4",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 10,
+                        "useStreaming": true,
+                        "allowImageUploads": false,
+                        "imageGenerationSupported": false
+                    }
+                },
+                {
+                    "id": "claude-opus-4-5-20251101",
+                    "displayName": "Opus 4.5",
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 10,
+                        "useStreaming": true,
+                        "allowImageUploads": false,
                         "imageGenerationSupported": false
                     }
                 }

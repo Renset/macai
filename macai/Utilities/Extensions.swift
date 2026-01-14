@@ -47,19 +47,27 @@ extension String {
 
 extension NSManagedObjectContext {
     func saveWithRetry(attempts: Int) {
-        do {
-            try self.save()
+        if concurrencyType == .mainQueueConcurrencyType, Thread.isMainThread {
+            saveWithRetryOnQueue(attempts: attempts)
+            return
         }
-        catch {
-            print("Core Data save failed: \(error)")
 
-            self.rollback()
+        performAndWait {
+            saveWithRetryOnQueue(attempts: attempts)
+        }
+    }
+
+    func saveWithRetryOnQueue(attempts: Int) {
+        do {
+            try save()
+        } catch {
+            print("Core Data save failed: \(error)")
+            rollback()
 
             if attempts > 0 {
                 print("Retrying save operation...")
-                self.saveWithRetry(attempts: attempts - 1)
-            }
-            else {
+                saveWithRetryOnQueue(attempts: attempts - 1)
+            } else {
                 print("Failed to save after multiple attempts")
             }
         }

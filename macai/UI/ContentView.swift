@@ -34,7 +34,6 @@ struct ContentView: View {
     @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlOpenAIResponses
-    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
     @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
     @StateObject private var previewStateManager = PreviewStateManager()
     @StateObject private var attentionStore = ChatAttentionStore.shared
@@ -320,21 +319,12 @@ struct ContentView: View {
             newChat.gptModel = service.model ?? AppConstants.defaultModel(for: service.type)
             newChat.systemMessage = service.defaultPersona?.systemMessage ?? AppConstants.chatGptSystemMessage
         }
-        else if let defaultServiceIDString = defaultApiServiceID,
-                let url = URL(string: defaultServiceIDString),
-                let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url)
-        {
-            do {
-                let defaultService = try viewContext.existingObject(with: objectID) as? APIServiceEntity
-                newChat.apiService = defaultService
-                newChat.persona = defaultService?.defaultPersona
-                // TODO: Refactor the following code along with ChatView.swift
-                newChat.gptModel = defaultService?.model ?? AppConstants.defaultModel(for: defaultService?.type)
-                newChat.systemMessage = newChat.persona?.systemMessage ?? AppConstants.chatGptSystemMessage
-            }
-            catch {
-                print("Default API service not found: \(error)")
-            }
+        else if let defaultService = resolveDefaultAPIService() {
+            newChat.apiService = defaultService
+            newChat.persona = defaultService.defaultPersona
+            // TODO: Refactor the following code along with ChatView.swift
+            newChat.gptModel = defaultService.model ?? AppConstants.defaultModel(for: defaultService.type)
+            newChat.systemMessage = newChat.persona?.systemMessage ?? AppConstants.chatGptSystemMessage
         }
 
         do {
@@ -361,6 +351,25 @@ struct ContentView: View {
             print("Failed to locate API service for URI \(uriString): \(error)")
             return nil
         }
+    }
+
+    private func resolveDefaultAPIService() -> APIServiceEntity? {
+        if let service = apiServices.first(where: { $0.isDefault }) {
+            return service
+        }
+
+        if let defaultServiceIDString = UserDefaults.standard.string(forKey: "defaultApiService"),
+           let url = URL(string: defaultServiceIDString),
+           let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
+           let service = try? viewContext.existingObject(with: objectID) as? APIServiceEntity
+        {
+            service.isDefault = true
+            viewContext.saveWithRetry(attempts: 1)
+            UserDefaults.standard.removeObject(forKey: "defaultApiService")
+            return service
+        }
+
+        return nil
     }
 
     func openPreferencesView() {

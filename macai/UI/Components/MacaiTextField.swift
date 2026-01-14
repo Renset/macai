@@ -2,13 +2,14 @@
 //  MacaiTextField.swift
 //  macai
 //
-//  Created by Renat on 2025-12-20
+//  Created by Renat Notfullin on 20.12.2025
 //
 
 import SwiftUI
 
 #if os(macOS)
 import AppKit
+import UniformTypeIdentifiers
 
 struct MacaiTextField: View {
     var title: String
@@ -313,6 +314,37 @@ private final class MacaiNSTextView: NSTextView {
                 self?.isUpdatingSize = false
             }
         }
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        if shouldIgnoreFileDrop(sender) {
+            return []
+        }
+        return super.draggingEntered(sender)
+    }
+
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        if shouldIgnoreFileDrop(sender) {
+            return false
+        }
+        return super.prepareForDragOperation(sender)
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        if shouldIgnoreFileDrop(sender) {
+            return false
+        }
+        return super.performDragOperation(sender)
+    }
+
+    private func shouldIgnoreFileDrop(_ sender: NSDraggingInfo) -> Bool {
+        let pasteboard = sender.draggingPasteboard
+        let types = [
+            UTType.image.identifier,
+            UTType.pdf.identifier,
+            UTType.fileURL.identifier
+        ]
+        return pasteboard.canReadItem(withDataConformingToTypes: types)
     }
 }
 #endif

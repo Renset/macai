@@ -19,7 +19,11 @@ class DatabasePatcher {
             AppConstants.messageSequenceBackfillCompletedKey,
             AppConstants.personaOrderingPatchCompletedKey,
             AppConstants.imageUploadsPatchCompletedKey,
-            AppConstants.imageGenerationPatchCompletedKey
+            AppConstants.imageGenerationPatchCompletedKey,
+            AppConstants.pdfUploadsPatchCompletedKey,
+            AppConstants.geminiPdfUploadsPatchCompletedKey,
+            AppConstants.openRouterUploadsPatchCompletedKey,
+            AppConstants.defaultApiServiceMigrationCompletedKey
         ]
 
         for key in keys {
@@ -43,7 +47,8 @@ class DatabasePatcher {
         let patchKeys = [
             AppConstants.personaOrderingPatchCompletedKey,
             AppConstants.imageUploadsPatchCompletedKey,
-            AppConstants.imageGenerationPatchCompletedKey
+            AppConstants.imageGenerationPatchCompletedKey,
+            AppConstants.pdfUploadsPatchCompletedKey
         ]
 
         for key in patchKeys {
@@ -74,6 +79,26 @@ class DatabasePatcher {
                 persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
             }
         }
+
+        if persistence.getMetadata(forKey: AppConstants.pdfUploadsPatchCompletedKey) as? Bool != true {
+            if patchPdfUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
+            }
+        }
+
+        if persistence.getMetadata(forKey: AppConstants.geminiPdfUploadsPatchCompletedKey) as? Bool != true {
+            if patchGeminiPdfUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
+            }
+        }
+
+        if persistence.getMetadata(forKey: AppConstants.openRouterUploadsPatchCompletedKey) as? Bool != true {
+            if patchOpenRouterUploadsForAPIServices(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.openRouterUploadsPatchCompletedKey)
+            }
+        }
+
+        migrateDefaultAPIServiceSelectionIfNeeded(context: context, persistence: persistence)
         
         backfillMessageSequencesIfNeeded(context: context, persistence: persistence)
         patchGeminiLegacyEndpoint(context: context, persistence: persistence)
@@ -115,6 +140,10 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.personaOrderingPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.imageGenerationPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.pdfUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.openRouterUploadsPatchCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
             
             // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
             persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
@@ -131,11 +160,42 @@ class DatabasePatcher {
         setMetadataIfMissing(true, forKey: AppConstants.personaOrderingPatchCompletedKey, persistence: persistence)
         setMetadataIfMissing(true, forKey: AppConstants.imageUploadsPatchCompletedKey, persistence: persistence)
         setMetadataIfMissing(true, forKey: AppConstants.imageGenerationPatchCompletedKey, persistence: persistence)
+        setMetadataIfMissing(true, forKey: AppConstants.pdfUploadsPatchCompletedKey, persistence: persistence)
         if persistence.getMetadata(forKey: "DB_VERSION") == nil {
             persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
         }
         
         persistence.setMetadata(value: true, forKey: initializationKey)
+    }
+
+    private static func migrateDefaultAPIServiceSelectionIfNeeded(
+        context: NSManagedObjectContext,
+        persistence: PersistenceController
+    ) {
+        if persistence.getMetadata(forKey: AppConstants.defaultApiServiceMigrationCompletedKey) as? Bool == true {
+            return
+        }
+
+        let defaults = UserDefaults.standard
+        if let defaultServiceIDString = defaults.string(forKey: "defaultApiService"),
+           let url = URL(string: defaultServiceIDString),
+           let objectID = context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
+           let defaultService = try? context.existingObject(with: objectID) as? APIServiceEntity
+        {
+            let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+            if let services = try? context.fetch(fetchRequest) {
+                for service in services {
+                    service.isDefault = (service.objectID == defaultService.objectID)
+                }
+            } else {
+                defaultService.isDefault = true
+            }
+
+            defaults.removeObject(forKey: "defaultApiService")
+            context.saveWithRetry(attempts: 1)
+        }
+
+        persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
     }
 
     static func addDefaultPersonasIfNeeded(context: NSManagedObjectContext, force: Bool = false) {
@@ -234,6 +294,115 @@ class DatabasePatcher {
         }
         catch {
             print("Error patching image uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchPdfUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices {
+                guard let type = service.type,
+                      let config = AppConstants.defaultApiConfigurations[type],
+                      config.pdfUploadsSupported,
+                      service.pdfUploadsAllowed == false else {
+                    continue
+                }
+
+                service.pdfUploadsAllowed = true
+                needsSave = true
+                print("Enabled PDF uploads for API service: \(service.name ?? "Unnamed")")
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched PDF uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching PDF uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchGeminiPdfUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        guard AppConstants.defaultApiConfigurations["gemini"]?.pdfUploadsSupported == true else {
+            return true
+        }
+
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        fetchRequest.predicate = NSPredicate(format: "type == %@", "gemini")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices where service.pdfUploadsAllowed == false {
+                service.pdfUploadsAllowed = true
+                needsSave = true
+                print("Enabled PDF uploads for Gemini API service: \(service.name ?? "Unnamed")")
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched Gemini PDF uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching Gemini PDF uploads for API services: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    static func patchOpenRouterUploadsForAPIServices(context: NSManagedObjectContext) -> Bool {
+        guard let config = AppConstants.defaultApiConfigurations["openrouter"],
+              config.imageUploadsSupported || config.pdfUploadsSupported else {
+            return true
+        }
+
+        let fetchRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        fetchRequest.predicate = NSPredicate(format: "type == %@", "openrouter")
+
+        do {
+            let apiServices = try context.fetch(fetchRequest)
+            var needsSave = false
+
+            for service in apiServices {
+                var didUpdate = false
+
+                if config.imageUploadsSupported && service.imageUploadsAllowed == false {
+                    service.imageUploadsAllowed = true
+                    didUpdate = true
+                }
+
+                if config.pdfUploadsSupported && service.pdfUploadsAllowed == false {
+                    service.pdfUploadsAllowed = true
+                    didUpdate = true
+                }
+
+                if didUpdate {
+                    needsSave = true
+                    print("Enabled uploads for OpenRouter API service: \(service.name ?? "Unnamed")")
+                }
+            }
+
+            if needsSave {
+                try context.save()
+            }
+            print("Successfully patched OpenRouter uploads for API services")
+            return true
+        }
+        catch {
+            print("Error patching OpenRouter uploads for API services: \(error)")
             return false
         }
     }
@@ -595,7 +764,8 @@ class DatabasePatcher {
             print("Error updating existing chats: \(error)")
         }
 
-        defaults.set(apiService.objectID.uriRepresentation().absoluteString, forKey: "defaultApiService")
+        apiService.isDefault = true
+        try? context.save()
 
         // Migration completed in metadata
         persistence.setMetadata(value: true, forKey: AppConstants.apiServiceMigrationCompletedKey)

@@ -2,7 +2,7 @@
 //  APIServiceTemplate.swift
 //  macai
 //
-//  Created by Codex on 2025-03-12.
+//  Created by Renat Notfullin on 12.03.2025.
 //
 
 import Foundation
@@ -58,6 +58,7 @@ struct APIServiceTemplateSettings: Codable {
     let contextSize: Int?
     let useStreaming: Bool?
     let allowImageUploads: Bool?
+    let allowPdfUploads: Bool?
     let imageGenerationSupported: Bool?
 
     enum CodingKeys: String, CodingKey {
@@ -65,6 +66,7 @@ struct APIServiceTemplateSettings: Codable {
         case contextSize
         case useStreaming
         case allowImageUploads
+        case allowPdfUploads
         case imageGenerationSupported
     }
 }

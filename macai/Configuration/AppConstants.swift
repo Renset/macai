@@ -49,7 +49,12 @@ struct AppConstants {
     static let personaOrderingPatchCompletedKey = "PersonaOrderingPatchCompleted"
     static let imageUploadsPatchCompletedKey = "ImageUploadsPatchCompleted"
     static let imageGenerationPatchCompletedKey = "ImageGenerationPatchCompleted"
+    static let pdfUploadsPatchCompletedKey = "PdfUploadsPatchCompleted"
+    static let geminiPdfUploadsPatchCompletedKey = "GeminiPdfUploadsPatchCompleted"
+    static let openRouterUploadsPatchCompletedKey = "OpenRouterUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
+    static let defaultApiServiceMigrationCompletedKey = "DefaultAPIServiceMigrationCompleted"
+    static let draftTransactionAuthor = "Drafts"
     static let entityIDBackfillCompletedKey = "EntityIDBackfillCompleted"
     static let messageSequenceBackfillCompletedKey = "MessageSequenceBackfillCompleted"
     static let openAiReasoningModels: [String] = [
@@ -168,6 +173,7 @@ struct AppConstants {
         var inherits: String? = nil
         var modelsFetching: Bool = true
         var imageUploadsSupported: Bool = false
+        var pdfUploadsSupported: Bool = false
         var imageGenerationSupported: Bool = false
         var autoEnableImageGenerationModels: [String] = []
     }
@@ -183,6 +189,7 @@ struct AppConstants {
                 "gpt-5",
             ],
             imageUploadsSupported: true,
+            pdfUploadsSupported: true,
             imageGenerationSupported: true
         ),
         "chatgpt": defaultApiConfiguration(
@@ -194,7 +201,8 @@ struct AppConstants {
             models: [
                 "gpt-5"
             ],
-            imageUploadsSupported: true
+            imageUploadsSupported: true,
+            pdfUploadsSupported: false
         ),
         "ollama": defaultApiConfiguration(
             name: "Ollama",
@@ -261,6 +269,7 @@ struct AppConstants {
                 "gemini-1.5-flash-8b",
             ],
             imageUploadsSupported: true,
+            pdfUploadsSupported: true,
             imageGenerationSupported: true,
             autoEnableImageGenerationModels: ["gemini-2.5-flash-image-preview"]
         ),
@@ -301,7 +310,9 @@ struct AppConstants {
             models: [
                 "openai/gpt-4o",
                 "deepseek/deepseek-r1:free",
-            ]
+            ],
+            imageUploadsSupported: true,
+            pdfUploadsSupported: true
         ),
     ]
 

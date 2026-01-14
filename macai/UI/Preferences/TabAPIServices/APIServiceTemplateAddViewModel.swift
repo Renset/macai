@@ -64,6 +64,7 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
     private(set) var generateChatNames: Bool = true
     private(set) var useStreamResponse: Bool = true
     private(set) var imageUploadsAllowed: Bool = false
+    private(set) var pdfUploadsAllowed: Bool = false
     private(set) var imageGenerationSupported: Bool = false
     private(set) var defaultApiConfiguration = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]
 
@@ -173,6 +174,12 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             imageUploadsAllowed = uploads
         } else {
             imageUploadsAllowed = defaultApiConfiguration?.imageUploadsSupported ?? false
+        }
+
+        if let uploads = settings?.allowPdfUploads {
+            pdfUploadsAllowed = uploads
+        } else {
+            pdfUploadsAllowed = defaultApiConfiguration?.pdfUploadsSupported ?? false
         }
 
         if let generation = settings?.imageGenerationSupported {
@@ -320,6 +327,7 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
         service.useStreamResponse = useStreamResponse
         service.generateChatNames = generateChatNames
         service.imageUploadsAllowed = imageUploadsAllowed
+        service.pdfUploadsAllowed = pdfUploadsAllowed
         service.imageGenerationSupported = imageGenerationSupported
         service.defaultPersona = selectedPersona
         if service.tokenIdentifier == nil || service.tokenIdentifier?.isEmpty == true {
@@ -433,6 +441,8 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             case .unknown(let message):
                 return message
             case .noApiService(let message):
+                return message
+            case .attachmentNotReady(let message):
                 return message
             }
         }

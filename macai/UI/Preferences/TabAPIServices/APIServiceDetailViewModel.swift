@@ -24,6 +24,7 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var useStreamResponse: Bool = true
     @Published var generateChatNames: Bool = true
     @Published var imageUploadsAllowed: Bool = false
+    @Published var pdfUploadsAllowed: Bool = false
     @Published var imageGenerationSupported: Bool = false
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
@@ -65,6 +66,7 @@ class APIServiceDetailViewModel: ObservableObject {
             useStreamResponse = service.useStreamResponse
             generateChatNames = service.generateChatNames
             imageUploadsAllowed = service.imageUploadsAllowed
+            pdfUploadsAllowed = service.pdfUploadsAllowed
             imageGenerationSupported = service.imageGenerationSupported
             defaultAiPersona = service.defaultPersona
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
@@ -84,6 +86,7 @@ class APIServiceDetailViewModel: ObservableObject {
             if let config = AppConstants.defaultApiConfigurations[type] {
                 url = config.url
                 imageUploadsAllowed = config.imageUploadsSupported
+                pdfUploadsAllowed = config.pdfUploadsSupported
                 let selected = selectedModel.isEmpty ? config.defaultModel : selectedModel
                 imageGenerationSupported = Self.supportedState(
                     for: selected,
@@ -97,6 +100,7 @@ class APIServiceDetailViewModel: ObservableObject {
             else {
                 url = AppConstants.apiUrlOpenAIResponses
                 imageUploadsAllowed = false
+                pdfUploadsAllowed = false
                 imageGenerationSupported = false
             }
         }
@@ -187,6 +191,7 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.useStreamResponse = useStreamResponse
         serviceToSave.generateChatNames = generateChatNames
         serviceToSave.imageUploadsAllowed = imageUploadsAllowed
+        serviceToSave.pdfUploadsAllowed = pdfUploadsAllowed
         serviceToSave.imageGenerationSupported = imageGenerationSupported
         serviceToSave.defaultPersona = defaultAiPersona
         if serviceToSave.tokenIdentifier == nil || serviceToSave.tokenIdentifier?.isEmpty == true {
@@ -257,6 +262,7 @@ class APIServiceDetailViewModel: ObservableObject {
         self.selectedModel = self.model
 
         self.imageUploadsAllowed = self.defaultApiConfiguration!.imageUploadsSupported
+        self.pdfUploadsAllowed = self.defaultApiConfiguration!.pdfUploadsSupported
         self.imageGenerationSupported = Self.supportedState(
             for: self.model,
             using: self.defaultApiConfiguration!
@@ -278,6 +284,10 @@ class APIServiceDetailViewModel: ObservableObject {
 
     var supportsImageUploads: Bool {
         return AppConstants.defaultApiConfigurations[type]?.imageUploadsSupported ?? false
+    }
+
+    var supportsPdfUploads: Bool {
+        return AppConstants.defaultApiConfigurations[type]?.pdfUploadsSupported ?? false
     }
 
     var supportsImageGeneration: Bool {

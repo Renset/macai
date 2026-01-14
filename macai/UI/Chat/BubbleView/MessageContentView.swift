@@ -5,13 +5,11 @@
 //  Created by Renat on 03.04.2025.
 //
 
+import AppKit
 import AttributedText
+import CoreData
 import SwiftUI
 
-struct IdentifiableImage: Identifiable {
-    let id = UUID()
-    let image: NSImage
-}
 struct MessageContentView: View {
     var message: MessageEntity?
     let content: String
@@ -19,12 +17,16 @@ struct MessageContentView: View {
     let own: Bool
     let effectiveFontSize: Double
     let colorScheme: ColorScheme
+    let inlineAttachments: Bool
+    let reasoningDuration: TimeInterval?
+    let isActiveReasoning: Bool
+    let prefetchedElements: [MessageElements]?
     @Binding var searchText: String
     var currentSearchOccurrence: SearchOccurrence?
 
     @State private var showFullMessage = false
     @State private var isParsingFullMessage = false
-    @State private var selectedImage: IdentifiableImage?
+    @State private var expandedReasoningElements: Set<String> = []
 
     private let largeMessageSymbolsThreshold = AppConstants.largeMessageSymbolsThreshold
 
@@ -41,7 +43,7 @@ struct MessageContentView: View {
     }
 
     private func containsImageData(_ message: String) -> Bool {
-        if message.contains("<image-uuid>") {
+        if message.contains("<image-uuid>") || message.contains("<file-uuid>") {
             return true
         }
         return false
@@ -51,12 +53,23 @@ struct MessageContentView: View {
     private func renderPartialContent() -> some View {
         let truncatedMessage = String(content.prefix(largeMessageSymbolsThreshold))
         let parser = MessageParser(colorScheme: colorScheme)
-        let parsedElements = parser.parseMessageFromString(input: truncatedMessage)
+        let parsedElements = content.count <= largeMessageSymbolsThreshold
+            ? (prefetchedElements ?? parser.parseMessageFromString(input: truncatedMessage))
+            : parser.parseMessageFromString(input: truncatedMessage)
+
+        let elementsToRender = filterInlineAttachments(parsedElements)
+        let attachmentElements = extractAttachmentElements(from: elementsToRender)
+        let attachmentIndexMap = buildAttachmentIndexMap(for: elementsToRender)
 
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(parsedElements.indices, id: \.self) {
+            ForEach(elementsToRender.indices, id: \.self) {
                 index in
-                renderElement(parsedElements[index], elementIndex: index)
+                renderElement(
+                    elementsToRender[index],
+                    elementIndex: index,
+                    attachmentElements: attachmentElements,
+                    attachmentIndexMap: attachmentIndexMap
+                )
             }
 
             HStack(spacing: 8) {
@@ -96,11 +109,19 @@ struct MessageContentView: View {
     @ViewBuilder
     private func renderFullContent() -> some View {
         let parser = MessageParser(colorScheme: colorScheme)
-        let parsedElements = parser.parseMessageFromString(input: content)
+        let parsedElements = prefetchedElements ?? parser.parseMessageFromString(input: content)
+        let elementsToRender = filterInlineAttachments(parsedElements)
+        let attachmentElements = extractAttachmentElements(from: elementsToRender)
+        let attachmentIndexMap = buildAttachmentIndexMap(for: elementsToRender)
 
-        ForEach(parsedElements.indices, id: \.self) {
+        ForEach(elementsToRender.indices, id: \.self) {
             index in
-            renderElement(parsedElements[index], elementIndex: index)
+            renderElement(
+                elementsToRender[index],
+                elementIndex: index,
+                attachmentElements: attachmentElements,
+                attachmentIndexMap: attachmentIndexMap
+            )
                 .id(generateElementID(elementIndex: index))
         }
     }
@@ -113,11 +134,43 @@ struct MessageContentView: View {
         return "\(messageIDString)_element_\(elementIndex)"
     }
 
+    private func reasoningElementKey(for elementIndex: Int) -> String {
+        guard let messageID = message?.objectID else {
+            return "thinking_\(elementIndex)"
+        }
+        let messageIDString = messageID.uriRepresentation().absoluteString
+        return "\(messageIDString)_thinking_\(elementIndex)"
+    }
+
+    private func reasoningExpansionBinding(for elementIndex: Int) -> Binding<Bool> {
+        let key = reasoningElementKey(for: elementIndex)
+        return Binding(
+            get: { expandedReasoningElements.contains(key) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedReasoningElements.insert(key)
+                } else {
+                    expandedReasoningElements.remove(key)
+                }
+            }
+        )
+    }
+
     @ViewBuilder
-    private func renderElement(_ element: MessageElements, elementIndex: Int) -> some View {
+    private func renderElement(
+        _ element: MessageElements,
+        elementIndex: Int,
+        attachmentElements: [MessageElements],
+        attachmentIndexMap: [Int?]
+    ) -> some View {
         switch element {
         case .thinking(let content, _):
-            ThinkingProcessView(content: content)
+            ThinkingProcessView(
+                content: content,
+                duration: reasoningDuration,
+                isActive: isActiveReasoning,
+                isExpanded: reasoningExpansionBinding(for: elementIndex)
+            )
                 .padding(.vertical, 4)
 
         case .text(let text):
@@ -139,8 +192,27 @@ struct MessageContentView: View {
                     .padding(.vertical, 16)
             }
 
-        case .image(let image):
-            renderImage(image)
+        case .image(let image, let imageID):
+            if inlineAttachments {
+                renderImage(
+                    image,
+                    imageID: imageID,
+                    elementIndex: elementIndex,
+                    attachmentElements: attachmentElements,
+                    attachmentIndexMap: attachmentIndexMap,
+                    isOwn: own
+                )
+            }
+
+        case .file(let fileInfo):
+            if inlineAttachments {
+                renderFile(
+                    fileInfo,
+                    elementIndex: elementIndex,
+                    attachmentElements: attachmentElements,
+                    attachmentIndexMap: attachmentIndexMap
+                )
+            }
         }
     }
 
@@ -252,28 +324,265 @@ struct MessageContentView: View {
     }
 
     @ViewBuilder
-    private func renderImage(_ image: NSImage) -> some View {
-        let maxWidth: CGFloat = 300
-        let aspectRatio = image.size.width / image.size.height
-        let displayHeight = maxWidth / aspectRatio
+    private func renderImage(
+        _ image: NSImage,
+        imageID _: UUID,
+        elementIndex: Int,
+        attachmentElements: [MessageElements],
+        attachmentIndexMap: [Int?],
+        isOwn: Bool
+    ) -> some View {
+        let previewSize: CGFloat = isOwn ? 160 : 300
+        let cornerRadius: CGFloat = 8
 
-        Image(nsImage: image)
+        let imageView = Image(nsImage: image)
             .resizable()
             .aspectRatio(contentMode: .fill)
-            .frame(maxWidth: maxWidth, maxHeight: displayHeight)
-            .cornerRadius(8)
+            .cornerRadius(cornerRadius)
             .padding(.bottom, 3)
             .onTapGesture {
-                selectedImage = IdentifiableImage(image: image)
+                if elementIndex < attachmentIndexMap.count,
+                   let attachmentIndex = attachmentIndexMap[elementIndex] {
+                    openAttachmentPreview(
+                        attachmentElements: attachmentElements,
+                        selectedAttachmentIndex: attachmentIndex
+                    )
+                } else {
+                    QuickLookPreviewer.shared.preview(image: image, filename: "Image.jpg")
+                }
             }
-            .sheet(item: $selectedImage) { identifiableImage in
-                ZoomableImageView(
-                    image: identifiableImage.image,
-                    imageAspectRatio: aspectRatio,
-                    chatName: message?.chat?.name
-                )
+            .contextMenu {
+                Button("Copy") {
+                    AttachmentActionHelper.copyImage(image)
+                }
+                Button("Save") {
+                    AttachmentActionHelper.saveImage(image, suggestedName: "Image.jpg")
+                }
+            }
 
-            }
+        if isOwn {
+            imageView
+                .frame(width: previewSize, height: previewSize)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        } else {
+            let aspectRatio = image.size.width / image.size.height
+            let displayHeight = previewSize / aspectRatio
+
+            imageView
+                .frame(maxWidth: previewSize, maxHeight: displayHeight)
+        }
     }
 
+    @ViewBuilder
+    private func renderFile(
+        _ fileInfo: FileAttachmentInfo,
+        elementIndex: Int,
+        attachmentElements: [MessageElements],
+        attachmentIndexMap: [Int?]
+    ) -> some View {
+        let displayName = fileInfo.filename.isEmpty ? "Document.pdf" : fileInfo.filename
+        HStack(spacing: 10) {
+            Image(systemName: "doc.richtext")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName)
+                    .font(.system(size: effectiveFontSize, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text("PDF document")
+                    .font(.system(size: max(10, effectiveFontSize - 2)))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+        .cornerRadius(10)
+        .frame(maxWidth: 320, alignment: .leading)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("Copy") {
+                withDocumentData(fileInfo) { data in
+                    AttachmentActionHelper.copyPDF(id: fileInfo.id, filename: displayName, data: data)
+                }
+            }
+            Button("Save") {
+                withDocumentData(fileInfo) { data in
+                    AttachmentActionHelper.savePDF(filename: displayName, data: data)
+                }
+            }
+        }
+        .onTapGesture {
+            if elementIndex < attachmentIndexMap.count,
+               let attachmentIndex = attachmentIndexMap[elementIndex] {
+                openAttachmentPreview(
+                    attachmentElements: attachmentElements,
+                    selectedAttachmentIndex: attachmentIndex
+                )
+            } else {
+                previewFile(fileInfo)
+            }
+        }
+    }
+
+    private func previewFile(_ fileInfo: FileAttachmentInfo) {
+        let request = makePreviewRequest(for: .file(fileInfo))
+        QuickLookPreviewer.shared.preview(requests: [request], selectedIndex: 0)
+    }
+
+    private func withDocumentData(_ fileInfo: FileAttachmentInfo, completion: @escaping (Data) -> Void) {
+        PersistenceController.shared.container.performBackgroundTask { context in
+            let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", fileInfo.id as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            guard let documentEntity = try? context.fetch(fetchRequest).first,
+                  let fileData = documentEntity.fileData else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                completion(fileData)
+            }
+        }
+    }
+
+    private func openAttachmentPreview(
+        attachmentElements: [MessageElements],
+        selectedAttachmentIndex: Int
+    ) {
+        guard !attachmentElements.isEmpty else { return }
+        let requests = attachmentElements.map(makePreviewRequest)
+        let clampedIndex = max(0, min(selectedAttachmentIndex, requests.count - 1))
+        QuickLookPreviewer.shared.preview(requests: requests, selectedIndex: clampedIndex)
+    }
+
+    private func makePreviewRequest(for element: MessageElements) -> QuickLookPreviewer.PreviewItemRequest {
+        switch element {
+        case .image(_, let id):
+            if let cached = PreviewFileHelper.cachedPreviewURL(for: id) {
+                return QuickLookPreviewer.PreviewItemRequest(
+                    id: id,
+                    title: cached.lastPathComponent,
+                    url: cached
+                )
+            }
+            return QuickLookPreviewer.PreviewItemRequest(id: id, title: "Image.jpg") { completion in
+                PersistenceController.shared.container.performBackgroundTask { context in
+                    let fetchRequest: NSFetchRequest<ImageEntity> = ImageEntity.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+
+                    guard let imageEntity = try? context.fetch(fetchRequest).first,
+                          let imageData = imageEntity.image else {
+                        completion(nil)
+                        return
+                    }
+
+                    let rawExtension = (imageEntity.imageFormat?.isEmpty == false)
+                        ? imageEntity.imageFormat!.lowercased()
+                        : "jpg"
+                    let fileExtension = (rawExtension == "jpeg") ? "jpg" : rawExtension
+                    let filename = "Image.\(fileExtension)"
+                    let url = PreviewFileHelper.previewURL(
+                        for: id,
+                        data: imageData,
+                        filename: filename,
+                        defaultExtension: fileExtension
+                    )
+                    completion(url)
+                }
+            }
+        case .file(let fileInfo):
+            let displayName = fileInfo.filename.isEmpty ? "Document.pdf" : fileInfo.filename
+            if let cached = PreviewFileHelper.cachedPreviewURL(for: fileInfo.id) {
+                return QuickLookPreviewer.PreviewItemRequest(
+                    id: fileInfo.id,
+                    title: displayName,
+                    url: cached
+                )
+            }
+            return QuickLookPreviewer.PreviewItemRequest(id: fileInfo.id, title: displayName) { completion in
+                PersistenceController.shared.container.performBackgroundTask { context in
+                    let fetchRequest: NSFetchRequest<DocumentEntity> = DocumentEntity.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", fileInfo.id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+
+                    guard let documentEntity = try? context.fetch(fetchRequest).first,
+                          let fileData = documentEntity.fileData else {
+                        completion(nil)
+                        return
+                    }
+
+                    let suggestedName = fileInfo.filename.isEmpty ? "Document.pdf" : fileInfo.filename
+                    let baseName = URL(fileURLWithPath: suggestedName).deletingPathExtension().lastPathComponent
+                    let name = "\(baseName).pdf"
+                    let url = PreviewFileHelper.previewURL(
+                        for: fileInfo.id,
+                        data: fileData,
+                        filename: name,
+                        defaultExtension: "pdf"
+                    )
+                    completion(url)
+                }
+            }
+        default:
+            return QuickLookPreviewer.PreviewItemRequest(id: UUID(), title: nil, url: nil)
+        }
+    }
+
+    private func extractAttachmentElements(from elements: [MessageElements]) -> [MessageElements] {
+        elements.compactMap { element in
+            switch element {
+            case .image, .file:
+                return element
+            default:
+                return nil
+            }
+        }
+    }
+
+    private func buildAttachmentIndexMap(for elements: [MessageElements]) -> [Int?] {
+        var index = 0
+        return elements.map { element in
+            switch element {
+            case .image, .file:
+                defer { index += 1 }
+                return index
+            default:
+                return nil
+            }
+        }
+    }
+
+
+    private func filterInlineAttachments(_ elements: [MessageElements]) -> [MessageElements] {
+        guard !inlineAttachments else { return elements }
+
+        var result: [MessageElements] = []
+        var previousWasAttachment = false
+
+        for element in elements {
+            switch element {
+            case .image, .file:
+                previousWasAttachment = true
+                continue
+            case .text(let text):
+                if previousWasAttachment,
+                   text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                {
+                    previousWasAttachment = false
+                    continue
+                }
+                previousWasAttachment = false
+                result.append(.text(text))
+            default:
+                previousWasAttachment = false
+                result.append(element)
+            }
+        }
+
+        return result
+    }
 }

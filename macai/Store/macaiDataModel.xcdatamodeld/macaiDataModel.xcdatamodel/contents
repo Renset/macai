@@ -8,6 +8,7 @@
         <attribute name="generateChatNames" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="pdfUploadsAllowed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="imageGenerationSupported" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" renamingIdentifier="imageGenerationAllowed"/>
         <attribute name="model" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
@@ -43,12 +44,19 @@
         <attribute name="imageFormat" optional="YES" attributeType="String" defaultValueString="jpeg"/>
         <attribute name="thumbnail" attributeType="Binary"/>
     </entity>
+    <entity name="DocumentEntity" representedClassName="DocumentEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="fileData" optional="YES" attributeType="Binary"/>
+        <attribute name="filename" optional="YES" attributeType="String"/>
+        <attribute name="mimeType" optional="YES" attributeType="String"/>
+    </entity>
     <entity name="MessageEntity" representedClassName=".MessageEntity" syncable="YES">
         <attribute name="body" optional="YES" attributeType="String" spotlightIndexingEnabled="YES"/>
         <attribute name="id" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="own" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="messageParts" optional="YES" attributeType="Transformable"/>
+        <attribute name="reasoningDuration" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="waitingForResponse" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="chat" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ChatEntity" inverseName="messages" inverseEntity="ChatEntity" spotlightIndexingEnabled="YES"/>

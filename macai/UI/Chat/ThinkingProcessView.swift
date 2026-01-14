@@ -2,7 +2,9 @@ import SwiftUI
 
 struct ThinkingProcessView: View {
     let content: String
-    @State private var isExpanded: Bool = true
+    let duration: TimeInterval?
+    let isActive: Bool
+    @Binding var isExpanded: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -11,8 +13,19 @@ struct ThinkingProcessView: View {
                     isExpanded.toggle()
                 }
             }) {
-                HStack {
+                HStack(spacing: 2) {
+                    if isActive {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 6, height: 6)
+                            .modifier(PulsatingCircle())
+                            .padding(.trailing, 4)
+                    }
+
                     Text("Reasoning")
+                        .foregroundColor(.gray)
+
+                    durationLabel()
                         .foregroundColor(.gray)
 
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
@@ -23,6 +36,7 @@ struct ThinkingProcessView: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
+            .contentShape(Rectangle())
 
             if isExpanded {
                 Text(content)
@@ -33,5 +47,29 @@ struct ThinkingProcessView: View {
             }
         }
         .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private func durationLabel() -> some View {
+        if let duration, duration >= 0 {
+            Text("· \(formattedDuration(duration))")
+                .monospacedDigit()
+        }
+    }
+
+    private func formattedDuration(_ duration: TimeInterval) -> String {
+        if duration >= 60 {
+            let totalSeconds = Int(duration.rounded(.down))
+            let minutes = totalSeconds / 60
+            let seconds = totalSeconds % 60
+            return String(format: "%dm %02ds", minutes, seconds)
+        }
+        if duration < 1 {
+            return String(format: "%.2fs", duration)
+        }
+        if duration < 10 {
+            return String(format: "%.1fs", duration)
+        }
+        return String(format: "%.0fs", duration)
     }
 }

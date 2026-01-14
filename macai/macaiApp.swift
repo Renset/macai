@@ -9,7 +9,6 @@ import AppKit
 import CloudKit
 import CoreData
 import Sparkle
-import SQLite3
 import SwiftUI
 import UserNotifications
 
@@ -50,6 +49,7 @@ class PersistenceController {
     let container: NSPersistentContainer
     let isCloudKitEnabled: Bool
     private let migrator = ProgrammaticMigrator(containerName: "macaiDataModel")
+    private var contextMergeObserver: NSObjectProtocol?
 
     init(inMemory: Bool = false) {
         let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
@@ -115,8 +115,9 @@ class PersistenceController {
                 print("Successfully loaded persistent store in \(elapsed)s: \(storeDescription.url?.lastPathComponent ?? "unknown")")
                 
                 // Configure view context only after store is loaded
-                self.container.viewContext.automaticallyMergesChangesFromParent = true
+                self.container.viewContext.automaticallyMergesChangesFromParent = false
                 self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                self.configureContextMerging()
                 CoreDataBackupManager.clearMigrationRetrySkipBackupFlag()
             }
             semaphore.signal()
@@ -136,14 +137,6 @@ class PersistenceController {
 
         // Import exported data if we have it (migration scenario)
         migrator.importIfNeeded(state: migrationState, into: container)
-
-        print("Persistent stores loaded, scheduling WAL checkpoint...")
-
-        // Perform WAL checkpoint on background thread to avoid blocking app launch
-        // For large databases (>100MB), this can take seconds
-        DispatchQueue.global(qos: .utility).async { [weak container] in
-            self.performWALCheckpoint(container: container)
-        }
 
         print("Initialization complete")
 
@@ -185,33 +178,31 @@ class PersistenceController {
         }
     }
 
-    private func performWALCheckpoint(container: NSPersistentContainer?) {
-        guard let container = container else {
-            print("WAL checkpoint skipped: container deallocated")
-            return
-        }
-        
-        let storeCoordinator = container.persistentStoreCoordinator
-        guard let store = storeCoordinator.persistentStores.first,
-              let storeURL = store.url else {
+    private func configureContextMerging() {
+        if contextMergeObserver != nil {
             return
         }
 
-        // Perform WAL checkpoint using raw SQL
-        var db: OpaquePointer?
-
-        if sqlite3_open(storeURL.path, &db) == SQLITE_OK {
-            var errMsg: UnsafeMutablePointer<CChar>?
-            let result = sqlite3_exec(db, "PRAGMA wal_checkpoint(TRUNCATE);", nil, nil, &errMsg)
-            if result != SQLITE_OK {
-                if let errMsg = errMsg {
-                    print("WAL checkpoint failed: \(String(cString: errMsg))")
-                    sqlite3_free(errMsg)
-                }
-            } else {
-                print("WAL checkpoint completed successfully")
+        contextMergeObserver = NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextDidSave,
+            object: nil,
+            queue: nil
+        ) { [weak self] notification in
+            guard let self,
+                  let context = notification.object as? NSManagedObjectContext else {
+                return
             }
-            sqlite3_close(db)
+
+            let viewContext = self.container.viewContext
+            guard context !== viewContext else { return }
+
+            if context.transactionAuthor == AppConstants.draftTransactionAuthor {
+                return
+            }
+
+            viewContext.perform {
+                viewContext.mergeChanges(fromContextDidSave: notification)
+            }
         }
     }
 

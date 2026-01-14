@@ -195,41 +195,29 @@ class ChatGPTHandler: OpenAIHandlerBase, APIService {
             }
 
             if let content = message["content"] {
-                let pattern = "<image-uuid>(.*?)</image-uuid>"
+                let imageUUIDs = AttachmentParser.extractImageUUIDs(from: content)
+                let textContent = AttachmentParser.stripAttachments(from: content)
 
-                if content.range(of: pattern, options: .regularExpression) != nil {
-                    let textContent = content.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-
+                if !imageUUIDs.isEmpty {
                     var contentArray: [[String: Any]] = []
 
                     if !textContent.isEmpty {
                         contentArray.append(["type": "text", "text": textContent])
                     }
 
-                    let regex = try? NSRegularExpression(pattern: pattern, options: [])
-                    let nsString = content as NSString
-                    let matches =
-                        regex?.matches(in: content, options: [], range: NSRange(location: 0, length: nsString.length))
-                        ?? []
-
-                    for match in matches {
-                        if match.numberOfRanges > 1 {
-                            let uuidRange = match.range(at: 1)
-                            let uuidString = nsString.substring(with: uuidRange)
-
-                            if let uuid = UUID(uuidString: uuidString),
-                                let imageData = self.loadImageFromCoreData(uuid: uuid)
-                            {
-                                contentArray.append([
-                                    "type": "image_url",
-                                    "image_url": ["url": "data:image/jpeg;base64,\(imageData.base64EncodedString())"],
-                                ])
-                            }
+                    for uuid in imageUUIDs {
+                        if let imageData = self.loadImageFromCoreData(uuid: uuid) {
+                            contentArray.append([
+                                "type": "image_url",
+                                "image_url": ["url": "data:image/jpeg;base64,\(imageData.base64EncodedString())"],
+                            ])
                         }
                     }
 
                     processedMessage["content"] = contentArray
+                }
+                else if textContent != content {
+                    processedMessage["content"] = textContent
                 }
                 else {
                     processedMessage["content"] = content

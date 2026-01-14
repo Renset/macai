@@ -235,15 +235,7 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
             }
 
             if let content = message["content"] {
-                let pattern = "<image-uuid>(.*?)</image-uuid>"
-                let regex = try? NSRegularExpression(pattern: pattern, options: [])
-                let nsString = content as NSString
-                let matches =
-                    regex?.matches(in: content, options: [], range: NSRange(location: 0, length: nsString.length))
-                    ?? []
-
-                let textContent = content.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let textContent = AttachmentParser.stripAttachments(from: content)
 
                 var contentArray: [[String: Any]] = []
                 let textType = role == "assistant" ? "output_text" : "input_text"
@@ -253,19 +245,28 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
                 }
 
                 if role != "assistant" {
-                    for match in matches {
-                        if match.numberOfRanges > 1 {
-                            let uuidRange = match.range(at: 1)
-                            let uuidString = nsString.substring(with: uuidRange)
+                    for uuid in AttachmentParser.extractImageUUIDs(from: content) {
+                        if let imageData = self.loadImageFromCoreData(uuid: uuid) {
+                            contentArray.append([
+                                "type": "input_image",
+                                "image_url": "data:image/jpeg;base64,\(imageData.base64EncodedString())",
+                            ])
+                        }
+                    }
 
-                            if let uuid = UUID(uuidString: uuidString),
-                               let imageData = self.loadImageFromCoreData(uuid: uuid)
-                            {
-                                contentArray.append([
-                                    "type": "input_image",
-                                    "image_url": "data:image/jpeg;base64,\(imageData.base64EncodedString())",
-                                ])
-                            }
+                    for uuid in AttachmentParser.extractFileUUIDs(from: content) {
+                        if let filePayload = self.loadFileFromCoreData(uuid: uuid) {
+                            let mimeType = filePayload.mimeType ?? "application/pdf"
+                            let base64 = filePayload.data.base64EncodedString()
+                            let safeFilename = (filePayload.filename?.isEmpty == false)
+                                ? (filePayload.filename ?? "document.pdf")
+                                : "document.pdf"
+                            var fileItem: [String: Any] = [
+                                "type": "input_file",
+                                "file_data": "data:\(mimeType);base64,\(base64)",
+                                "filename": safeFilename,
+                            ]
+                            contentArray.append(fileItem)
                         }
                     }
                 }

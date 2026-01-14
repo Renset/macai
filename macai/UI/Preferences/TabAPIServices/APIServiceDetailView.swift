@@ -29,7 +29,6 @@ struct APIServiceDetailView: View {
 
     private let types = AppConstants.apiTypes
     @State private var previousModel = ""
-    @AppStorage("defaultApiService") private var defaultApiServiceID: String?
     @State private var loadingIconIndex = 0
 
     var body: some View {
@@ -254,7 +253,26 @@ struct APIServiceDetailView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .help(
-                                "If enabled, you can upload images to be processed by the AI. This feature is only available for certain models that support vision capabilities."
+                                "If enabled, you can upload images to be processed by the AI. PDFs are supported for OpenAI Responses and Gemini models."
+                            )
+
+                            Spacer()
+                        }
+                    }
+                }
+
+                if viewModel.supportsPdfUploads {
+                    Toggle(isOn: $viewModel.pdfUploadsAllowed) {
+                        HStack {
+                            Text("Allow PDF uploads")
+                            Button(action: {
+                            }) {
+                                Image(systemName: "questionmark.circle")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help(
+                                "If enabled, you can upload PDF documents to be processed by the AI."
                             )
 
                             Spacer()

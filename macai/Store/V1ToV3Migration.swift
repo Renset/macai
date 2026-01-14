@@ -89,6 +89,13 @@ final class ProgrammaticMigrator {
     func recoverFromLoadFailure(container: NSPersistentContainer) -> Bool {
         guard !attemptedMigrationThisRun else { return false }
 
+        if !CoreDataBackupManager.shouldAttemptProgrammaticRecovery(containerName: containerName) {
+            print("Skipping programmatic recovery migration; attempting backup/export only.")
+            CoreDataBackupManager.createRecoveryBackup(containerName: containerName, reason: "LoadFailure")
+            _ = MigrationDataExport.exportFromStore(at: Self.storeURL(for: containerName), progressWindow: nil)
+            return false
+        }
+
         attemptedMigrationThisRun = true
         let window = MigrationProgressWindow()
         window.show()
@@ -205,12 +212,14 @@ final class MigrationProgressWindow {
         case readChats = 3
         case readMessages = 4
         case readImages = 5
-        case writeAPIServices = 6
-        case writePersonas = 7
-        case writeChats = 8
-        case writeMessages = 9
-        case writeImages = 10
-        case finalizing = 11
+        case readDocuments = 6
+        case writeAPIServices = 7
+        case writePersonas = 8
+        case writeChats = 9
+        case writeMessages = 10
+        case writeImages = 11
+        case writeDocuments = 12
+        case finalizing = 13
     }
 
     static let totalSteps = Step.finalizing.rawValue
@@ -399,6 +408,7 @@ struct MigrationDataExport {
     var chats: [[String: Any]] = []
     var messages: [[String: Any]] = []
     var images: [[String: Any]] = []
+    var documents: [[String: Any]] = []
 
     /// Export data from an old SQLite store using raw SQL queries
     static func exportFromStore(at storeURL: URL, progressWindow: MigrationProgressWindow?) -> MigrationDataExport? {
@@ -457,6 +467,13 @@ struct MigrationDataExport {
         if let results = executeQuery(db: db, query: "SELECT * FROM ZIMAGEENTITY") {
             export.images = results
             print("Found \(export.images.count) images")
+        }
+
+        progressWindow?.setProgress(step: .readDocuments, message: "Reading documents...")
+        print("Reading documents...")
+        if let results = executeQuery(db: db, query: "SELECT * FROM ZDOCUMENTENTITY") {
+            export.documents = results
+            print("Found \(export.documents.count) documents")
         }
 
         return export
@@ -539,6 +556,13 @@ struct MigrationDataExport {
         print("Importing \(images.count) images...")
         for data in images {
             let entity = NSEntityDescription.insertNewObject(forEntityName: "ImageEntity", into: context)
+            Self.setAttributes(on: entity, from: data, excluding: ["Z_PK", "Z_ENT", "Z_OPT"])
+        }
+
+        progressWindow?.setProgress(step: .writeDocuments, message: "Writing documents...")
+        print("Importing \(documents.count) documents...")
+        for data in documents {
+            let entity = NSEntityDescription.insertNewObject(forEntityName: "DocumentEntity", into: context)
             Self.setAttributes(on: entity, from: data, excluding: ["Z_PK", "Z_ENT", "Z_OPT"])
         }
 
@@ -680,6 +704,7 @@ enum CoreDataBackupManager {
     private static let backupNoticeShownKey = "CoreDataBackupBeforeV3NoticeShown"
     private static let migrationRetrySkipBackupKey = "CoreDataMigrationRetrySkipBackup"
     private static let targetModelVersionName = "macai_v2.3.0"
+    private static let latestDBVersion = 3
 
     static func needsMigrationBackup(containerName: String) -> Bool {
         let defaults = UserDefaults.standard
@@ -696,7 +721,33 @@ enum CoreDataBackupManager {
 
         guard let storeBaseURL = defaultStoreURL(for: containerName) else { return false }
         let sqliteURL = storeBaseURL.appendingPathExtension("sqlite")
-        return FileManager.default.fileExists(atPath: sqliteURL.path)
+        guard FileManager.default.fileExists(atPath: sqliteURL.path) else { return false }
+
+        if let metadata = storeMetadata(at: sqliteURL) {
+            if let version = storeDBVersion(from: metadata), version >= latestDBVersion {
+                defaults.set(true, forKey: backupCompletedKey)
+                return false
+            }
+            if storeIsCompatibleWithCurrentModel(metadata: metadata) {
+                defaults.set(true, forKey: backupCompletedKey)
+                return false
+            }
+        }
+
+        return true
+    }
+
+    static func shouldAttemptProgrammaticRecovery(containerName: String) -> Bool {
+        guard let storeBaseURL = defaultStoreURL(for: containerName) else { return false }
+        let sqliteURL = storeBaseURL.appendingPathExtension("sqlite")
+        guard FileManager.default.fileExists(atPath: sqliteURL.path) else { return false }
+        guard let metadata = storeMetadata(at: sqliteURL) else { return false }
+
+        if let version = storeDBVersion(from: metadata), version >= latestDBVersion {
+            return false
+        }
+
+        return true
     }
 
     static func createPreMigrationBackup(containerName: String) {
@@ -759,9 +810,68 @@ enum CoreDataBackupManager {
             .appendingPathComponent("Backups", isDirectory: true)
     }
 
+    static func createRecoveryBackup(containerName: String, reason: String) {
+        guard let storeBaseURL = defaultStoreURL(for: containerName) else { return }
+
+        let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        let backupsFolder = backupsDirectoryURL()
+            .appendingPathComponent("Recovery-\(reason)-\(timestamp)", isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: backupsFolder, withIntermediateDirectories: true)
+            try copyStoreFiles(from: storeBaseURL, to: backupsFolder)
+            print("Recovery backup created at: \(backupsFolder.path)")
+        }
+        catch {
+            print("Recovery backup failed: \(error)")
+        }
+    }
+
     private static func defaultStoreURL(for containerName: String) -> URL? {
         let base = NSPersistentContainer.defaultDirectoryURL()
         return base.appendingPathComponent(containerName)
+    }
+
+    private static func storeMetadata(at storeURL: URL) -> [String: Any]? {
+        try? NSPersistentStoreCoordinator.metadataForPersistentStore(ofType: NSSQLiteStoreType, at: storeURL)
+    }
+
+    private static func storeDBVersion(from metadata: [String: Any]) -> Int? {
+        if let version = metadata["DB_VERSION"] as? Int {
+            return version
+        }
+        if let number = metadata["DB_VERSION"] as? NSNumber {
+            return number.intValue
+        }
+        return nil
+    }
+
+    private static func storeIsCompatibleWithCurrentModel(metadata: [String: Any]) -> Bool {
+        guard let model = compatibilityManagedObjectModel() else { return false }
+        return model.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata)
+    }
+
+    private static func currentManagedObjectModel() -> NSManagedObjectModel? {
+        guard let momdURL = Bundle.main.url(forResource: "macaiDataModel", withExtension: "momd") else {
+            return nil
+        }
+        let versionInfoURL = momdURL.appendingPathComponent("VersionInfo.plist")
+        if let versionInfo = NSDictionary(contentsOf: versionInfoURL),
+           let currentName = versionInfo["NSManagedObjectModel_CurrentVersionName"] as? String {
+            let momURL = momdURL.appendingPathComponent(currentName).appendingPathExtension("mom")
+            if FileManager.default.fileExists(atPath: momURL.path) {
+                return NSManagedObjectModel(contentsOf: momURL)
+            }
+        }
+        return NSManagedObjectModel(contentsOf: momdURL)
+    }
+
+    private static func compatibilityManagedObjectModel() -> NSManagedObjectModel? {
+        guard let model = currentManagedObjectModel() else { return nil }
+        for entity in model.entities {
+            entity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
+        }
+        return model
     }
 
     private static func copyStoreFiles(from baseURL: URL, to backupFolder: URL) throws {
