@@ -898,7 +898,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DISABLE_ICLOUD";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -969,7 +969,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.4.0;
+				CURRENT_PROJECT_VERSION = 2.4.1;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -988,7 +988,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 2.4.1;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1012,7 +1012,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.4.0;
+				CURRENT_PROJECT_VERSION = 2.4.1;
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -1031,7 +1031,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 2.4.1;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
 				PRODUCT_NAME = "$(TARGET_NAME)";

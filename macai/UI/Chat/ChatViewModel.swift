@@ -192,29 +192,41 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
     }
 
     private func applyAPIServiceChanges() {
-        guard let apiService = chat.apiService else { return }
+        let chatID = chat.objectID
+        let apiServiceID = chat.apiService?.objectID
 
-        isApplyingServiceChanges = true
-        defer { isApplyingServiceChanges = false }
+        viewContext.perform { [weak self] in
+            guard let self else { return }
+            guard !self.isApplyingServiceChanges else { return }
+            guard let apiServiceID,
+                  let chat = try? self.viewContext.existingObject(with: chatID) as? ChatEntity,
+                  let apiService = try? self.viewContext.existingObject(with: apiServiceID) as? APIServiceEntity,
+                  !chat.isDeleted else {
+                return
+            }
 
-        var didChange = false
+            self.isApplyingServiceChanges = true
+            defer { self.isApplyingServiceChanges = false }
 
-        let newModel = apiService.model ?? AppConstants.defaultModel(for: apiService.type)
-        if chat.gptModel != newModel {
-            chat.gptModel = newModel
-            didChange = true
-        }
+            var didChange = false
 
-        // Ensure we keep the latest managed object instance (it may have been refreshed)
-        if chat.apiService != apiService {
-            chat.apiService = apiService
-            didChange = true
-        }
+            let newModel = apiService.model ?? AppConstants.defaultModel(for: apiService.type)
+            if chat.gptModel != newModel {
+                chat.gptModel = newModel
+                didChange = true
+            }
 
-        if didChange {
-            chat.objectWillChange.send()
-            recreateMessageManager()
-            try? viewContext.save()
+            // Ensure we keep the latest managed object instance (it may have been refreshed)
+            if chat.apiService != apiService {
+                chat.apiService = apiService
+                didChange = true
+            }
+
+            if didChange {
+                chat.objectWillChange.send()
+                self.recreateMessageManager()
+                try? self.viewContext.save()
+            }
         }
     }
 

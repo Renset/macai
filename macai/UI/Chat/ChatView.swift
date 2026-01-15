@@ -55,7 +55,17 @@ struct ChatView: View {
         let handler = ChatLogicHandler(viewContext: viewContext, chat: chat, chatViewModel: viewModel, store: store)
         self._logicHandler = StateObject(wrappedValue: handler)
         self._store = StateObject(wrappedValue: store)
-        self._draftManager = StateObject(wrappedValue: ChatDraftManager(viewContext: viewContext))
+        let draftManager = ChatDraftManager(viewContext: viewContext)
+        self._draftManager = StateObject(wrappedValue: draftManager)
+
+        let draftSnapshot = draftManager.draftSnapshot(for: chat)
+        let attachmentSnapshot = draftManager.loadDraftAttachments(
+            imageIDs: draftSnapshot.imageIDs,
+            fileIDs: draftSnapshot.fileIDs
+        )
+        self._newMessage = State(initialValue: draftSnapshot.message)
+        self._attachedImages = State(initialValue: attachmentSnapshot.images)
+        self._attachedFiles = State(initialValue: attachmentSnapshot.files)
     }
 
     private var pdfUploadsAllowed: Bool {
@@ -96,12 +106,6 @@ struct ChatView: View {
             self.lastOpenedChatId = chat.id.uuidString
             print("lastOpenedChatId: \(lastOpenedChatId)")
             Self._printChanges()
-            draftManager.restoreDraftIfNeeded(
-                chat: chat,
-                newMessage: &newMessage,
-                attachedImages: &attachedImages,
-                attachedFiles: &attachedFiles
-            )
             DispatchQueue.main.asyncAfter(deadline: .now()) {
                 let startTime = CFAbsoluteTimeGetCurrent()
                 _ = self.body
@@ -170,7 +174,7 @@ struct ChatView: View {
         }
         .onChange(of: editSystemMessage) { isEditing in
             if !isEditing, newMessage.isEmpty {
-                newMessage = chat.newMessage ?? ""
+                newMessage = draftManager.draftMessage(for: chat)
             }
         }
         .onChange(of: chat.lastMessage?.body) { _ in
@@ -272,7 +276,7 @@ struct ChatView: View {
 
     private func cancelSystemMessageEdit() {
         guard editSystemMessage else { return }
-        newMessage = chat.newMessage ?? ""
+        newMessage = draftManager.draftMessage(for: chat)
         editSystemMessage = false
     }
 

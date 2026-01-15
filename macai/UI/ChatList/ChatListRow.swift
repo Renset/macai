@@ -11,17 +11,23 @@ import SwiftUI
 
 struct ChatListRow: View, Equatable {
     static func == (lhs: ChatListRow, rhs: ChatListRow) -> Bool {
-        lhs.chat?.id == rhs.chat?.id &&
-        lhs.chat?.updatedDate == rhs.chat?.updatedDate &&
-        lhs.chat?.name == rhs.chat?.name &&
-        lhs.chat?.lastMessage?.body == rhs.chat?.lastMessage?.body &&
-        lhs.chat?.isPinned == rhs.chat?.isPinned &&
+        lhs.chatObjectID == rhs.chatObjectID &&
+        lhs.updatedDate == rhs.updatedDate &&
+        lhs.chatName == rhs.chatName &&
+        lhs.lastMessageBody == rhs.lastMessageBody &&
+        lhs.isPinned == rhs.isPinned &&
         lhs.showsAttentionIndicator == rhs.showsAttentionIndicator &&
-        (lhs.selectedChat?.id == rhs.selectedChat?.id) &&
+        (lhs.selectedChat?.objectID == rhs.selectedChat?.objectID) &&
         lhs.searchText == rhs.searchText
     }
-    let chat: ChatEntity?
-    let chatID: UUID  // Store the ID separately
+    let chat: ChatEntity
+    let chatObjectID: NSManagedObjectID
+    let personaName: String?
+    let chatName: String
+    let isPinned: Bool
+    let lastMessageBody: String
+    let lastMessageTimestamp: Date
+    let updatedDate: Date?
     let showsAttentionIndicator: Bool
     @Binding var selectedChat: ChatEntity?
     let viewContext: NSManagedObjectContext
@@ -29,19 +35,25 @@ struct ChatListRow: View, Equatable {
     @StateObject private var chatViewModel: ChatViewModel
 
     init(
-        chat: ChatEntity?,
+        chat: ChatEntity,
         showsAttentionIndicator: Bool,
         selectedChat: Binding<ChatEntity?>,
         viewContext: NSManagedObjectContext,
         searchText: String
     ) {
         self.chat = chat
-        self.chatID = chat?.id ?? UUID()
+        self.chatObjectID = chat.objectID
+        self.personaName = chat.persona?.name
+        self.chatName = chat.name
+        self.isPinned = chat.isPinned
+        self.lastMessageBody = chat.lastMessage?.body ?? ""
+        self.lastMessageTimestamp = chat.lastMessage?.timestamp ?? .distantPast
+        self.updatedDate = chat.updatedDate
         self.showsAttentionIndicator = showsAttentionIndicator
         self._selectedChat = selectedChat
         self.viewContext = viewContext
         self.searchText = searchText
-        self._chatViewModel = StateObject(wrappedValue: ChatViewModel(chat: chat!, viewContext: viewContext))
+        self._chatViewModel = StateObject(wrappedValue: ChatViewModel(chat: chat, viewContext: viewContext))
     }
 
     var isActive: Binding<Bool> {
@@ -62,42 +74,45 @@ struct ChatListRow: View, Equatable {
 
     var body: some View {
         MessageCell(
-            chat: chat!,
-            timestamp: chat?.lastMessage?.timestamp ?? Date(),
-            message: chat?.lastMessage?.body ?? "",
+            chatObjectID: chatObjectID,
+            personaName: personaName,
+            chatName: chatName,
+            timestamp: lastMessageTimestamp,
+            message: lastMessageBody,
             showsAttentionIndicator: showsAttentionIndicator,
+            isPinned: isPinned,
             isActive: isActive,
-            viewContext: viewContext,
             searchText: searchText
         )
         .contextMenu {
             Button(action: { 
-                togglePinChat(chat!) 
+                togglePinChat(chat)
             }) {
-                Label(chat!.isPinned ? "Unpin" : "Pin", systemImage: chat!.isPinned ? "pin.slash" : "pin")
+                Label(isPinned ? "Unpin" : "Pin", systemImage: isPinned ? "pin.slash" : "pin")
             }
             
-            Button(action: { renameChat(chat!) }) {
+            Button(action: { renameChat(chat) }) {
                 Label("Rename", systemImage: "pencil")
             }
-            if chat!.apiService?.generateChatNames ?? false {
+            if chat.apiService?.generateChatNames ?? false {
                 Button(action: {
                     chatViewModel.regenerateChatName()
                 }) {
                     Label("Regenerate Name", systemImage: "arrow.clockwise")
                 }
             }
-            Button(action: { clearChat(chat!) }) {
+            Button(action: { clearChat(chat) }) {
                 Label("Clear Chat", systemImage: "eraser")
             }
             Divider()
-            Button(action: { deleteChat(chat!) }) {
+            Button(action: { deleteChat(chat) }) {
                 Label("Delete", systemImage: "trash")
             }
         }
     }
 
     func deleteChat(_ chat: ChatEntity) {
+        guard !chat.isDeleted else { return }
         let alert = NSAlert()
         alert.messageText = "Delete chat \(chat.name)?"
         alert.informativeText = "Are you sure you want to delete this chat?"
@@ -107,7 +122,7 @@ struct ChatListRow: View, Equatable {
         alert.beginSheetModal(for: NSApp.keyWindow!) { response in
             if response == .alertFirstButtonReturn {
                 // Clear selectedChat to prevent accessing deleted item
-                if selectedChat?.id == chat.id {
+                if selectedChat?.objectID == chat.objectID {
                     selectedChat = nil
                 }
                 viewContext.delete(chat)

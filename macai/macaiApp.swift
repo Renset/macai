@@ -50,6 +50,13 @@ class PersistenceController {
     let isCloudKitEnabled: Bool
     private let migrator = ProgrammaticMigrator(containerName: "macaiDataModel")
     private var contextMergeObserver: NSObjectProtocol?
+    private var remoteChangeObserver: NSObjectProtocol?
+    private var remoteChangeWorkItem: DispatchWorkItem?
+    private var refreshWorkItem: DispatchWorkItem?
+    private let refreshEntityNames: Set<String> = ["APIServiceEntity", "PersonaEntity"]
+    private let draftEntityName = "ChatEntity"
+    private let draftPropertyNames: Set<String> = ["draftMessage", "draftImageIDs", "draftFileIDs"]
+    private let historyTokenKey = "macai.persistentHistoryToken"
 
     init(inMemory: Bool = false) {
         let iCloudEnabled = UserDefaults.standard.bool(forKey: PersistenceController.iCloudSyncEnabledKey)
@@ -118,6 +125,7 @@ class PersistenceController {
                 self.container.viewContext.automaticallyMergesChangesFromParent = false
                 self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
                 self.configureContextMerging()
+                self.configureRemoteChangeHandling()
                 CoreDataBackupManager.clearMigrationRetrySkipBackupFlag()
             }
             semaphore.signal()
@@ -200,10 +208,210 @@ class PersistenceController {
                 return
             }
 
+            let refreshObjectIDs = self.refreshObjectIDs(in: notification)
+            let filteredUserInfo = self.filteredRemoteSaveUserInfo(from: notification)
             viewContext.perform {
-                viewContext.mergeChanges(fromContextDidSave: notification)
+                if let userInfo = filteredUserInfo {
+                    NSManagedObjectContext.mergeChanges(fromRemoteContextSave: userInfo, into: [viewContext])
+                }
+
+                if !refreshObjectIDs.isEmpty {
+                    self.scheduleViewContextRefresh(objectIDs: refreshObjectIDs)
+                }
             }
         }
+    }
+
+    private func configureRemoteChangeHandling() {
+        if remoteChangeObserver != nil {
+            return
+        }
+
+        remoteChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSPersistentStoreRemoteChange,
+            object: container.persistentStoreCoordinator,
+            queue: nil
+        ) { [weak self] _ in
+            self?.scheduleRemoteChangeProcessing()
+        }
+    }
+
+    private func refreshObjectIDs(in notification: Notification) -> Set<NSManagedObjectID> {
+        let keys: [String] = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey]
+        var objectIDs = Set<NSManagedObjectID>()
+        for key in keys {
+            guard let objects = notification.userInfo?[key] as? Set<NSManagedObject> else { continue }
+            for object in objects {
+                guard let name = object.entity.name, refreshEntityNames.contains(name) else { continue }
+                objectIDs.insert(object.objectID)
+            }
+        }
+        return objectIDs
+    }
+
+    private func scheduleRemoteChangeProcessing() {
+        remoteChangeWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.processRemoteChanges()
+        }
+        remoteChangeWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+    }
+
+    private func processRemoteChanges() {
+        let taskContext = container.newBackgroundContext()
+        taskContext.perform { [weak self] in
+            guard let self else { return }
+            let request = NSPersistentHistoryChangeRequest.fetchHistory(after: self.loadHistoryToken())
+            request.resultType = .transactionsAndChanges
+            let historyFetchRequest: NSFetchRequest<NSFetchRequestResult>
+            if let baseRequest = NSPersistentHistoryTransaction.fetchRequest {
+                historyFetchRequest = baseRequest
+            } else {
+                historyFetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "NSPersistentHistoryTransaction")
+            }
+            historyFetchRequest.predicate = NSPredicate(
+                format: "author != %@",
+                AppConstants.draftTransactionAuthor
+            )
+            request.fetchRequest = historyFetchRequest
+
+            let result = try? taskContext.execute(request) as? NSPersistentHistoryResult
+            guard let transactions = result?.result as? [NSPersistentHistoryTransaction],
+                  transactions.isEmpty == false else {
+                return
+            }
+
+            let viewContext = self.container.viewContext
+            let lastToken = transactions.last?.token
+            viewContext.perform {
+                for transaction in transactions {
+                    guard let changes = transaction.changes, !changes.isEmpty else { continue }
+                    var inserted = Set<NSManagedObjectID>()
+                    var updated = Set<NSManagedObjectID>()
+                    var deleted = Set<NSManagedObjectID>()
+
+                    for change in changes where self.shouldMergeRemoteChange(change) {
+                        switch change.changeType {
+                        case .insert:
+                            inserted.insert(change.changedObjectID)
+                        case .update:
+                            updated.insert(change.changedObjectID)
+                        case .delete:
+                            deleted.insert(change.changedObjectID)
+                        @unknown default:
+                            break
+                        }
+                    }
+
+                    guard !(inserted.isEmpty && updated.isEmpty && deleted.isEmpty) else { continue }
+                    let userInfo: [AnyHashable: Any] = [
+                        NSInsertedObjectsKey: inserted,
+                        NSUpdatedObjectsKey: updated,
+                        NSDeletedObjectsKey: deleted
+                    ]
+
+                    NSManagedObjectContext.mergeChanges(
+                        fromRemoteContextSave: userInfo,
+                        into: [viewContext]
+                    )
+                }
+
+                if let lastToken {
+                    self.storeHistoryToken(lastToken)
+                }
+            }
+
+            if let lastToken {
+                let deleteRequest = NSPersistentHistoryChangeRequest.deleteHistory(before: lastToken)
+                _ = try? taskContext.execute(deleteRequest)
+            }
+        }
+    }
+
+    private func shouldMergeRemoteChange(_ change: NSPersistentHistoryChange) -> Bool {
+        guard change.changeType == .update else { return true }
+        guard change.changedObjectID.entity.name == draftEntityName else { return true }
+        guard let updatedProperties = change.updatedProperties else { return true }
+        let propertyNames = Set(updatedProperties.map { $0.name })
+        guard propertyNames.isEmpty == false else { return true }
+        return !propertyNames.isSubset(of: draftPropertyNames)
+    }
+
+    private func filteredRemoteSaveUserInfo(from notification: Notification) -> [AnyHashable: Any]? {
+        guard let userInfo = notification.userInfo else { return nil }
+        let inserted = (userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject>) ?? []
+        let updated = (userInfo[NSUpdatedObjectsKey] as? Set<NSManagedObject>) ?? []
+        let deleted = (userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject>) ?? []
+
+        let filteredUpdated = updated.filter { object in
+            guard object.entity.name == draftEntityName else { return true }
+            let changedKeys = Set(object.changedValuesForCurrentEvent().keys)
+            guard changedKeys.isEmpty == false else { return true }
+            return !changedKeys.isSubset(of: draftPropertyNames)
+        }
+
+        let insertedIDs = Set(inserted.map(\.objectID))
+        let updatedIDs = Set(filteredUpdated.map(\.objectID))
+        let deletedIDs = Set(deleted.map(\.objectID))
+
+        if insertedIDs.isEmpty && updatedIDs.isEmpty && deletedIDs.isEmpty {
+            return nil
+        }
+
+        return [
+            NSInsertedObjectsKey: insertedIDs,
+            NSUpdatedObjectsKey: updatedIDs,
+            NSDeletedObjectsKey: deletedIDs
+        ]
+    }
+
+    private func scheduleViewContextRefresh(objectIDs: Set<NSManagedObjectID>) {
+        refreshWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            let viewContext = self.container.viewContext
+            viewContext.perform {
+                guard objectIDs.isEmpty == false else { return }
+                do {
+                    try viewContext.setQueryGenerationFrom(.current)
+                }
+                catch {
+                    print("Failed to update query generation after refresh: \(error)")
+                }
+                let updatedIDs = Set(viewContext.updatedObjects.map(\.objectID))
+                for objectID in objectIDs {
+                    guard updatedIDs.contains(objectID) == false,
+                          let object = try? viewContext.existingObject(with: objectID),
+                          object.isDeleted == false else {
+                        continue
+                    }
+                    viewContext.refresh(object, mergeChanges: true)
+                }
+            }
+        }
+        refreshWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+    }
+
+    private func loadHistoryToken() -> NSPersistentHistoryToken? {
+        guard let data = UserDefaults.standard.data(forKey: historyTokenKey) else {
+            return nil
+        }
+        return try? NSKeyedUnarchiver.unarchivedObject(
+            ofClass: NSPersistentHistoryToken.self,
+            from: data
+        )
+    }
+
+    private func storeHistoryToken(_ token: NSPersistentHistoryToken) {
+        guard let data = try? NSKeyedArchiver.archivedData(
+            withRootObject: token,
+            requiringSecureCoding: true
+        ) else {
+            return
+        }
+        UserDefaults.standard.set(data, forKey: historyTokenKey)
     }
 
     static func requiresRestart(forNewSyncState newState: Bool) -> Bool {

@@ -29,7 +29,7 @@
         <attribute name="lastSequence" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="newChat" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="newMessage" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="draftMessage" optional="YES" attributeType="String" defaultValueString="" renamingIdentifier="newMessage"/>
         <attribute name="draftFileIDs" optional="YES" attributeType="String"/>
         <attribute name="draftImageIDs" optional="YES" attributeType="String"/>
         <attribute name="requestMessages" optional="YES" attributeType="Transformable" valueTransformerName="RequestMessagesTransformer"/>

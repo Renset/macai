@@ -5,25 +5,28 @@
 //  Created by Renat Notfullin on 25.03.2023.
 //
 
+import CoreData
 import SwiftUI
 
 struct MessageCell: View, Equatable {
     static func == (lhs: MessageCell, rhs: MessageCell) -> Bool {
-        lhs.chat.id == rhs.chat.id &&
+        lhs.chatObjectID == rhs.chatObjectID &&
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.showsAttentionIndicator == rhs.showsAttentionIndicator &&
         lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
-        lhs.chat.isPinned == rhs.chat.isPinned &&
+        lhs.isPinned == rhs.isPinned &&
         lhs.searchText == rhs.searchText
     }
 
-    @ObservedObject var chat: ChatEntity
+    let chatObjectID: NSManagedObjectID
+    let personaName: String?
+    let chatName: String
     @State var timestamp: Date
     var message: String
     let showsAttentionIndicator: Bool
+    let isPinned: Bool
     @Binding var isActive: Bool
-    let viewContext: NSManagedObjectContext
     let searchText: String
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
@@ -49,7 +52,7 @@ struct MessageCell: View, Equatable {
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    if let personaName = chat.persona?.name {
+                    if let personaName {
                         HighlightedText(personaName, highlight: searchText, elementType: "chatlist")
                             .font(.caption)
                             .lineLimit(1)
@@ -60,8 +63,8 @@ struct MessageCell: View, Equatable {
                             .lineLimit(1)
                     }
 
-                    if chat.name != "" {
-                        HighlightedText(chat.name, highlight: searchText, elementType: "chatlist")
+                    if chatName != "" {
+                        HighlightedText(chatName, highlight: searchText, elementType: "chatlist")
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -87,7 +90,7 @@ struct MessageCell: View, Equatable {
                         ChatAttentionDot()
                     }
 
-                    if chat.isPinned {
+                    if isPinned {
                         Image(systemName: "pin.fill")
                             .foregroundColor(self.isActive ? .white : .gray)
                             .font(.caption)
@@ -118,45 +121,60 @@ struct MessageCell: View, Equatable {
 struct MessageCell_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            MessageCell(
-                chat: createPreviewChat(name: "Regular Chat"),
-                timestamp: Date(),
+            previewCell(
+                name: "Regular Chat",
                 message: "Hello, how are you?",
                 showsAttentionIndicator: false,
-                isActive: .constant(false),
-                viewContext: PersistenceController.preview.container.viewContext,
-                searchText: ""
+                isActive: false,
+                isPinned: false
             )
 
-            MessageCell(
-                chat: createPreviewChat(name: "Selected Chat"),
-                timestamp: Date(),
+            previewCell(
+                name: "Selected Chat",
                 message: "This is a selected chat preview",
                 showsAttentionIndicator: false,
-                isActive: .constant(true),
-                viewContext: PersistenceController.preview.container.viewContext,
-                searchText: ""
+                isActive: true,
+                isPinned: true
             )
 
-            MessageCell(
-                chat: createPreviewChat(name: "Long Message"),
-                timestamp: Date(),
-                message:
-                    "This is a very long message that should be truncated when displayed in the preview cell of our chat application",
+            previewCell(
+                name: "Long Message",
+                message: "This is a very long message that should be truncated when displayed in the preview cell of our chat application",
                 showsAttentionIndicator: true,
-                isActive: .constant(false),
-                viewContext: PersistenceController.preview.container.viewContext,
-                searchText: ""
+                isActive: false,
+                isPinned: false
             )
         }
         .previewLayout(.fixed(width: 300, height: 100))
     }
 
-    static func createPreviewChat(name: String) -> ChatEntity {
+    static func previewCell(
+        name: String,
+        message: String,
+        showsAttentionIndicator: Bool,
+        isActive: Bool,
+        isPinned: Bool
+    ) -> some View {
+        let chat = createPreviewChat(name: name, isPinned: isPinned)
+        return MessageCell(
+            chatObjectID: chat.objectID,
+            personaName: chat.persona?.name,
+            chatName: chat.name,
+            timestamp: Date(),
+            message: message,
+            showsAttentionIndicator: showsAttentionIndicator,
+            isPinned: isPinned,
+            isActive: .constant(isActive),
+            searchText: ""
+        )
+    }
+
+    static func createPreviewChat(name: String, isPinned: Bool) -> ChatEntity {
         let context = PersistenceController.preview.container.viewContext
         let chat = ChatEntity(context: context)
         chat.id = UUID()
         chat.name = name
+        chat.isPinned = isPinned
         chat.createdDate = Date()
         chat.updatedDate = Date()
         chat.systemMessage = AppConstants.chatGptSystemMessage

@@ -17,7 +17,7 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var temperature: Double
     @NSManaged public var top_p: Double
     @NSManaged public var behavior: String?
-    @NSManaged public var newMessage: String?
+    @NSManaged public var draftMessage: String?
     @NSManaged public var draftImageIDs: String?
     @NSManaged public var draftFileIDs: String?
     @NSManaged public var createdDate: Date
@@ -244,7 +244,7 @@ struct Chat: Codable {
         self.temperature = chatEntity.temperature
         self.top_p = chatEntity.top_p
         self.behavior = chatEntity.behavior
-        self.newMessage = chatEntity.newMessage
+        self.newMessage = chatEntity.draftMessage
         self.requestMessages = chatEntity.requestMessages
         self.gptModel = chatEntity.gptModel
         self.systemMessage = chatEntity.systemMessage

@@ -314,7 +314,7 @@ struct ContentView: View {
         newChat.temperature = 1
         newChat.top_p = 1.0
         newChat.behavior = "default"
-        newChat.newMessage = ""
+        newChat.draftMessage = ""
         newChat.createdDate = Date()
         newChat.updatedDate = Date()
         newChat.systemMessage = systemMessage

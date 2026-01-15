@@ -88,31 +88,21 @@ final class ChatDraftManager: ObservableObject {
         )
     }
 
-    func restoreDraftIfNeeded(
-        chat: ChatEntity,
-        newMessage: inout String,
-        attachedImages: inout [ImageAttachment],
-        attachedFiles: inout [DocumentAttachment]
-    ) {
-        guard newMessage.isEmpty || (attachedImages.isEmpty && attachedFiles.isEmpty) else { return }
+    func draftMessage(for chat: ChatEntity) -> String {
+        fetchDraftSnapshot(for: chat.objectID).message
+    }
 
-        let snapshot = fetchDraftSnapshot(for: chat.objectID)
+    func draftSnapshot(for chat: ChatEntity) -> (message: String, imageIDs: [UUID], fileIDs: [UUID]) {
+        fetchDraftSnapshot(for: chat.objectID)
+    }
 
-        if newMessage.isEmpty {
-            newMessage = snapshot.message
-        }
-
-        guard attachedImages.isEmpty, attachedFiles.isEmpty else { return }
-
-        let imageIDs = snapshot.imageIDs
-        let fileIDs = snapshot.fileIDs
-
-        if !imageIDs.isEmpty {
-            attachedImages = loadDraftImages(ids: imageIDs)
-        }
-        if !fileIDs.isEmpty {
-            attachedFiles = loadDraftFiles(ids: fileIDs)
-        }
+    func loadDraftAttachments(
+        imageIDs: [UUID],
+        fileIDs: [UUID]
+    ) -> (images: [ImageAttachment], files: [DocumentAttachment]) {
+        let images = loadDraftImages(ids: imageIDs)
+        let files = loadDraftFiles(ids: fileIDs)
+        return (images, files)
     }
 
     private func fetchDraftSnapshot(for chatID: NSManagedObjectID) -> (message: String, imageIDs: [UUID], fileIDs: [UUID]) {
@@ -121,8 +111,10 @@ final class ChatDraftManager: ObservableObject {
                 guard let chat = try? viewContext.existingObject(with: chatID) as? ChatEntity else {
                     return ("", [], [])
                 }
-                let message = chat.newMessage ?? ""
-                return (message, decodeDraftIDs(chat.draftImageIDs), decodeDraftIDs(chat.draftFileIDs))
+                let message = detachString(chat.draftMessage)
+                let imageIDsValue = chat.draftImageIDs.map { String($0) }
+                let fileIDsValue = chat.draftFileIDs.map { String($0) }
+                return (message, decodeDraftIDs(imageIDsValue), decodeDraftIDs(fileIDsValue))
             }
         }
 
@@ -130,8 +122,10 @@ final class ChatDraftManager: ObservableObject {
             guard let chat = try? backgroundContext.existingObject(with: chatID) as? ChatEntity else {
                 return ("", [], [])
             }
-            let message = chat.newMessage ?? ""
-            return (message, decodeDraftIDs(chat.draftImageIDs), decodeDraftIDs(chat.draftFileIDs))
+            let message = detachString(chat.draftMessage)
+            let imageIDsValue = chat.draftImageIDs.map { String($0) }
+            let fileIDsValue = chat.draftFileIDs.map { String($0) }
+            return (message, decodeDraftIDs(imageIDsValue), decodeDraftIDs(fileIDsValue))
         }
     }
 
@@ -145,7 +139,7 @@ final class ChatDraftManager: ObservableObject {
             viewContext.perform {
                 do {
                     guard let chat = try self.viewContext.existingObject(with: chatID) as? ChatEntity else { return }
-                    chat.newMessage = message
+                    chat.draftMessage = message
                     chat.draftImageIDs = self.encodeDraftIDs(imageIDs)
                     chat.draftFileIDs = self.encodeDraftIDs(fileIDs)
                     self.viewContext.saveWithRetryOnQueue(attempts: 1)
@@ -161,7 +155,7 @@ final class ChatDraftManager: ObservableObject {
         backgroundContext.perform {
             do {
                 guard let chat = try self.backgroundContext.existingObject(with: chatID) as? ChatEntity else { return }
-                chat.newMessage = message
+                chat.draftMessage = message
                 chat.draftImageIDs = self.encodeDraftIDs(imageIDs)
                 chat.draftFileIDs = self.encodeDraftIDs(fileIDs)
                 self.backgroundContext.saveWithRetryOnQueue(attempts: 1)
@@ -175,36 +169,44 @@ final class ChatDraftManager: ObservableObject {
 
     private func loadDraftImages(ids: [UUID]) -> [ImageAttachment] {
         guard !ids.isEmpty else { return [] }
-        let request = NSFetchRequest<ImageEntity>(entityName: "ImageEntity")
-        request.predicate = NSPredicate(format: "id IN %@", ids)
+        var attachments: [ImageAttachment] = []
+        viewContext.performAndWait {
+            let request = NSFetchRequest<ImageEntity>(entityName: "ImageEntity")
+            request.predicate = NSPredicate(format: "id IN %@", ids)
 
-        let results = (try? viewContext.fetch(request)) ?? []
-        let imageMap: [UUID: ImageEntity] = Dictionary(uniqueKeysWithValues: results.compactMap { entity in
-            guard let id = entity.id else { return nil }
-            return (id, entity)
-        })
+            let results = (try? viewContext.fetch(request)) ?? []
+            let imageMap: [UUID: ImageEntity] = Dictionary(uniqueKeysWithValues: results.compactMap { entity in
+                guard let id = entity.id else { return nil }
+                return (id, entity)
+            })
 
-        return ids.compactMap { id in
-            guard let entity = imageMap[id] else { return nil }
-            return ImageAttachment(imageEntity: entity)
+            attachments = ids.compactMap { id in
+                guard let entity = imageMap[id] else { return nil }
+                return ImageAttachment(imageEntity: entity)
+            }
         }
+        return attachments
     }
 
     private func loadDraftFiles(ids: [UUID]) -> [DocumentAttachment] {
         guard !ids.isEmpty else { return [] }
-        let request = NSFetchRequest<DocumentEntity>(entityName: "DocumentEntity")
-        request.predicate = NSPredicate(format: "id IN %@", ids)
+        var attachments: [DocumentAttachment] = []
+        viewContext.performAndWait {
+            let request = NSFetchRequest<DocumentEntity>(entityName: "DocumentEntity")
+            request.predicate = NSPredicate(format: "id IN %@", ids)
 
-        let results = (try? viewContext.fetch(request)) ?? []
-        let fileMap: [UUID: DocumentEntity] = Dictionary(uniqueKeysWithValues: results.compactMap { entity in
-            guard let id = entity.id else { return nil }
-            return (id, entity)
-        })
+            let results = (try? viewContext.fetch(request)) ?? []
+            let fileMap: [UUID: DocumentEntity] = Dictionary(uniqueKeysWithValues: results.compactMap { entity in
+                guard let id = entity.id else { return nil }
+                return (id, entity)
+            })
 
-        return ids.compactMap { id in
-            guard let entity = fileMap[id] else { return nil }
-            return DocumentAttachment(documentEntity: entity)
+            attachments = ids.compactMap { id in
+                guard let entity = fileMap[id] else { return nil }
+                return DocumentAttachment(documentEntity: entity)
+            }
         }
+        return attachments
     }
 
     private func encodeDraftIDs(_ ids: [UUID]) -> String? {
@@ -223,5 +225,11 @@ final class ChatDraftManager: ObservableObject {
             return strings.compactMap { UUID(uuidString: $0) }
         }
         return []
+    }
+
+    private func detachString(_ value: String?) -> String {
+        guard let value, !value.isEmpty else { return "" }
+        let bytes = Array(value.utf8)
+        return String(decoding: bytes, as: UTF8.self)
     }
 }
