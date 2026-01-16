@@ -434,6 +434,14 @@ struct SyncDebugLogView: View {
     @ObservedObject var cloudSyncManager: CloudSyncManager
     @Environment(\.dismiss) private var dismiss
     @State private var autoScroll = true
+    @State private var showErrorsOnly = false
+
+    private var filteredLogs: [CloudSyncManager.SyncLogEntry] {
+        if showErrorsOnly {
+            return cloudSyncManager.syncLogs.filter { $0.isError }
+        }
+        return cloudSyncManager.syncLogs
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -459,6 +467,9 @@ struct SyncDebugLogView: View {
                 Toggle("Auto-scroll", isOn: $autoScroll)
                     .toggleStyle(.checkbox)
 
+                Toggle("Errors only", isOn: $showErrorsOnly)
+                    .toggleStyle(.checkbox)
+
                 Button("Copy Log") {
                     let logText = cloudSyncManager.exportLogsAsText()
                     NSPasteboard.general.clearContents()
@@ -478,7 +489,7 @@ struct SyncDebugLogView: View {
             Divider()
 
             // Log entries
-            if cloudSyncManager.syncLogs.isEmpty {
+            if filteredLogs.isEmpty {
                 VStack {
                     Spacer()
                     Text("No log entries yet")
@@ -490,7 +501,7 @@ struct SyncDebugLogView: View {
                 }
             } else {
                 ScrollViewReader { proxy in
-                    List(cloudSyncManager.syncLogs) { entry in
+                    List(filteredLogs) { entry in
                         HStack(alignment: .top, spacing: 8) {
                             Text(entry.formattedTimestamp)
                                 .font(.system(.caption, design: .monospaced))
@@ -509,8 +520,8 @@ struct SyncDebugLogView: View {
                         }
                         .id(entry.id)
                     }
-                    .onChange(of: cloudSyncManager.syncLogs.count) { _ in
-                        if autoScroll, let lastEntry = cloudSyncManager.syncLogs.last {
+                    .onChange(of: filteredLogs.count) { _ in
+                        if autoScroll, let lastEntry = filteredLogs.last {
                             withAnimation {
                                 proxy.scrollTo(lastEntry.id, anchor: .bottom)
                             }
@@ -523,9 +534,16 @@ struct SyncDebugLogView: View {
 
             // Footer with stats
             HStack {
-                Text("\(cloudSyncManager.syncLogs.count) entries")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
+                if showErrorsOnly {
+                    Text("\(filteredLogs.count) errors of \(cloudSyncManager.syncLogs.count) entries")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("\(cloudSyncManager.syncLogs.count) entries")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+                    
 
                 Spacer()
 

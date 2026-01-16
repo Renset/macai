@@ -99,6 +99,13 @@ class CloudSyncManager: ObservableObject {
         logContainerInfo()
     }
 
+    func reportStoreLoadError(_ error: Error) {
+        DispatchQueue.main.async { [weak self] in
+            self?.logError(error)
+            self?.syncStatus = .error(self?.simplifyErrorMessage(error) ?? error.localizedDescription)
+        }
+    }
+
     func disable() {
         log("CloudSyncManager disabled", type: "Setup")
         eventSubscription?.cancel()
@@ -172,10 +179,9 @@ class CloudSyncManager: ObservableObject {
         let entry = SyncLogEntry(timestamp: Date(), type: type, message: message, isError: isError)
         DispatchQueue.main.async {
             self.syncLogs.append(entry)
-            // Keep only last 300 entries (reduced from 500 for memory efficiency)
-            // Using suffix is more efficient than removeFirst for large arrays
-            if self.syncLogs.count > 300 {
-                self.syncLogs = Array(self.syncLogs.suffix(300))
+            // Keep only last 10k entries. Using suffix avoids O(n) removeFirst.
+            if self.syncLogs.count > 10_000 {
+                self.syncLogs = Array(self.syncLogs.suffix(10_000))
             }
         }
 
@@ -216,6 +222,8 @@ class CloudSyncManager: ObservableObject {
         if let historyToken = notification.userInfo?["historyToken"] {
             log("History token received: \(String(describing: type(of: historyToken)))", type: "RemoteChange")
         }
+
+        PersistenceController.shared.processRemoteChanges(reason: "remote-change")
     }
 
     private func handleCloudKitEvent(_ notification: Notification) {
@@ -243,6 +251,10 @@ class CloudSyncManager: ObservableObject {
                     lastSyncDate = Date()
                 }
                 syncStatus = .synced
+                if event.type == .import {
+                    PersistenceController.shared.processRemoteChanges(reason: "cloudkit-import")
+                    PersistenceController.shared.prunePersistentHistoryIfNeeded(reason: "cloudkit-import")
+                }
             } else {
                 log("Event FAILED: \(eventTypeString) for store: \(storeIdentifier) (duration: \(durationStr))", type: "Event", isError: true)
 
@@ -574,4 +586,5 @@ class CloudSyncManager: ObservableObject {
             }
         }
     }
+
 }

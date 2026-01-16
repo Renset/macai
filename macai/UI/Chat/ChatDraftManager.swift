@@ -107,26 +107,35 @@ final class ChatDraftManager: ObservableObject {
 
     private func fetchDraftSnapshot(for chatID: NSManagedObjectID) -> (message: String, imageIDs: [UUID], fileIDs: [UUID]) {
         if chatID.isTemporaryID {
-            return viewContext.performAndWait {
-                guard let chat = try? viewContext.existingObject(with: chatID) as? ChatEntity else {
-                    return ("", [], [])
-                }
-                let message = detachString(chat.draftMessage)
-                let imageIDsValue = chat.draftImageIDs.map { String($0) }
-                let fileIDsValue = chat.draftFileIDs.map { String($0) }
-                return (message, decodeDraftIDs(imageIDsValue), decodeDraftIDs(fileIDsValue))
-            }
+            return fetchDraftSnapshot(in: viewContext, chatID: chatID) ?? ("", [], [])
         }
 
-        return backgroundContext.performAndWait {
-            guard let chat = try? backgroundContext.existingObject(with: chatID) as? ChatEntity else {
-                return ("", [], [])
+        if let snapshot = fetchDraftSnapshot(in: backgroundContext, chatID: chatID, refreshIfNeeded: true) {
+            return snapshot
+        }
+
+        return fetchDraftSnapshot(in: viewContext, chatID: chatID) ?? ("", [], [])
+    }
+
+    private func fetchDraftSnapshot(
+        in context: NSManagedObjectContext,
+        chatID: NSManagedObjectID,
+        refreshIfNeeded: Bool = false
+    ) -> (message: String, imageIDs: [UUID], fileIDs: [UUID])? {
+        var snapshot: (message: String, imageIDs: [UUID], fileIDs: [UUID])?
+        context.performAndWait {
+            guard let chat = try? context.existingObject(with: chatID) as? ChatEntity else {
+                return
+            }
+            if refreshIfNeeded, !context.hasChanges {
+                context.refresh(chat, mergeChanges: true)
             }
             let message = detachString(chat.draftMessage)
             let imageIDsValue = chat.draftImageIDs.map { String($0) }
             let fileIDsValue = chat.draftFileIDs.map { String($0) }
-            return (message, decodeDraftIDs(imageIDsValue), decodeDraftIDs(fileIDsValue))
+            snapshot = (message, decodeDraftIDs(imageIDsValue), decodeDraftIDs(fileIDsValue))
         }
+        return snapshot
     }
 
     private func persistDraft(
