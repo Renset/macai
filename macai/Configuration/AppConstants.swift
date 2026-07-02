@@ -315,10 +315,26 @@ struct AppConstants {
             imageUploadsSupported: true,
             pdfUploadsSupported: true
         ),
+        "requesty": defaultApiConfiguration(
+            name: "Requesty",
+            url: "https://router.requesty.ai/v1/chat/completions",
+            apiKeyRef: "https://docs.requesty.ai",
+            apiModelRef: "https://app.requesty.ai/router/list",
+            defaultModel: "openai/gpt-4o-mini",
+            models: [
+                "openai/gpt-4o-mini",
+                "openai/gpt-4o",
+                "anthropic/claude-sonnet-4-5",
+                "google/gemini-2.5-flash",
+            ],
+            imageUploadsSupported: true,
+            pdfUploadsSupported: true
+        ),
     ]
 
     static let apiTypes = [
         "openai-responses", "chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter",
+        "requesty",
     ]
     static let newChatNotification = Notification.Name("newChatNotification")
     static let largeMessageSymbolsThreshold = 25000

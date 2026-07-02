@@ -234,6 +234,45 @@ enum APIServiceTemplateProvider {
                         "description": "Switches to Expert mode so you can configure any OpenRouter model."
                     }
                 ]
+            },
+            {
+                "id": "requesty",
+                "displayName": "Requesty",
+                "defaultName": "Requesty",
+                "note": "Requires an API key from app.requesty.ai",
+                "models": [
+                    {
+                        "id": "openai/gpt-4o-mini",
+                        "displayName": "GPT-4o mini",
+                        "isDefault": true,
+                        "settings": {
+                            "generateChatNames": true,
+                            "contextSize": 32,
+                            "useStreaming": true,
+                            "allowImageUploads": true,
+                            "allowPdfUploads": true,
+                            "imageGenerationSupported": false
+                        }
+                    },
+                    {
+                        "id": "anthropic/claude-sonnet-4-5",
+                        "displayName": "Claude Sonnet 4.5",
+                        "settings": {
+                            "generateChatNames": true,
+                            "contextSize": 32,
+                            "useStreaming": true,
+                            "allowImageUploads": true,
+                            "allowPdfUploads": true,
+                            "imageGenerationSupported": false
+                        }
+                    },
+                    {
+                        "id": "custom",
+                        "displayName": "Custom",
+                        "requiresExpertMode": true,
+                        "description": "Switches to Expert mode so you can configure any Requesty model."
+                    }
+                ]
             }
         ]
     }
