@@ -76,6 +76,13 @@ struct PersonaSelectorView: View {
     private func updatePersonaAndSystemMessage(to persona: PersonaEntity?) {
         chat.persona = persona
         chat.systemMessage = persona?.systemMessage ?? AppConstants.chatGptSystemMessage
+        if let service = persona?.apiService {
+            chat.apiService = service
+            let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            chat.gptModel = personaModel.isEmpty ? AppConstants.defaultModel(for: service.type) : personaModel
+        } else if chat.gptModel.isEmpty {
+            chat.gptModel = AppConstants.defaultPrimaryModel
+        }
         chat.objectWillChange.send()
 
         if let context = chat.managedObjectContext {

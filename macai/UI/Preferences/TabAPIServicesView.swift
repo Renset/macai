@@ -129,10 +129,9 @@ struct TabAPIServicesView: View {
             if let service = service {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Type of API: \(AppConstants.defaultApiConfigurations[service.type!]?.name ?? "Unknown")")
-                    Text("Selected Model: \(service.model ?? "Not specified")")
-                    Text("Context size: \(service.contextSize)")
-                    Text("Auto chat name generation: \(service.generateChatNames ? "Yes" : "No")")
-                    //Text("Stream responses: \(service.useStreamResponse ? "Yes" : "No")")
+                    Text("API URL: \(service.url?.absoluteString ?? "Not specified")")
+                    Text("Image uploads: \(service.imageUploadsAllowed ? "Allowed" : "Disabled")")
+                    Text("PDF uploads: \(service.pdfUploadsAllowed ? "Allowed" : "Disabled")")
                     Text("Default AI Assistant: \(service.defaultPersona?.name ?? "None")")
                 }
             }
@@ -151,6 +150,28 @@ struct TabAPIServicesView: View {
             let newService = selectedService.copy() as! APIServiceEntity
             newService.name = (selectedService.name ?? "") + " Copy"
             newService.addedDate = Date()
+
+            if let defaultPersona = selectedService.defaultPersona {
+                let newPersona = PersonaEntity(context: viewContext)
+                newPersona.name = (defaultPersona.name ?? "Assistant") + " Copy"
+                newPersona.color = defaultPersona.color
+                newPersona.systemMessage = defaultPersona.systemMessage
+                newPersona.temperature = defaultPersona.temperature
+                newPersona.contextSize = defaultPersona.contextSize
+                newPersona.useStreamResponse = defaultPersona.useStreamResponse
+                newPersona.generateChatNames = defaultPersona.generateChatNames
+                newPersona.imageGenerationEnabled = defaultPersona.imageGenerationEnabled
+                newPersona.model = defaultPersona.model
+                newPersona.addedDate = Date()
+                newPersona.id = UUID()
+                let fetchRequest: NSFetchRequest<PersonaEntity> = PersonaEntity.fetchRequest()
+                let maxOrder = (try? viewContext.fetch(fetchRequest))?
+                    .map { $0.order }
+                    .max() ?? 0
+                newPersona.order = maxOrder + 1
+                newPersona.apiService = newService
+                newService.defaultPersona = newPersona
+            }
 
             // Generate new UUID and copy the token
             let newServiceID = UUID()

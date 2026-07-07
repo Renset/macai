@@ -55,6 +55,7 @@ struct AppConstants {
     static let openRouterUploadsPatchCompletedKey = "OpenRouterUploadsPatchCompleted"
     static let apiServiceMigrationCompletedKey = "APIServiceMigrationCompleted"
     static let defaultApiServiceMigrationCompletedKey = "DefaultAPIServiceMigrationCompleted"
+    static let assistantSettingsMigrationCompletedKey = "AssistantSettingsMigrationCompleted"
     static let draftTransactionAuthor = "Drafts"
     static let entityIDBackfillCompletedKey = "EntityIDBackfillCompleted"
     static let messageSequenceBackfillCompletedKey = "MessageSequenceBackfillCompleted"
@@ -321,6 +322,7 @@ struct AppConstants {
         "openai-responses", "chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter",
     ]
     static let newChatNotification = Notification.Name("newChatNotification")
+    static let exportChatNotification = Notification.Name("exportChatNotification")
     static let largeMessageSymbolsThreshold = 25000
     static let thumbnailSize: CGFloat = 300
     static let maxHighlightableTextLength = 100000

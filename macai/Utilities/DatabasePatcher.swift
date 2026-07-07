@@ -24,7 +24,8 @@ class DatabasePatcher {
             AppConstants.openAiResponsesPdfUploadsPatchCompletedKey,
             AppConstants.geminiPdfUploadsPatchCompletedKey,
             AppConstants.openRouterUploadsPatchCompletedKey,
-            AppConstants.defaultApiServiceMigrationCompletedKey
+            AppConstants.defaultApiServiceMigrationCompletedKey,
+            AppConstants.assistantSettingsMigrationCompletedKey
         ]
 
         for key in keys {
@@ -62,6 +63,12 @@ class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext, persistence: PersistenceController) {
         addDefaultPersonasIfNeeded(context: context)
         patchMissingIDs(context: context, persistence: persistence)
+
+        if persistence.getMetadata(forKey: AppConstants.assistantSettingsMigrationCompletedKey) as? Bool != true {
+            if migrateAssistantSettingsToPersonas(context: context) {
+                persistence.setMetadata(value: true, forKey: AppConstants.assistantSettingsMigrationCompletedKey)
+            }
+        }
         
         if persistence.getMetadata(forKey: AppConstants.personaOrderingPatchCompletedKey) as? Bool != true {
             if patchPersonaOrdering(context: context) {
@@ -114,7 +121,7 @@ class DatabasePatcher {
 
     static func initializeDatabaseIfNeeded(context: NSManagedObjectContext, persistence: PersistenceController) {
         let initializationKey = "DB_INITIALIZED"
-        let latestVersion = 3
+        let latestVersion = 4
         if persistence.getMetadata(forKey: initializationKey) as? Bool == true {
             return
         }
@@ -152,6 +159,7 @@ class DatabasePatcher {
             persistence.setMetadata(value: true, forKey: AppConstants.geminiPdfUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.openRouterUploadsPatchCompletedKey)
             persistence.setMetadata(value: true, forKey: AppConstants.defaultApiServiceMigrationCompletedKey)
+            persistence.setMetadata(value: true, forKey: AppConstants.assistantSettingsMigrationCompletedKey)
             
             // Set latest DB version to skip all current and future patches that are already "included" in fresh DB
             persistence.setMetadata(value: latestVersion, forKey: "DB_VERSION")
@@ -216,6 +224,11 @@ class DatabasePatcher {
                 newPersona.systemMessage = persona.message
                 newPersona.addedDate = Date()
                 newPersona.temperature = persona.temperature
+                newPersona.contextSize = Int16(AppConstants.chatGptContextSize)
+                newPersona.generateChatNames = true
+                newPersona.useStreamResponse = true
+                newPersona.imageGenerationEnabled = false
+                newPersona.model = AppConstants.defaultPrimaryModel
                 newPersona.id = UUID()
                 newPersona.order = Int16(index)
             }
@@ -229,6 +242,185 @@ class DatabasePatcher {
                 print("Failed to add default assistants: \(error)")
             }
         }
+    }
+
+    /// Returns true when the migration completed (including as a no-op), false when it
+    /// failed and should be retried on the next launch.
+    static func migrateAssistantSettingsToPersonas(context: NSManagedObjectContext) -> Bool {
+        var didChange = false
+        var failed = false
+
+        context.performAndWait {
+            let personaRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+            let serviceRequest = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+            let chatRequest = NSFetchRequest<ChatEntity>(entityName: "ChatEntity")
+
+            guard let personas = try? context.fetch(personaRequest),
+                  let services = try? context.fetch(serviceRequest),
+                  let chats = try? context.fetch(chatRequest)
+            else {
+                failed = true
+                return
+            }
+
+            var personaServiceCandidates: [NSManagedObjectID: Set<NSManagedObjectID>] = [:]
+            for chat in chats {
+                guard let persona = chat.persona,
+                      let service = chat.apiService else { continue }
+                personaServiceCandidates[persona.objectID, default: []].insert(service.objectID)
+            }
+
+            for service in services {
+                if let defaultPersona = service.defaultPersona {
+                    personaServiceCandidates[defaultPersona.objectID, default: []].insert(service.objectID)
+                }
+            }
+
+            func applyDefaults(to persona: PersonaEntity, service: APIServiceEntity?) {
+                if persona.model == nil || persona.model?.isEmpty == true {
+                    if let service {
+                        persona.model = service.model ?? AppConstants.defaultModel(for: service.type)
+                    } else {
+                        persona.model = AppConstants.defaultPrimaryModel
+                    }
+                    didChange = true
+                }
+
+                if persona.contextSize == 0 {
+                    if let service, service.contextSize > 0 {
+                        persona.contextSize = service.contextSize
+                    } else {
+                        persona.contextSize = Int16(AppConstants.chatGptContextSize)
+                    }
+                    didChange = true
+                }
+
+                if let service {
+                    persona.generateChatNames = service.generateChatNames
+                    persona.useStreamResponse = service.useStreamResponse
+                    persona.imageGenerationEnabled = service.imageGenerationSupported
+                    didChange = true
+                }
+            }
+
+            func clonePersona(_ persona: PersonaEntity, order: Int16) -> PersonaEntity {
+                let clone = PersonaEntity(context: context)
+                clone.name = persona.name
+                clone.color = persona.color
+                clone.systemMessage = persona.systemMessage
+                clone.temperature = persona.temperature
+                clone.contextSize = persona.contextSize
+                clone.generateChatNames = persona.generateChatNames
+                clone.useStreamResponse = persona.useStreamResponse
+                clone.imageGenerationEnabled = persona.imageGenerationEnabled
+                clone.model = persona.model
+                clone.addedDate = Date()
+                clone.id = UUID()
+                clone.order = order
+                return clone
+            }
+
+            var maxOrder = personas.map { $0.order }.max() ?? 0
+
+            for persona in personas {
+                if persona.apiService == nil {
+                    if let candidates = personaServiceCandidates[persona.objectID], candidates.count == 1,
+                       let serviceID = candidates.first,
+                       let service = services.first(where: { $0.objectID == serviceID }) {
+                        persona.apiService = service
+                        didChange = true
+                    }
+                }
+                applyDefaults(to: persona, service: persona.apiService)
+            }
+
+            for service in services {
+                let hasPersona = personas.contains { $0.apiService?.objectID == service.objectID }
+                if hasPersona == false {
+                    maxOrder += 1
+
+                    let defaultPersona: PersonaEntity
+                    if let existingDefault = service.defaultPersona {
+                        if existingDefault.apiService == nil || existingDefault.apiService == service {
+                            existingDefault.apiService = service
+                            applyDefaults(to: existingDefault, service: service)
+                            defaultPersona = existingDefault
+                            didChange = true
+                        } else {
+                            let clone = clonePersona(existingDefault, order: maxOrder)
+                            clone.apiService = service
+                            applyDefaults(to: clone, service: service)
+                            defaultPersona = clone
+                            didChange = true
+                        }
+                    } else {
+                        let newPersona = PersonaEntity(context: context)
+                        newPersona.name = (service.name?.isEmpty == false)
+                            ? "\(service.name ?? "Service") Assistant"
+                            : "Assistant"
+                        newPersona.color = AppConstants.defaultPersonaColor
+                        newPersona.systemMessage = AppConstants.chatGptSystemMessage
+                        newPersona.temperature = AppConstants.defaultTemperatureForChat
+                        newPersona.contextSize = service.contextSize > 0
+                            ? service.contextSize
+                            : Int16(AppConstants.chatGptContextSize)
+                        newPersona.generateChatNames = service.generateChatNames
+                        newPersona.useStreamResponse = service.useStreamResponse
+                        newPersona.imageGenerationEnabled = service.imageGenerationSupported
+                        newPersona.model = service.model ?? AppConstants.defaultModel(for: service.type)
+                        newPersona.addedDate = Date()
+                        newPersona.id = UUID()
+                        newPersona.order = maxOrder
+                        newPersona.apiService = service
+                        defaultPersona = newPersona
+                        didChange = true
+                    }
+
+                    if service.defaultPersona == nil {
+                        service.defaultPersona = defaultPersona
+                        didChange = true
+                    }
+                }
+            }
+
+            for chat in chats {
+                if chat.persona == nil, let service = chat.apiService {
+                    if let defaultPersona = service.defaultPersona {
+                        chat.persona = defaultPersona
+                        if chat.systemMessage.isEmpty {
+                            chat.systemMessage = defaultPersona.systemMessage ?? AppConstants.chatGptSystemMessage
+                        }
+                        didChange = true
+                    }
+                }
+
+                if let persona = chat.persona, let personaService = persona.apiService {
+                    if chat.apiService?.objectID != personaService.objectID {
+                        chat.apiService = personaService
+                        didChange = true
+                    }
+                    if (chat.gptModel.isEmpty) && (persona.model?.isEmpty == false) {
+                        chat.gptModel = persona.model ?? chat.gptModel
+                        didChange = true
+                    }
+                } else if chat.gptModel.isEmpty, let service = chat.apiService {
+                    chat.gptModel = service.model ?? AppConstants.defaultModel(for: service.type)
+                    didChange = true
+                }
+            }
+
+            if didChange {
+                do {
+                    try context.save()
+                } catch {
+                    print("Error migrating assistant settings: \(error)")
+                    context.rollback()
+                    failed = true
+                }
+            }
+        }
+
+        return !failed
     }
 
     @discardableResult
@@ -747,14 +939,14 @@ class DatabasePatcher {
             chatContext = AppConstants.chatGptContextSize
         }
 
+        let config = AppConstants.defaultApiConfigurations[type]
         let apiService = apiServiceManager.createAPIService(
             name: name,
             type: type,
             url: URL(string: actualApiUrl)!,
-            model: gptModel,
-            contextSize: chatContext.toInt16() ?? 15,
-            useStreamResponse: useStream,
-            generateChatNames: useChatGptForNames
+            imageUploadsAllowed: config?.imageUploadsSupported ?? false,
+            pdfUploadsAllowed: config?.pdfUploadsSupported ?? false,
+            imageGenerationSupported: config?.imageGenerationSupported ?? false
         )
 
         if let token = defaults.string(forKey: "gptToken"),
@@ -774,6 +966,14 @@ class DatabasePatcher {
             if let defaultPersona = defaultPersonas.first {
                 print("Found default assistant: \(defaultPersona.name ?? "")")
                 apiService.defaultPersona = defaultPersona
+                if defaultPersona.apiService == nil {
+                    defaultPersona.apiService = apiService
+                }
+                defaultPersona.model = gptModel
+                defaultPersona.contextSize = chatContext.toInt16() ?? 15
+                defaultPersona.useStreamResponse = useStream
+                defaultPersona.generateChatNames = useChatGptForNames
+                defaultPersona.imageGenerationEnabled = apiService.imageGenerationSupported
                 try context.save()
                 print("Successfully set default assistant for API service")
             }
@@ -793,7 +993,12 @@ class DatabasePatcher {
 
             for chat in existingChats {
                 chat.apiService = apiService
-                chat.gptModel = apiService.model ?? AppConstants.defaultModel(for: apiService.type)
+                if let defaultPersona = apiService.defaultPersona {
+                    chat.persona = defaultPersona
+                    chat.gptModel = defaultPersona.model ?? AppConstants.defaultModel(for: apiService.type)
+                } else {
+                    chat.gptModel = AppConstants.defaultModel(for: apiService.type)
+                }
             }
 
             try context.save()

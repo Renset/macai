@@ -31,12 +31,18 @@ struct ButtonTestApiTokenAndModel: View {
     }
 
     private func testAPI() {
+        guard let url = URL(string: apiUrl) else {
+            lampColor = .red
+            showErrorAlert(error: "The API URL is invalid: \(apiUrl)")
+            return
+        }
+
         lampColor = .yellow
         self.testOk = false
 
         let config = APIServiceConfig(
             name: apiType,
-            apiUrl: URL(string: apiUrl)!,
+            apiUrl: url,
             apiKey: gptToken,
             model: gptModel
         )
@@ -56,7 +62,7 @@ struct ButtonTestApiTokenAndModel: View {
                 case .failure(let error):
                     lampColor = .red
                     let errorMessage =
-                        switch error as! APIError {
+                        switch error as? APIError {
                         case .requestFailed(let error): error.localizedDescription
                         case .invalidResponse: "Response is invalid"
                         case .decodingFailed(let message): message
@@ -66,6 +72,7 @@ struct ButtonTestApiTokenAndModel: View {
                         case .unknown(let message): message
                         case .noApiService(let message): message
                         case .attachmentNotReady(let message): message
+                        case nil: error.localizedDescription
                         }
                     showErrorAlert(error: errorMessage)
                 }

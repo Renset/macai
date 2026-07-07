@@ -288,10 +288,10 @@ struct MessageInputView: View {
         .onAppear {
             syncAttachmentOrder()
         }
-        .onChange(of: attachedImages.map { $0.id }) { _ in
+        .onChange(of: attachedImages.map { $0.id }) { _, _ in
             syncAttachmentOrder()
         }
-        .onChange(of: attachedFiles.map { $0.id }) { _ in
+        .onChange(of: attachedFiles.map { $0.id }) { _, _ in
             syncAttachmentOrder()
         }
         .onAppear {
@@ -300,7 +300,7 @@ struct MessageInputView: View {
             }
         }
         .photosPicker(isPresented: $isShowingPhotosPicker, selection: $photoPickerItems, matching: .images, photoLibrary: .shared())
-        .onChange(of: photoPickerItems) { newItems in
+        .onChange(of: photoPickerItems) { _, newItems in
             guard imageUploadsAllowed, !newItems.isEmpty else { return }
             Task {
                 var newAttachments: [ImageAttachment] = []

@@ -87,7 +87,7 @@ struct ChatListView: View {
                 .padding(12)
             }
         }
-        .onChange(of: searchText) { newValue in
+        .onChange(of: searchText) { _, newValue in
             debounceTimer?.invalidate()
             
             debounceTimer = Timer.scheduledTimer(withTimeInterval: AppConstants.searchDebounceTime, repeats: false) { _ in

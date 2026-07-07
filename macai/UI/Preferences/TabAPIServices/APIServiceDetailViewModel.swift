@@ -5,36 +5,22 @@
 //  Created by Renat Notfullin on 18.09.2024.
 //
 
-import Combine
+import CoreData
 import SwiftUI
 
 @MainActor
 class APIServiceDetailViewModel: ObservableObject {
     private let viewContext: NSManagedObjectContext
     var apiService: APIServiceEntity?
-    private var cancellables = Set<AnyCancellable>()
-    private var hasProcessedInitialModelSelection = false
 
     @Published var name: String = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]?.name ?? ""
     @Published var type: String = AppConstants.defaultApiType
     @Published var url: String = ""
-    @Published var model: String = ""
-    @Published var contextSize: Float = 20
-    @Published var contextSizeUnlimited: Bool = false
-    @Published var useStreamResponse: Bool = true
-    @Published var generateChatNames: Bool = true
     @Published var imageUploadsAllowed: Bool = false
     @Published var pdfUploadsAllowed: Bool = false
-    @Published var imageGenerationSupported: Bool = false
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
-    @Published var isCustomModel: Bool = false
-    @Published var selectedModel: String =
-        (AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]?.defaultModel ?? "")
     @Published var defaultApiConfiguration = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]
-    @Published var fetchedModels: [AIModel] = []
-    @Published var isLoadingModels: Bool = false
-    @Published var modelFetchError: String? = nil
 
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
         self.viewContext = viewContext
@@ -46,31 +32,21 @@ class APIServiceDetailViewModel: ObservableObject {
         {
             type = preferredType
             defaultApiConfiguration = configuration
-            selectedModel = configuration.defaultModel
-            model = configuration.defaultModel
             name = configuration.name
         }
 
         setupInitialValues()
-        setupBindings()
-        fetchModelsForService()
     }
 
     private func setupInitialValues() {
         if let service = apiService {
-            name = service.name ?? defaultApiConfiguration!.name
+            name = service.name ?? defaultApiConfiguration?.name ?? ""
             type = service.type ?? AppConstants.defaultApiType
             url = service.url?.absoluteString ?? ""
-            model = service.model ?? ""
-            contextSize = Float(service.contextSize)
-            useStreamResponse = service.useStreamResponse
-            generateChatNames = service.generateChatNames
             imageUploadsAllowed = service.imageUploadsAllowed
             pdfUploadsAllowed = service.pdfUploadsAllowed
-            imageGenerationSupported = service.imageGenerationSupported
             defaultAiPersona = service.defaultPersona
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
-            selectedModel = model
 
             if let serviceID = service.id {
                 let serviceIDString = serviceID.uuidString
@@ -87,98 +63,32 @@ class APIServiceDetailViewModel: ObservableObject {
                 url = config.url
                 imageUploadsAllowed = config.imageUploadsSupported
                 pdfUploadsAllowed = config.pdfUploadsSupported
-                let selected = selectedModel.isEmpty ? config.defaultModel : selectedModel
-                imageGenerationSupported = Self.supportedState(
-                    for: selected,
-                    using: config
-                )
                 name = config.name
-                model = selected
-                selectedModel = selected
                 defaultApiConfiguration = config
             }
             else {
                 url = AppConstants.apiUrlOpenAIResponses
                 imageUploadsAllowed = false
                 pdfUploadsAllowed = false
-                imageGenerationSupported = false
             }
         }
     }
 
-    private func setupBindings() {
-        $selectedModel
-            .sink { [weak self] newValue in
-                guard let self else { return }
-                self.isCustomModel = (newValue == "custom")
-                if !self.isCustomModel {
-                    self.model = newValue
-                }
-
-                guard let config = self.defaultApiConfiguration else { return }
-
-                if self.hasProcessedInitialModelSelection == false {
-                    self.hasProcessedInitialModelSelection = true
-                    return
-                }
-
-                if Self.supportedState(for: newValue, using: config) {
-                    self.imageGenerationSupported = true
-                }
-            }
-            .store(in: &cancellables)
+    var testModel: String {
+        if let persona = defaultAiPersona,
+           let model = persona.model,
+           model.isEmpty == false {
+            return model
+        }
+        return defaultApiConfiguration?.defaultModel ?? AppConstants.defaultPrimaryModel
     }
 
-    private func fetchModelsForService() {
-        isLoadingModels = true
-        modelFetchError = nil
-
-        let config = APIServiceConfig(
-            name: type,
-            apiUrl: URL(string: url)!,
-            apiKey: apiKey,
-            model: ""
-        )
-
-        let apiService = APIServiceFactory.createAPIService(
-            config: config,
-            imageGenerationSupported: imageGenerationSupported
-        )
-
-        Task {
-            do {
-                let models = try await apiService.fetchModels()
-                self.fetchedModels = models
-                self.isLoadingModels = false
-                self.updateModelSelection()
-            }
-            catch {
-                self.modelFetchError = error.localizedDescription
-                self.isLoadingModels = false
-                self.fetchedModels = []
-                self.updateModelSelection()
-            }
-        }
-    }
-    
-    private func updateModelSelection() {
-        let modelExists = self.availableModels.contains(self.selectedModel)
-        
-        if !modelExists && !self.selectedModel.isEmpty {
-            self.isCustomModel = true
-            self.selectedModel = "custom"
-        } else if modelExists {
-            self.isCustomModel = false
-        }
-    }
-
-    var availableModels: [String] {
-        if fetchedModels.isEmpty == false {
-            return fetchedModels.map { $0.id }
-        }
-        else {
-            return defaultApiConfiguration?.models ?? []
-        }
+    var testImageGenerationEnabled: Bool {
+        let personaEnabled = defaultAiPersona?.imageGenerationEnabled ?? false
+        let serviceSupports = apiService?.imageGenerationSupported
+            ?? defaultApiConfiguration?.imageGenerationSupported
+            ?? false
+        return personaEnabled && serviceSupports
     }
 
     func saveAPIService() {
@@ -186,16 +96,30 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.name = name
         serviceToSave.type = type
         serviceToSave.url = URL(string: url)
-        serviceToSave.model = model
-        serviceToSave.contextSize = Int16(contextSize)
-        serviceToSave.useStreamResponse = useStreamResponse
-        serviceToSave.generateChatNames = generateChatNames
         serviceToSave.imageUploadsAllowed = imageUploadsAllowed
         serviceToSave.pdfUploadsAllowed = pdfUploadsAllowed
-        serviceToSave.imageGenerationSupported = imageGenerationSupported
-        serviceToSave.defaultPersona = defaultAiPersona
+        if let defaultPersona = defaultAiPersona {
+            if let boundService = defaultPersona.apiService, boundService != serviceToSave {
+                // The assistant already belongs to another service. Rebinding it here
+                // would silently switch every chat using it to this service, so clone
+                // it instead — same policy as the template-add flow.
+                let clone = clonePersona(defaultPersona)
+                clone.apiService = serviceToSave
+                serviceToSave.defaultPersona = clone
+                defaultAiPersona = clone
+            } else {
+                defaultPersona.apiService = serviceToSave
+                serviceToSave.defaultPersona = defaultPersona
+            }
+        } else {
+            serviceToSave.defaultPersona = nil
+        }
         if serviceToSave.tokenIdentifier == nil || serviceToSave.tokenIdentifier?.isEmpty == true {
             serviceToSave.tokenIdentifier = UUID().uuidString
+        }
+
+        if let config = defaultApiConfiguration {
+            serviceToSave.imageGenerationSupported = config.imageGenerationSupported
         }
 
         if apiService == nil {
@@ -254,32 +178,37 @@ class APIServiceDetailViewModel: ObservableObject {
     }
 
     func onChangeApiType(_ type: String) {
-        self.name = self.name == self.defaultApiConfiguration!.name ? "" : self.name
+        self.name = self.name == self.defaultApiConfiguration?.name ? "" : self.name
         self.defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
-        self.name = self.name == "" ? self.defaultApiConfiguration!.name : self.name
-        self.url = self.defaultApiConfiguration!.url
-        self.model = self.defaultApiConfiguration!.defaultModel
-        self.selectedModel = self.model
-
-        self.imageUploadsAllowed = self.defaultApiConfiguration!.imageUploadsSupported
-        self.pdfUploadsAllowed = self.defaultApiConfiguration!.pdfUploadsSupported
-        self.imageGenerationSupported = Self.supportedState(
-            for: self.model,
-            using: self.defaultApiConfiguration!
-        )
-
-        self.hasProcessedInitialModelSelection = false
-
-        fetchModelsForService()
+        self.name = self.name == "" ? (self.defaultApiConfiguration?.name ?? "") : self.name
+        self.url = self.defaultApiConfiguration?.url ?? AppConstants.apiUrlOpenAIResponses
+        self.imageUploadsAllowed = self.defaultApiConfiguration?.imageUploadsSupported ?? false
+        self.pdfUploadsAllowed = self.defaultApiConfiguration?.pdfUploadsSupported ?? false
     }
 
     func onChangeApiKey(_ token: String) {
         self.apiKey = token
-        fetchModelsForService()
     }
 
-    func onUpdateModelsList() {
-        fetchModelsForService()
+    private func clonePersona(_ persona: PersonaEntity) -> PersonaEntity {
+        let clone = PersonaEntity(context: viewContext)
+        clone.name = persona.name
+        clone.color = persona.color
+        clone.systemMessage = persona.systemMessage
+        clone.temperature = persona.temperature
+        clone.contextSize = persona.contextSize
+        clone.useStreamResponse = persona.useStreamResponse
+        clone.generateChatNames = persona.generateChatNames
+        clone.imageGenerationEnabled = persona.imageGenerationEnabled
+        clone.model = persona.model
+        clone.addedDate = Date()
+        clone.id = UUID()
+        let fetchRequest: NSFetchRequest<PersonaEntity> = PersonaEntity.fetchRequest()
+        let maxOrder = (try? viewContext.fetch(fetchRequest))?
+            .map { $0.order }
+            .max() ?? 0
+        clone.order = maxOrder + 1
+        return clone
     }
 
     var supportsImageUploads: Bool {
@@ -288,18 +217,5 @@ class APIServiceDetailViewModel: ObservableObject {
 
     var supportsPdfUploads: Bool {
         return AppConstants.defaultApiConfigurations[type]?.pdfUploadsSupported ?? false
-    }
-
-    var supportsImageGeneration: Bool {
-        let configSupports = AppConstants.defaultApiConfigurations[type]?.imageGenerationSupported ?? false
-        return configSupports || imageGenerationSupported
-    }
-
-    private static func supportedState(
-        for model: String,
-        using config: AppConstants.defaultApiConfiguration
-    ) -> Bool {
-        guard config.imageGenerationSupported else { return false }
-        return config.autoEnableImageGenerationModels.contains(model)
     }
 }

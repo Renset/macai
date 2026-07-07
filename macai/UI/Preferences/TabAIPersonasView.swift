@@ -7,7 +7,6 @@
 
 import CoreData
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct TabAIPersonasView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -58,10 +57,8 @@ struct TabAIPersonasView: View {
             }
         }
         .frame(minHeight: 300)
-        .onChange(of: selectedPersonaID) { id in
+        .onChange(of: selectedPersonaID) { _, id in
             selectedPersona = personas.first(where: { $0.objectID == id })
-            print("Selected Assistant ID: \(id)")
-            print("Selected Assistant: \(selectedPersona?.name ?? "nil")")
         }
         .sheet(isPresented: $isShowingAddOrEditPersona) {
             PersonaDetailView(
@@ -165,7 +162,6 @@ struct TabAIPersonasView: View {
     private func onEdit() {
         selectedPersona = personas.first(where: { $0.objectID == selectedPersonaID })
         isShowingAddOrEditPersona = true
-        print("Opening Assistant Detail View: \(selectedPersona?.name ?? "nil")")
     }
 
     private func getPersonaColor(persona: PersonaEntity) -> Color? {
@@ -184,6 +180,11 @@ struct TabAIPersonasView: View {
 struct PersonaDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) var presentationMode
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \APIServiceEntity.addedDate, ascending: false)],
+        animation: .default
+    )
+    private var apiServices: FetchedResults<APIServiceEntity>
 
     @Binding var persona: PersonaEntity?
     let onSave: () -> Void
@@ -194,6 +195,34 @@ struct PersonaDetailView: View {
     @State private var systemMessage: String = ""
     @State private var showingDeleteConfirmation = false
     @State private var temperature: Float = AppConstants.defaultPersonaTemperature
+    @State private var selectedService: APIServiceEntity?
+    @State private var model: String = ""
+    @State private var selectedModel: String = ""
+    @State private var isCustomModel = false
+    @State private var fetchedModels: [String] = []
+    @State private var isLoadingModels = false
+    @State private var contextSize: Float = Float(AppConstants.chatGptContextSize)
+    @State private var useStreamResponse = true
+    @State private var generateChatNames = true
+    @State private var imageGenerationEnabled = false
+
+    private var serviceConfiguration: AppConstants.defaultApiConfiguration? {
+        guard let type = selectedService?.type else { return nil }
+        return AppConstants.defaultApiConfigurations[type]
+    }
+
+    private var availableModels: [String] {
+        if fetchedModels.isEmpty == false {
+            return fetchedModels
+        }
+        return serviceConfiguration?.models ?? []
+    }
+
+    private var supportsImageGeneration: Bool {
+        selectedService?.imageGenerationSupported
+            ?? serviceConfiguration?.imageGenerationSupported
+            ?? false
+    }
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -247,7 +276,7 @@ struct PersonaDetailView: View {
                         Text("1.0")
                     }
 
-                    Text(getTemperatureLabel())
+                    Text(temperature.temperatureDescriptor)
                         .frame(width: 90)
                 }
 
@@ -256,6 +285,114 @@ struct PersonaDetailView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 8)
+
+            Divider()
+                .padding(.vertical, 8)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Service & Model")
+                    .font(.headline)
+
+                HStack {
+                    Text("API Service:")
+                        .frame(width: 100, alignment: .leading)
+
+                    Picker("API Service", selection: $selectedService) {
+                        Text("None").tag(nil as APIServiceEntity?)
+                        ForEach(apiServices) { service in
+                            Text(service.name ?? "Untitled").tag(service as APIServiceEntity?)
+                        }
+                    }
+                    .labelsHidden()
+                }
+
+                if selectedService != nil {
+                    HStack {
+                        HStack(spacing: 6) {
+                            Text("Model:")
+                            // Kept in the hierarchy permanently so the row height is stable;
+                            // toggling opacity avoids layout jumps below.
+                            ProgressView()
+                                .controlSize(.small)
+                                .opacity(isLoadingModels ? 1 : 0)
+                                .accessibilityLabel("Loading models")
+                                .accessibilityHidden(!isLoadingModels)
+                        }
+                        .frame(width: 100, alignment: .leading)
+
+                        Picker("Model", selection: $selectedModel) {
+                            ForEach(availableModels.sorted(), id: \.self) { modelName in
+                                Text(modelName).tag(modelName)
+                            }
+                            Divider()
+                            Text("Custom Model…").tag("custom")
+                        }
+                        .labelsHidden()
+                        .onChange(of: selectedModel) { _, newValue in
+                            if newValue == "custom" {
+                                isCustomModel = true
+                            }
+                            else {
+                                isCustomModel = false
+                                model = newValue
+                            }
+                        }
+                    }
+
+                    if isCustomModel {
+                        TextField("Enter custom model name", text: $model)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+
+                    HStack {
+                        Slider(
+                            value: $contextSize,
+                            in: 5...100,
+                            step: 5
+                        ) {
+                            Text("Context size")
+                        } minimumValueLabel: {
+                            Text("5")
+                        } maximumValueLabel: {
+                            Text("100")
+                        }
+
+                        Text(String(format: ("%.0f messages"), contextSize))
+                            .frame(width: 90)
+                    }
+                }
+            }
+            .padding(.top, 4)
+
+            Divider()
+                .padding(.vertical, 8)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Behavior")
+                    .font(.headline)
+
+                Toggle(isOn: $generateChatNames) {
+                    Text("Automatically generate chat names")
+                }
+
+                Toggle(isOn: $useStreamResponse) {
+                    Text("Use streamed responses")
+                }
+            }
+
+            Divider()
+                .padding(.vertical, 8)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Tools")
+                    .font(.headline)
+
+                Toggle(isOn: $imageGenerationEnabled) {
+                    Text("Image generation")
+                }
+                .disabled(!supportsImageGeneration)
+                .help(supportsImageGeneration ? "" : "This API service does not support image generation.")
+            }
 
             HStack {
                 if persona != nil {
@@ -277,7 +414,12 @@ struct PersonaDetailView: View {
                     savePersona()
                     onSave()
                 }
-                .disabled(name.isEmpty || systemMessage.isEmpty)
+                .disabled(
+                    name.isEmpty
+                    || systemMessage.isEmpty
+                    || selectedService == nil
+                    || model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
                 .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 16)
@@ -285,12 +427,48 @@ struct PersonaDetailView: View {
         }
         .padding()
         .onAppear {
-            print(">> Assistant: \(persona?.name ?? "")")
             if let persona = persona {
                 name = persona.name ?? ""
                 color = Color(hex: persona.color ?? "#FFFFFF") ?? .white
                 systemMessage = persona.systemMessage ?? ""
                 temperature = persona.temperature
+                selectedService = persona.apiService
+                model = persona.model ?? ""
+                contextSize = Float(persona.contextSize == 0 ? Int16(AppConstants.chatGptContextSize) : persona.contextSize)
+                useStreamResponse = persona.useStreamResponse
+                generateChatNames = persona.generateChatNames
+                imageGenerationEnabled = persona.imageGenerationEnabled
+            } else {
+                selectedService = apiServices.first(where: { $0.isDefault }) ?? apiServices.first
+                if let config = serviceConfiguration {
+                    model = config.defaultModel
+                    selectedModel = config.defaultModel
+                }
+                contextSize = Float(AppConstants.chatGptContextSize)
+                useStreamResponse = true
+                generateChatNames = true
+                imageGenerationEnabled = false
+            }
+
+            syncModelSelection()
+            refreshModels()
+            if supportsImageGeneration == false {
+                imageGenerationEnabled = false
+            }
+        }
+        .onChange(of: selectedService) { _, _ in
+            if let config = serviceConfiguration {
+                if model.isEmpty {
+                    model = config.defaultModel
+                }
+                if selectedModel.isEmpty {
+                    selectedModel = config.defaultModel
+                }
+            }
+            syncModelSelection()
+            refreshModels()
+            if supportsImageGeneration == false {
+                imageGenerationEnabled = false
             }
         }
         .alert(isPresented: $showingDeleteConfirmation) {
@@ -306,24 +484,56 @@ struct PersonaDetailView: View {
         }
     }
 
-    private func getTemperatureLabel() -> String {
-        if temperature > 0.8 {
-            return "Creative"
+    private func syncModelSelection() {
+        if availableModels.contains(model) {
+            selectedModel = model
+            isCustomModel = false
+        } else if model.isEmpty == false {
+            selectedModel = "custom"
+            isCustomModel = true
+        }
+    }
+
+    private func refreshModels() {
+        guard let service = selectedService else {
+            fetchedModels = []
+            isLoadingModels = false
+            syncModelSelection()
+            return
         }
 
-        if temperature > 0.6 {
-            return "Explorative"
+        // Show the cached list right away so the selected model is visible
+        // immediately; a background refresh updates it afterwards.
+        if let serviceID = service.id, let cached = ModelsCache.shared.models(for: serviceID) {
+            fetchedModels = cached
+        } else {
+            fetchedModels = []
+        }
+        syncModelSelection()
+
+        guard let config = AppConstants.defaultApiConfigurations[service.type ?? ""],
+              config.modelsFetching else {
+            isLoadingModels = false
+            return
         }
 
-        if temperature > 0.4 {
-            return "Balanced"
+        let requestedServiceID = service.objectID
+        isLoadingModels = true
+        Task {
+            let models = await APIServiceManager.fetchRemoteModels(
+                context: viewContext,
+                serviceID: requestedServiceID
+            )
+            await MainActor.run {
+                // Ignore responses that arrive after the user switched services.
+                guard selectedService?.objectID == requestedServiceID else { return }
+                isLoadingModels = false
+                if let models, !models.isEmpty, models != fetchedModels {
+                    fetchedModels = models
+                    syncModelSelection()
+                }
+            }
         }
-
-        if temperature > 0.2 {
-            return "Focused"
-        }
-
-        return "Deterministic"
     }
 
     private func savePersona() {
@@ -332,6 +542,12 @@ struct PersonaDetailView: View {
         personaToSave.color = color.toHex()
         personaToSave.temperature = round(temperature * 10) / 10
         personaToSave.systemMessage = systemMessage
+        personaToSave.apiService = selectedService
+        personaToSave.model = model
+        personaToSave.contextSize = Int16(contextSize)
+        personaToSave.useStreamResponse = useStreamResponse
+        personaToSave.generateChatNames = generateChatNames
+        personaToSave.imageGenerationEnabled = imageGenerationEnabled
         if persona == nil {
             personaToSave.addedDate = Date()
             personaToSave.id = UUID()

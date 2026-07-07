@@ -49,26 +49,33 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
     private let fetchedResultsController: NSFetchedResultsController<MessageEntity>
 
     private var _messageManager: MessageManager?
-    private var messageManager: MessageManager {
-        get {
-            if _messageManager == nil {
-                _messageManager = createMessageManager()
-            }
-            return _messageManager!
+    private var needsMessageManagerRecreate = false
+    private var messageManager: MessageManager? {
+        if needsMessageManagerRecreate, !chat.waitingForResponse {
+            needsMessageManagerRecreate = false
+            _messageManager = nil
         }
-        set {
-            _messageManager = newValue
+        if _messageManager == nil {
+            _messageManager = createMessageManager()
         }
+        return _messageManager
     }
 
     private var cancellables = Set<AnyCancellable>()
     private var searchDebounceTimer: Timer?
     private var isApplyingServiceChanges = false
+    private var lastObservedPersonaID: NSManagedObjectID?
+    private var lastObservedServiceID: NSManagedObjectID?
 
-    init(chat: ChatEntity, viewContext: NSManagedObjectContext) {
+    /// - Parameter loadsMessages: Pass `false` for lightweight use cases (e.g. chat list rows)
+    ///   that only need actions like name regeneration. Skips fetching all chat messages and
+    ///   observing Core Data changes, which would otherwise run for every visible row.
+    init(chat: ChatEntity, viewContext: NSManagedObjectContext, loadsMessages: Bool = true) {
         self.chat = chat
         self.messages = chat.messages
         self.viewContext = viewContext
+        self.lastObservedPersonaID = chat.persona?.objectID
+        self.lastObservedServiceID = chat.effectiveApiService?.objectID
 
         let fetchRequest: NSFetchRequest<MessageEntity> = MessageEntity.fetchRequest() as! NSFetchRequest<MessageEntity>
         fetchRequest.predicate = NSPredicate(format: "chat == %@", chat)
@@ -82,6 +89,8 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
         )
 
         super.init()
+
+        guard loadsMessages else { return }
 
         self.fetchedResultsController.delegate = self
 
@@ -108,11 +117,15 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
         contextSize: Int,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        self.messageManager.sendMessage(
+        guard let messageManager else {
+            completion(.failure(APIError.noApiService("No valid API configuration found")))
+            return
+        }
+        messageManager.sendMessage(
             message,
             in: chat,
             contextSize: contextSize
-        ) { [weak self] result in
+        ) { result in
             switch result {
             case .success:
                 completion(.success(()))
@@ -124,7 +137,11 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
 
     @MainActor
     func sendMessageStream(_ message: String, contextSize: Int, completion: @escaping (Result<Void, Error>) -> Void) {
-        self.messageManager.sendMessageStream(message, in: chat, contextSize: contextSize) { [weak self] result in
+        guard let messageManager else {
+            completion(.failure(APIError.noApiService("No valid API configuration found")))
+            return
+        }
+        messageManager.sendMessageStream(message, in: chat, contextSize: contextSize) { [weak self] result in
             switch result {
             case .success:
                 self?.chat.objectWillChange.send()
@@ -136,11 +153,11 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
     }
 
     func stopInference() {
-        messageManager.cancelCurrentRequest()
+        _messageManager?.cancelCurrentRequest()
     }
 
     func generateChatNameIfNeeded() {
-        messageManager.generateChatNameIfNeeded(chat: chat)
+        messageManager?.generateChatNameIfNeeded(chat: chat)
     }
 
     func reloadMessages() {
@@ -150,12 +167,12 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
 
     // sortedMessages is now a @Published property initialized in init() and updated in reloadMessages()
 
-    private func createMessageManager() -> MessageManager {
+    private func createMessageManager() -> MessageManager? {
         guard let config = self.loadCurrentAPIConfig() else {
-            fatalError("No valid API configuration found")
+            print("Cannot create MessageManager: no valid API configuration found")
+            return nil
         }
-        print(">> Creating new MessageManager with URL: \(config.apiUrl) and model: \(config.model)")
-        let supportsImageGeneration = chat.apiService?.imageGenerationSupported ?? false
+        let supportsImageGeneration = chat.supportsImageGeneration
         return MessageManager(
             apiService: APIServiceFactory.createAPIService(
                 config: config,
@@ -166,7 +183,14 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
     }
 
     func recreateMessageManager() {
-        _messageManager = createMessageManager()
+        // While a response is in flight, keep the current manager alive so
+        // Stop still targets the instance that owns the request; the lazy
+        // getter rebuilds with fresh config on next use.
+        guard !chat.waitingForResponse else {
+            needsMessageManagerRecreate = true
+            return
+        }
+        _messageManager = nil
     }
 
     // MARK: - Service change observation
@@ -178,29 +202,42 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             .receive(on: RunLoop.main)
             .sink { [weak self] notification in
                 guard let self = self,
-                      !self.isApplyingServiceChanges,
-                      let serviceObjectID = self.chat.apiService?.objectID else { return }
+                      !self.isApplyingServiceChanges else { return }
 
                 let updated = notification.userInfo?[NSUpdatedObjectsKey] as? Set<NSManagedObject> ?? []
                 let refreshed = notification.userInfo?[NSRefreshedObjectsKey] as? Set<NSManagedObject> ?? []
-                let changedServices = updated.union(refreshed)
+                let changedObjects = updated.union(refreshed)
 
-                guard changedServices.contains(where: { $0.objectID == serviceObjectID }) else { return }
+                let chatID = self.chat.objectID
+                let personaID = self.chat.persona?.objectID
+                let serviceID = self.chat.effectiveApiService?.objectID
 
-                self.applyAPIServiceChanges()
+                let personaObjectChanged = personaID != nil
+                    && changedObjects.contains(where: { $0.objectID == personaID })
+                let serviceObjectChanged = serviceID != nil
+                    && changedObjects.contains(where: { $0.objectID == serviceID })
+                let chatObjectChanged = changedObjects.contains(where: { $0.objectID == chatID })
+
+                let relationshipChanged = personaID != self.lastObservedPersonaID
+                    || serviceID != self.lastObservedServiceID
+
+                guard personaObjectChanged || serviceObjectChanged || (chatObjectChanged && relationshipChanged) else {
+                    return
+                }
+
+                self.lastObservedPersonaID = personaID
+                self.lastObservedServiceID = serviceID
+                self.applyAPIServiceChanges(forceRecreate: personaObjectChanged || serviceObjectChanged || relationshipChanged)
             }
     }
 
-    private func applyAPIServiceChanges() {
+    private func applyAPIServiceChanges(forceRecreate: Bool) {
         let chatID = chat.objectID
-        let apiServiceID = chat.apiService?.objectID
 
         viewContext.perform { [weak self] in
             guard let self else { return }
             guard !self.isApplyingServiceChanges else { return }
-            guard let apiServiceID,
-                  let chat = try? self.viewContext.existingObject(with: chatID) as? ChatEntity,
-                  let apiService = try? self.viewContext.existingObject(with: apiServiceID) as? APIServiceEntity,
+            guard let chat = try? self.viewContext.existingObject(with: chatID) as? ChatEntity,
                   !chat.isDeleted else {
                 return
             }
@@ -209,23 +246,30 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             defer { self.isApplyingServiceChanges = false }
 
             var didChange = false
-
-            let newModel = apiService.model ?? AppConstants.defaultModel(for: apiService.type)
-            if chat.gptModel != newModel {
-                chat.gptModel = newModel
+            let resolvedService = chat.persona?.apiService ?? chat.apiService
+            if let resolvedService, chat.apiService != resolvedService {
+                chat.apiService = resolvedService
                 didChange = true
             }
 
-            // Ensure we keep the latest managed object instance (it may have been refreshed)
-            if chat.apiService != apiService {
-                chat.apiService = apiService
+            let fallbackModel = chat.gptModel.isEmpty
+                ? AppConstants.defaultModel(for: resolvedService?.type)
+                : chat.gptModel
+            let resolvedModel = chat.persona?.model?.isEmpty == false
+                ? (chat.persona?.model ?? fallbackModel)
+                : fallbackModel
+
+            if chat.gptModel != resolvedModel {
+                chat.gptModel = resolvedModel
                 didChange = true
             }
 
-            if didChange {
+            if didChange || forceRecreate {
                 chat.objectWillChange.send()
                 self.recreateMessageManager()
-                try? self.viewContext.save()
+                if didChange {
+                    try? self.viewContext.save()
+                }
             }
         }
     }
@@ -235,11 +279,11 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
     }
 
     var canSendMessage: Bool {
-        return chat.apiService != nil
+        return chat.effectiveApiService != nil
     }
 
     private func loadCurrentAPIConfig() -> APIServiceConfiguration? {
-        guard let apiService = chat.apiService, let apiServiceUrl = apiService.url else {
+        guard let apiService = chat.effectiveApiService, let apiServiceUrl = apiService.url else {
             return nil
         }
 
@@ -260,16 +304,16 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             name: getApiServiceName(),
             apiUrl: apiServiceUrl,
             apiKey: apiKey,
-            model: chat.gptModel
+            model: chat.effectiveModel
         )
     }
 
     private func getApiServiceName() -> String {
-        return chat.apiService?.type ?? AppConstants.defaultApiType
+        return chat.effectiveApiService?.type ?? AppConstants.defaultApiType
     }
     
     func regenerateChatName() {
-        messageManager.generateChatNameIfNeeded(chat: chat, force: true)
+        messageManager?.generateChatNameIfNeeded(chat: chat, force: true)
     }
 
     // MARK: - Search Logic

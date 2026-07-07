@@ -53,7 +53,9 @@ struct ChatListRow: View, Equatable {
         self._selectedChat = selectedChat
         self.viewContext = viewContext
         self.searchText = searchText
-        self._chatViewModel = StateObject(wrappedValue: ChatViewModel(chat: chat, viewContext: viewContext))
+        self._chatViewModel = StateObject(
+            wrappedValue: ChatViewModel(chat: chat, viewContext: viewContext, loadsMessages: false)
+        )
     }
 
     var isActive: Binding<Bool> {
@@ -94,7 +96,7 @@ struct ChatListRow: View, Equatable {
             Button(action: { renameChat(chat) }) {
                 Label("Rename", systemImage: "pencil")
             }
-            if chat.apiService?.generateChatNames ?? false {
+            if chat.shouldGenerateChatNames {
                 Button(action: {
                     chatViewModel.regenerateChatName()
                 }) {
@@ -103,6 +105,16 @@ struct ChatListRow: View, Equatable {
             }
             Button(action: { clearChat(chat) }) {
                 Label("Clear Chat", systemImage: "eraser")
+            }
+            Menu {
+                Button("As Markdown…") {
+                    ChatExporter.exportWithSavePanel(chat: chat, format: .markdown)
+                }
+                Button("As Plain Text…") {
+                    ChatExporter.exportWithSavePanel(chat: chat, format: .plainText)
+                }
+            } label: {
+                Label("Export Chat", systemImage: "square.and.arrow.up")
             }
             Divider()
             Button(action: { deleteChat(chat) }) {
@@ -119,7 +131,7 @@ struct ChatListRow: View, Equatable {
         alert.addButton(withTitle: "Delete")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+        alert.presentAsSheetOrModal { response in
             if response == .alertFirstButtonReturn {
                 // Clear selectedChat to prevent accessing deleted item
                 if selectedChat?.objectID == chat.objectID {
@@ -148,7 +160,7 @@ struct ChatListRow: View, Equatable {
         let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
         textField.stringValue = chat.name
         alert.accessoryView = textField
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+        alert.presentAsSheetOrModal { response in
             if response == .alertFirstButtonReturn {
                 chat.name = textField.stringValue
                 do {
@@ -169,7 +181,7 @@ struct ChatListRow: View, Equatable {
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+        alert.presentAsSheetOrModal { response in
             if response == .alertFirstButtonReturn {
                 chat.clearMessages()
                 do {

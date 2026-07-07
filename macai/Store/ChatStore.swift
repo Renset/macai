@@ -151,11 +151,11 @@ class ChatStore: ObservableObject {
                 }
             }
 
+            try viewContext.save()
+
             DispatchQueue.main.async {
                 completion(.success(chats.count))
             }
-
-            try viewContext.save()
         }
         catch {
             DispatchQueue.main.async {
@@ -244,9 +244,8 @@ class ChatStore: ObservableObject {
             let oldChats = try decoder.decode([Chat].self, from: data)
 
             saveToCoreData(chats: oldChats) { result in
-                print("State saved")
                 if case .failure(let error) = result {
-                    fatalError(error.localizedDescription)
+                    print("Error saving migrated chats: \(error.localizedDescription)")
                 }
             }
 

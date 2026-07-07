@@ -302,20 +302,72 @@ extension ChatEntity {
     }
 }
 
+extension ChatEntity {
+    var effectiveApiService: APIServiceEntity? {
+        persona?.apiService ?? apiService
+    }
+
+    var effectiveModel: String {
+        let service = effectiveApiService
+        let defaultModel = AppConstants.defaultModel(for: service?.type)
+        let chatModel = gptModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let personaServiceID = persona?.apiService?.objectID
+        let serviceID = service?.objectID
+        let personaMatchesService = personaServiceID == nil ? serviceID == nil : personaServiceID == serviceID
+
+        if personaMatchesService, personaModel.isEmpty == false {
+            return personaModel
+        }
+        if chatModel.isEmpty == false {
+            return chatModel
+        }
+        return defaultModel
+    }
+
+    var effectiveContextSize: Int {
+        let raw = Int(persona?.contextSize ?? 0)
+        if raw > 0 {
+            return raw
+        }
+        return Int(AppConstants.chatGptContextSize)
+    }
+
+    var shouldUseStreamResponse: Bool {
+        persona?.useStreamResponse ?? true
+    }
+
+    var shouldGenerateChatNames: Bool {
+        persona?.generateChatNames ?? true
+    }
+
+    var imageGenerationEnabled: Bool {
+        persona?.imageGenerationEnabled ?? false
+    }
+
+    var supportsImageGeneration: Bool {
+        (effectiveApiService?.imageGenerationSupported ?? false) && imageGenerationEnabled
+    }
+
+    var allowsImageUploads: Bool {
+        effectiveApiService?.imageUploadsAllowed ?? false
+    }
+
+    var allowsPdfUploads: Bool {
+        effectiveApiService?.pdfUploadsAllowed ?? false
+    }
+}
+
 extension APIServiceEntity: NSCopying {
     public func copy(with zone: NSZone? = nil) -> Any {
         let copy = APIServiceEntity(context: self.managedObjectContext!)
         copy.name = self.name
         copy.type = self.type
         copy.url = self.url
-        copy.model = self.model
-        copy.contextSize = self.contextSize
-        copy.useStreamResponse = self.useStreamResponse
-        copy.generateChatNames = self.generateChatNames
         copy.imageUploadsAllowed = self.imageUploadsAllowed
         copy.pdfUploadsAllowed = self.pdfUploadsAllowed
         copy.imageGenerationSupported = self.imageGenerationSupported
-        copy.defaultPersona = self.defaultPersona
+        copy.defaultPersona = nil
         copy.isDefault = false
         copy.id = UUID()
         copy.tokenIdentifier = UUID().uuidString

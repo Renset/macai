@@ -44,77 +44,15 @@ struct ContentView: View {
     @State private var lastChatCount = 0
     @State private var searchText = ""
     @State private var isSearchPresented = false
+    @State private var keyDownMonitor: Any?
+    @AppStorage("assistantPanelVisible") private var assistantPanelVisible = false
+    private var isSidebarVisible: Bool { columnVisibility != .detailOnly }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            ChatListView(selectedChat: $selectedChat, searchText: $searchText)
-                .environmentObject(attentionStore)
-                .navigationSplitViewColumnWidth(
-                    min: 180,
-                    ideal: 220,
-                    max: 400
-                )
+            primaryColumn
         } detail: {
-            HSplitView {
-                if selectedChat != nil {
-                    ChatView(viewContext: viewContext, chat: selectedChat!, searchText: $searchText)
-                        .frame(minWidth: 400)
-                        .id(openedChatId)
-                }
-                else {
-                    WelcomeScreen(
-                        chatsCount: chats.count,
-                        apiServiceIsPresent: apiServices.count > 0,
-                        customUrl: apiUrl != AppConstants.apiUrlOpenAIResponses,
-                        openPreferencesView: openPreferencesView,
-                        newChat: newChat
-                    )
-                }
-
-                if previewStateManager.isPreviewVisible {
-                    PreviewPane(stateManager: previewStateManager)
-                }
-            }
-            .searchable(text: $searchText, isPresented: $isSearchPresented, placement: .toolbar, prompt: "Search in chat…")
-            .onSubmit(of: .search) {
-                // Handle Enter key in search field - go to next occurrence
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("FindNext"),
-                    object: nil
-                )
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ActivateSearch"))) { _ in
-                // Remove focus from any text fields
-                NSApp.keyWindow?.makeFirstResponder(nil)
-                isSearchPresented = true
-            }
-            .onAppear {
-                // Add global key monitor for Shift+Enter when search is active
-                NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                    if event.keyCode == 36 && event.modifierFlags.contains(.shift) && isSearchPresented && !searchText.isEmpty {
-                        // Check if search field is focused by checking if any search-related view is first responder
-                        if let firstResponder = NSApp.keyWindow?.firstResponder as? NSView,
-                           String(describing: type(of: firstResponder)).contains("Search") {
-                            NotificationCenter.default.post(
-                                name: NSNotification.Name("FindPrevious"),
-                                object: nil
-                            )
-                            return nil
-                        }
-                    }
-
-                    // Cmd+Shift+Delete -> Clear currently selected chat
-                    // keyCode 51 corresponds to the Delete (backspace) key on macOS keyboards
-                    if event.keyCode == 51 && event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) {
-                        if selectedChat != nil {
-                            clearSelectedChat()
-                            return nil
-                        }
-                    }
-
-                    return event
-                }
-            }
+            detailColumn
         }
         .onAppear(perform: {
             updateSidebarVisibilityForChatCount(previousCount: lastChatCount, newCount: chats.count)
@@ -125,7 +63,7 @@ struct ContentView: View {
                 }
             }
         })
-        .onChange(of: chats.count) { newCount in
+        .onChange(of: chats.count) { _, newCount in
             updateSidebarVisibilityForChatCount(previousCount: lastChatCount, newCount: newCount)
             lastChatCount = newCount
         }
@@ -179,69 +117,50 @@ struct ContentView: View {
         }
         .navigationTitle("Chats")
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                if let selectedChatType = selectedChat?.apiService?.type {
-                    Image("logo_\(selectedChatType)")
-                        .resizable()
-                        .renderingMode(.template)
-                        .interpolation(.high)
-                        .frame(width: 16, height: 16)
-                        .padding(.horizontal, 12)
-                }
-
-                if let selectedChat = selectedChat {
-                    Menu {
-                        ForEach(apiServices, id: \.objectID) { apiService in
-                            Button(action: {
-                                selectedChat.apiService = apiService
-                                handleServiceChange(selectedChat, apiService)
-                            }) {
-                                HStack {
-                                    Text(apiService.name ?? "Unnamed API Service")
-                                    if selectedChat.apiService == apiService {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-
-                        Divider()
-
-                        Text("Current Model: \(selectedChat.gptModel)")
-                            .foregroundColor(.secondary)
-                    } label: {
-                        Text(selectedChat.apiService?.name ?? "Select API Service")
-                    }
-                }
-                
-                Button(action: {
-                    newChat()
-                }) {
-                    Image(systemName: "square.and.pencil")
-                }
-
-                if #available(macOS 14.0, *) {
-                    SettingsLink {
-                        settingsGearIcon
-                    }
-                }
-                else {
+            if !isSidebarVisible {
+                ToolbarItem(placement: .navigation) {
                     Button(action: {
-                        openPreferencesView()
+                        newChat()
                     }) {
-                        settingsGearIcon
+                        Label("New Chat", systemImage: "square.and.pencil")
                     }
+                    .labelStyle(.iconOnly)
                 }
             }
-        }
 
-        .onChange(of: scenePhase) { phase in
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        assistantPanelVisible.toggle()
+                    }
+                }) {
+                    Label("Chat Parameters", systemImage: "slider.horizontal.3")
+                }
+                .labelStyle(.iconOnly)
+                .help(assistantPanelVisible ? "Hide chat parameters" : "Show chat parameters")
+            }
+        }
+        .searchable(
+            text: $searchText,
+            isPresented: $isSearchPresented,
+            placement: .toolbar,
+            prompt: "Search"
+        )
+        .onSubmit(of: .search) {
+            if !searchText.isEmpty {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("FindNext"),
+                    object: nil
+                )
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
             print("Scene phase changed: \(phase)")
             if phase == .inactive {
                 print("Saving state...")
             }
         }
-        .onChange(of: selectedChat) { newValue in
+        .onChange(of: selectedChat) { _, newValue in
             if self.openedChatId != newValue?.id.uuidString {
                 self.openedChatId = newValue?.id.uuidString
                 previewStateManager.hidePreview()
@@ -288,6 +207,13 @@ struct ContentView: View {
                 clearSelectedChat()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppConstants.exportChatNotification)) { notification in
+            guard let chat = selectedChat else { return }
+            let rawFormat = notification.userInfo?["format"] as? String
+            let format = rawFormat.flatMap(ChatExportFormat.init(rawValue:)) ?? .markdown
+            ChatExporter.exportWithSavePanel(chat: chat, format: format)
+        }
+        .focusedSceneValue(\.chatIsSelected, selectedChat != nil)
         .environmentObject(previewStateManager)
     }
 
@@ -323,16 +249,23 @@ struct ContentView: View {
 
         if let service = preferredService {
             newChat.apiService = service
-            newChat.persona = service.defaultPersona
-            newChat.gptModel = service.model ?? AppConstants.defaultModel(for: service.type)
-            newChat.systemMessage = service.defaultPersona?.systemMessage ?? AppConstants.chatGptSystemMessage
+            if let defaultPersona = service.defaultPersona {
+                newChat.persona = defaultPersona
+                newChat.gptModel = defaultPersona.model ?? AppConstants.defaultModel(for: service.type)
+                newChat.systemMessage = defaultPersona.systemMessage ?? AppConstants.chatGptSystemMessage
+            } else {
+                newChat.gptModel = AppConstants.defaultModel(for: service.type)
+            }
         }
         else if let defaultService = resolveDefaultAPIService() {
             newChat.apiService = defaultService
-            newChat.persona = defaultService.defaultPersona
-            // TODO: Refactor the following code along with ChatView.swift
-            newChat.gptModel = defaultService.model ?? AppConstants.defaultModel(for: defaultService.type)
-            newChat.systemMessage = newChat.persona?.systemMessage ?? AppConstants.chatGptSystemMessage
+            if let defaultPersona = defaultService.defaultPersona {
+                newChat.persona = defaultPersona
+                newChat.gptModel = defaultPersona.model ?? AppConstants.defaultModel(for: defaultService.type)
+                newChat.systemMessage = defaultPersona.systemMessage ?? AppConstants.chatGptSystemMessage
+            } else {
+                newChat.gptModel = AppConstants.defaultModel(for: defaultService.type)
+            }
         }
 
         do {
@@ -397,7 +330,7 @@ struct ContentView: View {
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
-        alert.beginSheetModal(for: NSApp.keyWindow!) { response in
+        alert.presentAsSheetOrModal { response in
             if response == .alertFirstButtonReturn {
                 chat.clearMessages()
                 do {
@@ -405,6 +338,102 @@ struct ContentView: View {
                 } catch {
                     print("Error clearing chat: \(error.localizedDescription)")
                 }
+            }
+        }
+    }
+
+    private var primaryColumn: some View {
+        ChatListView(selectedChat: $selectedChat, searchText: $searchText)
+            .environmentObject(attentionStore)
+            .navigationSplitViewColumnWidth(
+                min: 180,
+                ideal: 220,
+                max: 400
+            )
+            .toolbar {
+                if isSidebarVisible {
+                    ToolbarItem(placement: .navigation) {
+                        Button(action: {
+                            newChat()
+                        }) {
+                            Label("New Chat", systemImage: "square.and.pencil")
+                        }
+                        .labelStyle(.iconOnly)
+                        .help("New Chat")
+                    }
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var detailColumn: some View {
+        HSplitView {
+            if let selectedChat {
+                ChatView(
+                    viewContext: viewContext,
+                    chat: selectedChat,
+                    searchText: $searchText,
+                    isSearchPresented: $isSearchPresented
+                )
+                    .frame(minWidth: 400)
+                    .id(openedChatId)
+            } else {
+                WelcomeScreen(
+                    chatsCount: chats.count,
+                    apiServiceIsPresent: apiServices.count > 0,
+                    customUrl: apiUrl != AppConstants.apiUrlOpenAIResponses,
+                    openPreferencesView: openPreferencesView,
+                    newChat: newChat
+                )
+            }
+
+            if assistantPanelVisible, let selectedChat {
+                AssistantInspectorView(
+                    chat: selectedChat,
+                    onServiceChange: { service in
+                        handleServiceChange(selectedChat, service)
+                    }
+                )
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+
+            if previewStateManager.isPreviewVisible {
+                PreviewPane(stateManager: previewStateManager)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: assistantPanelVisible)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ActivateSearch"))) { _ in
+            // Remove focus from any text fields
+            NSApp.keyWindow?.makeFirstResponder(nil)
+            isSearchPresented = true
+        }
+        .onAppear {
+            // Install the key monitor once; re-appearing must not stack duplicates.
+            guard keyDownMonitor == nil else { return }
+            // Add global key monitor for Shift+Enter when search is active
+            keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.keyCode == 36 && event.modifierFlags.contains(.shift) && isSearchPresented && !searchText.isEmpty {
+                    // Check if search field is focused by checking if any search-related view is first responder
+                    if let firstResponder = NSApp.keyWindow?.firstResponder as? NSView,
+                       String(describing: type(of: firstResponder)).contains("Search") {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("FindPrevious"),
+                            object: nil
+                        )
+                        return nil
+                    }
+                }
+
+                // Cmd+Shift+Delete -> Clear currently selected chat
+                // keyCode 51 corresponds to the Delete (backspace) key on macOS keyboards
+                if event.keyCode == 51 && event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) {
+                    if selectedChat != nil {
+                        clearSelectedChat()
+                        return nil
+                    }
+                }
+
+                return event
             }
         }
     }
@@ -419,19 +448,26 @@ struct ContentView: View {
     }
 
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
-        if chat.messagesArray.isEmpty {
-            if let newDefaultPersona = newService.defaultPersona {
-                chat.persona = newDefaultPersona
-                if let newSystemMessage = chat.persona?.systemMessage,
-                    !newSystemMessage.isEmpty
-                {
-                    chat.systemMessage = newSystemMessage
-                }
+        // The assistant stays selected; only the service it talks to changes.
+        if let persona = chat.persona, persona.apiService?.objectID != newService.objectID {
+            persona.apiService = newService
+
+            // Keep the model only when we know the new service offers it;
+            // otherwise fall back to the service default.
+            let currentModel = persona.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let knownModels = newService.id.flatMap { ModelsCache.shared.models(for: $0) } ?? []
+            if currentModel.isEmpty || !knownModels.contains(currentModel) {
+                persona.model = AppConstants.defaultModel(for: newService.type)
+            }
+
+            if !newService.imageGenerationSupported, persona.imageGenerationEnabled {
+                persona.imageGenerationEnabled = false
             }
         }
-        
+
         chat.apiService = newService
-        chat.gptModel = newService.model ?? AppConstants.defaultModel(for: newService.type)
+        let personaModel = chat.persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        chat.gptModel = personaModel.isEmpty ? AppConstants.defaultModel(for: newService.type) : personaModel
         chat.objectWillChange.send()
         try? viewContext.save()
 

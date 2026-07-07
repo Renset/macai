@@ -20,10 +20,11 @@ struct ChatMessagesView: View {
     let reasoningDurations: [NSManagedObjectID: TimeInterval]
     let activeReasoningMessageID: NSManagedObjectID?
     @State private var scrollDebounceWorkItem: DispatchWorkItem?
-    @State private var codeBlocksRendered = false
-    @State private var pendingCodeBlocks = 0
+    @State private var initialLoadSettleWorkItem: DispatchWorkItem?
     @State private var isInitialLoad = true
-    
+
+    private static let bottomAnchorID = "bottomAnchor"
+
     var backgroundColor = Color(NSColor.controlBackgroundColor)
 
     private var shouldShowWaitingBubble: Bool {
@@ -33,6 +34,7 @@ struct ChatMessagesView: View {
     var body: some View {
         ScrollView {
             ScrollViewReader { scrollView in
+                VStack(spacing: 0) {
                 VStack {
                     SystemMessageBubbleView(
                         message: chat.systemMessage,
@@ -94,17 +96,44 @@ struct ChatMessagesView: View {
                         ChatBubbleView(content: bubbleContent, searchText: $searchText)
                             .id(-2)
                     }
+
                 }
                 .padding(24)
-                .onAppear {
-                    pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
-                        count + (message.body.components(separatedBy: "```").count - 1) / 2
-                    }
-                    isInitialLoad = true
 
-                    if pendingCodeBlocks == 0 {
-                        codeBlocksRendered = true
-                        isInitialLoad = false
+                // Invisible sentinel: the true bottom of the scrollable content.
+                // It sits below the list padding, so anchoring to it lands exactly
+                // at the end — a sentinel inside the padded stack stops 24 pt short.
+                Color.clear
+                    .frame(height: 1)
+                    .id(Self.bottomAnchorID)
+                }
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(key: ContentHeightPreferenceKey.self, value: geometry.size.height)
+                    }
+                )
+                .onPreferenceChange(ContentHeightPreferenceKey.self) { _ in
+                    // Async rendering (code highlighting, images) keeps changing the
+                    // content height after the first layout pass. While the chat is
+                    // still settling after being opened, re-pin to the bottom on
+                    // every height change so we never stop short of the last message.
+                    guard isInitialLoad, !userIsScrolling else { return }
+                    // Pin on the next runloop turn so the scroll target is computed
+                    // from the freshly committed layout, not mid-update metrics.
+                    DispatchQueue.main.async {
+                        guard isInitialLoad, !userIsScrolling else { return }
+                        scrollView.scrollTo(Self.bottomAnchorID, anchor: .bottom)
+                    }
+                    scheduleInitialLoadSettle()
+                }
+                .onAppear {
+                    isInitialLoad = true
+                    scheduleInitialLoadSettle()
+                }
+                .onChange(of: userIsScrolling) { _, isScrolling in
+                    // The user took over; stop forcing the view to the bottom.
+                    if isScrolling {
+                        endInitialLoad()
                     }
                 }
                 .onSwipe { event in
@@ -115,15 +144,13 @@ struct ChatMessagesView: View {
                         break
                     }
                 }
-                .onChange(of: chat.lastMessage?.body) { _ in
+                .onChange(of: chat.lastMessage?.body) { _, _ in
                     if isStreaming && !userIsScrolling {
                         scrollDebounceWorkItem?.cancel()
 
                         let workItem = DispatchWorkItem {
-                            if let lastMessage = chatViewModel.sortedMessages.last {
-                                withAnimation(.easeOut(duration: 1)) {
-                                    scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
-                                }
+                            withAnimation(.easeOut(duration: 1)) {
+                                scrollView.scrollTo(Self.bottomAnchorID, anchor: .bottom)
                             }
                         }
 
@@ -131,10 +158,10 @@ struct ChatMessagesView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
                     }
                 }
-                .onChange(of: chatViewModel.sortedMessages.count) { _ in
+                .onChange(of: chatViewModel.sortedMessages.count) { _, _ in
                     if shouldShowWaitingBubble || currentError != nil {
                         withAnimation {
-                            scrollView.scrollTo(-1)
+                            scrollView.scrollTo(Self.bottomAnchorID, anchor: .bottom)
                         }
                     }
                 }
@@ -142,33 +169,14 @@ struct ChatMessagesView: View {
                     if let notificationChat = notification.object as? ChatEntity, notificationChat == chat {
                         DispatchQueue.main.async {
                             if !isStreaming && !userIsScrolling {
-                                let sortedMessages = chatViewModel.sortedMessages
-                                if let lastMessage = sortedMessages.last {
-                                    withAnimation(.easeOut(duration: 0.5)) {
-                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
-                                    }
+                                withAnimation(.easeOut(duration: 0.5)) {
+                                    scrollView.scrollTo(Self.bottomAnchorID, anchor: .bottom)
                                 }
                             }
                         }
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) { _ in
-                    if pendingCodeBlocks > 0 {
-                        pendingCodeBlocks -= 1
-                        if pendingCodeBlocks == 0 {
-                            codeBlocksRendered = true
-                            if isInitialLoad {
-                                isInitialLoad = false
-                                if let lastMessage = chatViewModel.sortedMessages.last {
-                                    DispatchQueue.main.async {
-                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .onChange(of: chatViewModel.currentSearchOccurrence) { newOccurrence in
+                .onChange(of: chatViewModel.currentSearchOccurrence) { _, newOccurrence in
                     if let occurrence = newOccurrence {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             // Generate element ID for the occurrence
@@ -199,5 +207,30 @@ struct ChatMessagesView: View {
             .padding(.trailing, 16)
             .allowsHitTesting(false)
         }
+    }
+
+    /// Ends the "initial load" phase once the content height has been stable
+    /// for a short quiet period, i.e. async rendering has finished.
+    private func scheduleInitialLoadSettle() {
+        initialLoadSettleWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
+            isInitialLoad = false
+        }
+        initialLoadSettleWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.25, execute: workItem)
+    }
+
+    private func endInitialLoad() {
+        initialLoadSettleWorkItem?.cancel()
+        initialLoadSettleWorkItem = nil
+        isInitialLoad = false
+    }
+}
+
+private struct ContentHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

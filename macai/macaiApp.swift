@@ -388,14 +388,42 @@ struct macaiApp: App {
 
     }
 
+    private func postExportChatNotification(format: ChatExportFormat) {
+        NotificationCenter.default.post(
+            name: AppConstants.exportChatNotification,
+            object: nil,
+            userInfo: ["format": format.rawValue]
+        )
+    }
+
+    /// "Export Chat" menu items, disabled while no chat is selected in the
+    /// focused window (ContentView publishes the flag via focusedSceneValue).
+    private struct ExportChatMenu: View {
+        @FocusedValue(\.chatIsSelected) private var chatIsSelected: Bool?
+        let post: (ChatExportFormat) -> Void
+
+        var body: some View {
+            Menu("Export Chat") {
+                Button("As Markdown…") {
+                    post(.markdown)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+
+                Button("As Plain Text…") {
+                    post(.plainText)
+                }
+            }
+            .disabled(chatIsSelected != true)
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(preferredColorScheme)
-
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 if UserDefaults.standard.bool(forKey: "autoCheckForUpdates") {
                     updaterController.updater.checkForUpdatesInBackground()
@@ -439,6 +467,10 @@ struct macaiApp: App {
                     )
                 }
                 .keyboardShortcut(".", modifiers: .command)
+
+                Divider()
+
+                ExportChatMenu(post: postExportChatNotification)
             }
 
             CommandGroup(replacing: .newItem) {
@@ -473,5 +505,18 @@ struct macaiApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(preferredColorScheme)
         }
+    }
+}
+
+private struct ChatIsSelectedFocusKey: FocusedValueKey {
+    typealias Value = Bool
+}
+
+extension FocusedValues {
+    /// Whether the focused window currently has a chat selected; drives
+    /// enablement of chat-dependent menu commands.
+    var chatIsSelected: Bool? {
+        get { self[ChatIsSelectedFocusKey.self] }
+        set { self[ChatIsSelectedFocusKey.self] = newValue }
     }
 }

@@ -15,16 +15,22 @@ class APIServiceManager {
         self.viewContext = viewContext
     }
     
-    func createAPIService(name: String, type: String, url: URL, model: String, contextSize: Int16, useStreamResponse: Bool, generateChatNames: Bool) -> APIServiceEntity {
+    func createAPIService(
+        name: String,
+        type: String,
+        url: URL,
+        imageUploadsAllowed: Bool,
+        pdfUploadsAllowed: Bool,
+        imageGenerationSupported: Bool
+    ) -> APIServiceEntity {
         let apiService = APIServiceEntity(context: viewContext)
         apiService.id = UUID()
         apiService.name = name
         apiService.type = type
         apiService.url = url
-        apiService.model = model
-        apiService.contextSize = contextSize
-        apiService.useStreamResponse = useStreamResponse
-        apiService.generateChatNames = generateChatNames
+        apiService.imageUploadsAllowed = imageUploadsAllowed
+        apiService.pdfUploadsAllowed = pdfUploadsAllowed
+        apiService.imageGenerationSupported = imageGenerationSupported
         apiService.tokenIdentifier = UUID().uuidString
         
         do {
@@ -36,14 +42,21 @@ class APIServiceManager {
         return apiService
     }
     
-    func updateAPIService(_ apiService: APIServiceEntity, name: String, type: String, url: URL, model: String, contextSize: Int16, useStreamResponse: Bool, generateChatNames: Bool) {
+    func updateAPIService(
+        _ apiService: APIServiceEntity,
+        name: String,
+        type: String,
+        url: URL,
+        imageUploadsAllowed: Bool,
+        pdfUploadsAllowed: Bool,
+        imageGenerationSupported: Bool
+    ) {
         apiService.name = name
         apiService.type = type
         apiService.url = url
-        apiService.model = model
-        apiService.contextSize = contextSize
-        apiService.useStreamResponse = useStreamResponse
-        apiService.generateChatNames = generateChatNames
+        apiService.imageUploadsAllowed = imageUploadsAllowed
+        apiService.pdfUploadsAllowed = pdfUploadsAllowed
+        apiService.imageGenerationSupported = imageGenerationSupported
         
         do {
             try viewContext.save()
@@ -82,6 +95,74 @@ class APIServiceManager {
             return results.first
         } catch {
             print("Error fetching API service: \(error)")
+            return nil
+        }
+    }
+}
+
+extension APIServiceManager {
+    static func fetchRemoteModels(
+        context: NSManagedObjectContext,
+        serviceID: NSManagedObjectID
+    ) async -> [String]? {
+        var snapshot: (
+            type: String,
+            url: URL,
+            serviceID: UUID,
+            defaultModel: String,
+            imageGenerationSupported: Bool
+        )?
+
+        context.performAndWait {
+            guard let service = try? context.existingObject(with: serviceID) as? APIServiceEntity else {
+                return
+            }
+            guard let type = service.type,
+                  let url = service.url,
+                  let id = service.id else {
+                return
+            }
+            guard let config = AppConstants.defaultApiConfigurations[type],
+                  config.modelsFetching else {
+                return
+            }
+            snapshot = (
+                type: type,
+                url: url,
+                serviceID: id,
+                defaultModel: config.defaultModel,
+                imageGenerationSupported: service.imageGenerationSupported
+            )
+        }
+
+        guard let snapshot else {
+            return nil
+        }
+
+        let apiKey = (try? TokenManager.getToken(for: snapshot.serviceID.uuidString)) ?? ""
+        if apiKey.isEmpty {
+            return nil
+        }
+
+        let apiConfig = APIServiceConfig(
+            name: snapshot.type,
+            apiUrl: snapshot.url,
+            apiKey: apiKey,
+            model: snapshot.defaultModel
+        )
+
+        let handler = APIServiceFactory.createAPIService(
+            config: apiConfig,
+            imageGenerationSupported: snapshot.imageGenerationSupported
+        )
+
+        do {
+            let models = try await handler.fetchModels()
+            let ids = models.map { $0.id }.filter { $0.isEmpty == false }.sorted()
+            ModelsCache.shared.store(ids, for: snapshot.serviceID)
+            return ids
+        } catch {
+            print("Failed to fetch models for \(snapshot.type): \(error)")
             return nil
         }
     }

@@ -78,6 +78,9 @@ macOS 14.0 and later (both Intel and Apple chips are supported)
 ## Project status
 Project is in the active development phase.
 
+## Disclaimer
+This software is provided "as is", without warranty of any kind. Use at your own risk.
+
 ### Build from source
 
 #### Option 1: With Apple Developer Account (Full Features)

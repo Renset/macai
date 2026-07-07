@@ -53,7 +53,7 @@ struct APIServiceTemplateAddView: View {
                 selectedRowID = viewModel.selectedOptionID
             }
         }
-        .onChange(of: viewModel.selectedOptionID) { newValue in
+        .onChange(of: viewModel.selectedOptionID) { _, newValue in
             if viewModel.currentStep == .selectTemplate && !newValue.isEmpty {
                 selectedRowID = newValue
             }
@@ -120,7 +120,7 @@ struct APIServiceTemplateAddView: View {
                                 .onSubmit {
                                     isServiceNameEditing = false
                                 }
-                                .onChange(of: viewModel.serviceName) { viewModel.handleNameChange($0) }
+                                .onChange(of: viewModel.serviceName) { _, newValue in viewModel.handleNameChange(newValue) }
                         } else {
                             Text(viewModel.serviceName.isEmpty ? model.displayName : viewModel.serviceName)
                                 .foregroundColor(.secondary)

@@ -45,6 +45,18 @@ extension String {
     }
 }
 
+extension Float {
+    /// Human-readable description of a sampling temperature, matching the
+    /// wording used across assistant settings UI.
+    var temperatureDescriptor: String {
+        if self > 0.8 { return "Creative" }
+        if self > 0.6 { return "Explorative" }
+        if self > 0.4 { return "Balanced" }
+        if self > 0.2 { return "Focused" }
+        return "Deterministic"
+    }
+}
+
 extension NSManagedObjectContext {
     func saveWithRetry(attempts: Int) {
         if concurrencyType == .mainQueueConcurrencyType, Thread.isMainThread {
@@ -70,6 +82,19 @@ extension NSManagedObjectContext {
             } else {
                 print("Failed to save after multiple attempts")
             }
+        }
+    }
+}
+
+extension NSAlert {
+    /// Presents the alert as a sheet on the key (or main) window, falling back
+    /// to an app-modal dialog when no window is available. Avoids crashing on
+    /// `NSApp.keyWindow!` when an action is triggered without a key window.
+    func presentAsSheetOrModal(completionHandler: @escaping (NSApplication.ModalResponse) -> Void) {
+        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+            beginSheetModal(for: window, completionHandler: completionHandler)
+        } else {
+            completionHandler(runModal())
         }
     }
 }

@@ -44,7 +44,7 @@ class MessageManager: ObservableObject {
                 chat.waitingForResponse = false
                 let partsEnvelope = encodePartsEnvelope(
                     from: (self.apiService as? GeminiHandler)?.consumeLastResponseParts(),
-                    serviceType: chat.apiService?.type
+                    serviceType: chat.effectiveApiService?.type
                 )
                 self.addMessageToChat(chat: chat, message: messageBody, partsEnvelope: partsEnvelope)
                 self.addNewMessageToRequestMessages(
@@ -160,7 +160,7 @@ class MessageManager: ObservableObject {
 
                 let geminiParts = encodePartsEnvelope(
                     from: (self.apiService as? GeminiHandler)?.consumeLastResponseParts(),
-                    serviceType: chat.apiService?.type
+                    serviceType: chat.effectiveApiService?.type
                 )
 
                 if deferImageResponse {
@@ -222,7 +222,11 @@ class MessageManager: ObservableObject {
     }
 
     func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
-        guard force || chat.name == "", !chat.messagesArray.isEmpty else {
+        // `force` (explicit "Regenerate Name") must work even when the chat
+        // is already named; the name-emptiness check only gates auto-generation.
+        guard force || (chat.shouldGenerateChatNames && chat.name == ""),
+              !chat.messagesArray.isEmpty
+        else {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
@@ -243,7 +247,7 @@ class MessageManager: ObservableObject {
 
             switch result {
             case .success(let messageBody):
-                let chatName = self.sanitizeChatName(messageBody)
+                let chatName = MessageManager.sanitizeChatName(messageBody)
                 chat.name = chatName
                 self.viewContext.saveWithRetry(attempts: 3)
             case .failure(let error):
@@ -252,8 +256,8 @@ class MessageManager: ObservableObject {
         }
     }
 
-    private func sanitizeChatName(_ rawName: String) -> String {
-        if let range = rawName.range(of: "**(.+?)**", options: .regularExpression) {
+    static func sanitizeChatName(_ rawName: String) -> String {
+        if let range = rawName.range(of: "\\*\\*(.+?)\\*\\*", options: .regularExpression) {
             return String(rawName[range]).trimmingCharacters(in: CharacterSet(charactersIn: "*"))
         }
 
@@ -335,7 +339,6 @@ class MessageManager: ObservableObject {
     }
 
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
-        print("Streaming chunk received: \(accumulatedResponse.suffix(20))")
         lastMessage.body = accumulatedResponse
         lastMessage.timestamp = Date()
         lastMessage.waitingForResponse = false
@@ -348,7 +351,8 @@ class MessageManager: ObservableObject {
     {
         var messages: [[String: String]] = []
 
-        if !AppConstants.openAiReasoningModels.contains(chat.gptModel) {
+        let activeModel = chat.effectiveModel
+        if !AppConstants.openAiReasoningModels.contains(activeModel) {
             messages.append([
                 "role": "system",
                 "content": chat.systemMessage,
