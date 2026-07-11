@@ -125,22 +125,35 @@ final class DatabasePatcherTests: XCTestCase {
         XCTAssertEqual(chat.apiService?.objectID, service.objectID)
     }
 
-    func testMigrationKeepsPersonaUnboundWhenUsedWithMultipleServices() throws {
+    func testMigrationClonesPersonaUsedWithMultipleServicesAndPreservesChatServices() throws {
         let serviceA = makeService(name: "OpenAI")
         let serviceB = makeService(name: "Claude")
         let persona = makePersona(name: "Shared")
+        serviceA.defaultPersona = persona
+        serviceB.defaultPersona = persona
         let chatA = makeChat(persona: persona, service: serviceA)
         let chatB = makeChat(persona: persona, service: serviceB)
         try context.save()
 
         XCTAssertTrue(DatabasePatcher.migrateAssistantSettingsToPersonas(context: context))
 
-        // The persona is ambiguous and must stay unbound; each chat keeps its own service.
-        XCTAssertNil(persona.apiService)
+        let migratedPersonaA = try XCTUnwrap(chatA.persona)
+        let migratedPersonaB = try XCTUnwrap(chatB.persona)
+        XCTAssertNotEqual(migratedPersonaA.objectID, migratedPersonaB.objectID)
+        XCTAssertEqual(migratedPersonaA.apiService?.objectID, serviceA.objectID)
+        XCTAssertEqual(migratedPersonaB.apiService?.objectID, serviceB.objectID)
+        XCTAssertEqual(serviceA.defaultPersona?.objectID, migratedPersonaA.objectID)
+        XCTAssertEqual(serviceB.defaultPersona?.objectID, migratedPersonaB.objectID)
         XCTAssertEqual(chatA.apiService?.objectID, serviceA.objectID)
         XCTAssertEqual(chatB.apiService?.objectID, serviceB.objectID)
-        XCTAssertEqual(chatA.persona?.objectID, persona.objectID)
-        XCTAssertEqual(chatB.persona?.objectID, persona.objectID)
+        XCTAssertFalse(chatA.apiServiceOverridden)
+        XCTAssertFalse(chatB.apiServiceOverridden)
+
+        let personaCount = try context.count(for: PersonaEntity.fetchRequest())
+        XCTAssertTrue(DatabasePatcher.migrateAssistantSettingsToPersonas(context: context))
+        XCTAssertEqual(try context.count(for: PersonaEntity.fetchRequest()), personaCount)
+        XCTAssertEqual(chatA.apiService?.objectID, serviceA.objectID)
+        XCTAssertEqual(chatB.apiService?.objectID, serviceB.objectID)
     }
 
     func testMigrationCreatesDefaultPersonaForServiceWithoutOne() throws {
@@ -191,6 +204,26 @@ final class DatabasePatcherTests: XCTestCase {
         XCTAssertEqual(chat.systemMessage, "Chat system message")
         XCTAssertEqual(chat.messagesArray.count, 2)
         XCTAssertEqual(chat.messagesArray.map(\.body), ["Question", "Answer"])
+    }
+
+    func testMigrationMarksLegacyPerChatSettingsAsOverrides() throws {
+        let service = makeService(name: "OpenAI")
+        let persona = makePersona(name: "Writer")
+        persona.apiService = service
+        persona.model = "assistant-model"
+        persona.systemMessage = "Assistant system message"
+        let chat = makeChat(persona: persona, service: service)
+        chat.gptModel = "chat-model"
+        chat.systemMessage = "Chat-specific system message"
+        try context.save()
+
+        XCTAssertTrue(DatabasePatcher.migrateAssistantSettingsToPersonas(context: context))
+
+        XCTAssertFalse(chat.apiServiceOverridden)
+        XCTAssertTrue(chat.modelOverridden)
+        XCTAssertTrue(chat.systemMessageOverridden)
+        XCTAssertEqual(chat.effectiveModel, "chat-model")
+        XCTAssertEqual(chat.effectiveSystemMessage, "Chat-specific system message")
     }
 
     func testMigrationIsIdempotent() throws {

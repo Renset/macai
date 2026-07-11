@@ -210,9 +210,10 @@ final class ChatEntityTests: XCTestCase {
         chat.persona = makePersona(model: "persona-model")
 
         chat.gptModel = "chat-model"
+        chat.modelOverridden = true
         XCTAssertEqual(chat.effectiveModel, "chat-model")
 
-        chat.gptModel = ""
+        chat.modelOverridden = false
         XCTAssertEqual(chat.effectiveModel, "persona-model")
     }
 
@@ -225,10 +226,39 @@ final class ChatEntityTests: XCTestCase {
         chat.persona = persona
 
         chat.apiService = chatService
+        chat.apiServiceOverridden = true
         XCTAssertEqual(chat.effectiveApiService?.objectID, chatService.objectID)
 
-        chat.apiService = nil
+        chat.apiServiceOverridden = false
         XCTAssertEqual(chat.effectiveApiService?.objectID, personaService.objectID)
+    }
+
+    func testAssistantChangesRemainLiveUntilChatOverridesThem() {
+        let chat = makeChat()
+        let persona = makePersona(model: "first-model")
+        let firstService = makeService(name: "First Service")
+        let secondService = makeService(name: "Second Service")
+        persona.apiService = firstService
+        persona.systemMessage = "First system message"
+        chat.persona = persona
+        chat.apiService = firstService
+        chat.gptModel = "first-model"
+        chat.systemMessage = "First system message"
+
+        persona.apiService = secondService
+        persona.model = "second-model"
+        persona.systemMessage = "Second system message"
+
+        XCTAssertEqual(chat.effectiveApiService?.objectID, secondService.objectID)
+        XCTAssertEqual(chat.effectiveModel, "second-model")
+        XCTAssertEqual(chat.effectiveSystemMessage, "Second system message")
+
+        chat.apiServiceOverridden = true
+        chat.modelOverridden = true
+        chat.systemMessageOverridden = true
+        XCTAssertEqual(chat.effectiveApiService?.objectID, firstService.objectID)
+        XCTAssertEqual(chat.effectiveModel, "first-model")
+        XCTAssertEqual(chat.effectiveSystemMessage, "First system message")
     }
 
     func testImageGenerationModeOverridesPersona() {
@@ -260,6 +290,9 @@ final class ChatEntityTests: XCTestCase {
         chat.imageGenerationMode = 2
         chat.gptModel = "chat-model"
         chat.apiService = makeService(name: "Chat Service")
+        chat.apiServiceOverridden = true
+        chat.modelOverridden = true
+        chat.systemMessageOverridden = true
 
         chat.resetToAssistantDefaults()
 
@@ -270,5 +303,8 @@ final class ChatEntityTests: XCTestCase {
         XCTAssertEqual(chat.gptModel, "persona-model")
         XCTAssertEqual(chat.apiService?.objectID, personaService.objectID)
         XCTAssertEqual(chat.systemMessage, "Persona system message")
+        XCTAssertFalse(chat.apiServiceOverridden)
+        XCTAssertFalse(chat.modelOverridden)
+        XCTAssertFalse(chat.systemMessageOverridden)
     }
 }

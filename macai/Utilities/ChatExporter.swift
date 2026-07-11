@@ -203,7 +203,7 @@ struct ChatExporter {
         let context = chat.managedObjectContext
         return render(
             chatName: chat.name,
-            systemMessage: chat.systemMessage,
+            systemMessage: chat.effectiveSystemMessage,
             messages: messages,
             format: format,
             fileNameResolver: { uuid in

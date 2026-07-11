@@ -23,6 +23,9 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var contextSize: Int16
     /// Per-chat image generation override: 0 = inherit, 1 = enabled, 2 = disabled.
     @NSManaged public var imageGenerationMode: Int16
+    @NSManaged public var apiServiceOverridden: Bool
+    @NSManaged public var modelOverridden: Bool
+    @NSManaged public var systemMessageOverridden: Bool
     @NSManaged public var top_p: Double
     @NSManaged public var behavior: String?
     @NSManaged public var draftMessage: String?
@@ -315,19 +318,32 @@ extension ChatEntity {
 // writes to the chat only — assistants are edited in Settings → AI Assistants.
 extension ChatEntity {
     var effectiveApiService: APIServiceEntity? {
-        apiService ?? persona?.apiService
+        if apiServiceOverridden {
+            return apiService
+        }
+        return persona?.apiService ?? apiService
     }
 
     var effectiveModel: String {
         let chatModel = gptModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        if chatModel.isEmpty == false {
+        if modelOverridden, chatModel.isEmpty == false {
             return chatModel
         }
         let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if personaModel.isEmpty == false {
             return personaModel
         }
+        if chatModel.isEmpty == false {
+            return chatModel
+        }
         return AppConstants.defaultModel(for: effectiveApiService?.type)
+    }
+
+    var effectiveSystemMessage: String {
+        if systemMessageOverridden || persona == nil {
+            return systemMessage
+        }
+        return persona?.systemMessage ?? systemMessage
     }
 
     var effectiveTemperature: Float {
@@ -374,6 +390,9 @@ extension ChatEntity {
         temperatureOverridden = false
         contextSize = 0
         imageGenerationMode = 0
+        apiServiceOverridden = false
+        modelOverridden = false
+        systemMessageOverridden = false
 
         guard let persona else { return }
         if let personaService = persona.apiService {

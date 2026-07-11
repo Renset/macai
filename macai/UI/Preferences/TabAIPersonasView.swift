@@ -205,6 +205,8 @@ struct PersonaDetailView: View {
     @State private var useStreamResponse = true
     @State private var generateChatNames = true
     @State private var imageGenerationEnabled = false
+    @State private var persistenceErrorMessage = ""
+    @State private var showingPersistenceError = false
 
     private var serviceConfiguration: AppConstants.defaultApiConfiguration? {
         guard let type = selectedService?.type else { return nil }
@@ -411,8 +413,9 @@ struct PersonaDetailView: View {
                 }
 
                 Button(persona == nil ? "Create Assistant" : "Update Assistant") {
-                    savePersona()
-                    onSave()
+                    if savePersona() {
+                        onSave()
+                    }
                 }
                 .disabled(
                     name.isEmpty
@@ -476,11 +479,17 @@ struct PersonaDetailView: View {
                 title: Text("Delete Assistant"),
                 message: Text("Are you sure you want to delete this assistant? This action cannot be undone."),
                 primaryButton: .destructive(Text("Delete")) {
-                    deletePersona()
-                    onDelete()
+                    if deletePersona() {
+                        onDelete()
+                    }
                 },
                 secondaryButton: .cancel()
             )
+        }
+        .alert("Unable to Save Assistant", isPresented: $showingPersistenceError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(persistenceErrorMessage)
         }
     }
 
@@ -536,7 +545,8 @@ struct PersonaDetailView: View {
         }
     }
 
-    private func savePersona() {
+    @discardableResult
+    private func savePersona() -> Bool {
         let personaToSave = persona ?? PersonaEntity(context: viewContext)
         personaToSave.name = name
         personaToSave.color = color.toHex()
@@ -582,24 +592,29 @@ struct PersonaDetailView: View {
             personaToSave.objectWillChange.send()
             try viewContext.save()
             presentationMode.wrappedValue.dismiss()
+            return true
         }
         catch {
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            persistenceErrorMessage = error.localizedDescription
+            showingPersistenceError = true
+            return false
         }
     }
 
-    private func deletePersona() {
-        if let personaToDelete = persona {
-            viewContext.delete(personaToDelete)
-            do {
-                try viewContext.save()
-                presentationMode.wrappedValue.dismiss()
-            }
-            catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+    @discardableResult
+    private func deletePersona() -> Bool {
+        guard let personaToDelete = persona else { return false }
+        viewContext.delete(personaToDelete)
+        do {
+            try viewContext.save()
+            presentationMode.wrappedValue.dismiss()
+            return true
+        }
+        catch {
+            viewContext.rollback()
+            persistenceErrorMessage = error.localizedDescription
+            showingPersistenceError = true
+            return false
         }
     }
 }

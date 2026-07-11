@@ -81,6 +81,9 @@ struct PersonaSelectorView: View {
         chat.temperatureOverridden = false
         chat.contextSize = 0
         chat.imageGenerationMode = 0
+        chat.apiServiceOverridden = false
+        chat.modelOverridden = false
+        chat.systemMessageOverridden = false
         if let service = persona?.apiService {
             chat.apiService = service
             let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

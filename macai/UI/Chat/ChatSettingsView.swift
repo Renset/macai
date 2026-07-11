@@ -317,6 +317,7 @@ struct ChatSettingsView: View {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false, chat.gptModel != trimmed else { return }
         chat.gptModel = trimmed
+        chat.modelOverridden = true
         scheduleDebouncedSave()
     }
 

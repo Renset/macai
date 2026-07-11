@@ -263,6 +263,19 @@ class DatabasePatcher {
                 return
             }
 
+            // Capture the v3 relationships before mutating anything. A persona could
+            // be shared by several services, so later decisions must not depend on
+            // whichever service happens to be processed first.
+            let originalChatServices = Dictionary(
+                uniqueKeysWithValues: chats.map { ($0.objectID, $0.apiService?.objectID) }
+            )
+            let originalChatPersonas = Dictionary(
+                uniqueKeysWithValues: chats.map { ($0.objectID, $0.persona?.objectID) }
+            )
+            let originalDefaultPersonas = Dictionary(
+                uniqueKeysWithValues: services.map { ($0.objectID, $0.defaultPersona?.objectID) }
+            )
+
             var personaServiceCandidates: [NSManagedObjectID: Set<NSManagedObjectID>] = [:]
             for chat in chats {
                 guard let persona = chat.persona,
@@ -320,70 +333,104 @@ class DatabasePatcher {
                 return clone
             }
 
+            struct PersonaServiceKey: Hashable {
+                let personaID: NSManagedObjectID
+                let serviceID: NSManagedObjectID
+            }
+
+            let servicesByID = Dictionary(uniqueKeysWithValues: services.map { ($0.objectID, $0) })
+            var migratedPersonaByPair: [PersonaServiceKey: PersonaEntity] = [:]
             var maxOrder = personas.map { $0.order }.max() ?? 0
 
             for persona in personas {
-                if persona.apiService == nil {
-                    if let candidates = personaServiceCandidates[persona.objectID], candidates.count == 1,
-                       let serviceID = candidates.first,
-                       let service = services.first(where: { $0.objectID == serviceID }) {
-                        persona.apiService = service
-                        didChange = true
-                    }
+                let candidateIDs = (personaServiceCandidates[persona.objectID] ?? [])
+                    .sorted { $0.uriRepresentation().absoluteString < $1.uriRepresentation().absoluteString }
+
+                if candidateIDs.isEmpty {
+                    applyDefaults(to: persona, service: persona.apiService)
+                    continue
                 }
-                applyDefaults(to: persona, service: persona.apiService)
+
+                for (index, serviceID) in candidateIDs.enumerated() {
+                    guard let service = servicesByID[serviceID] else { continue }
+                    let migratedPersona: PersonaEntity
+                    if index == 0 {
+                        migratedPersona = persona
+                    } else {
+                        maxOrder += 1
+                        migratedPersona = clonePersona(persona, order: maxOrder)
+                    }
+                    migratedPersona.apiService = service
+                    applyDefaults(to: migratedPersona, service: service)
+                    migratedPersonaByPair[
+                        PersonaServiceKey(personaID: persona.objectID, serviceID: serviceID)
+                    ] = migratedPersona
+                    didChange = true
+                }
             }
 
             for service in services {
-                let hasPersona = personas.contains { $0.apiService?.objectID == service.objectID }
-                if hasPersona == false {
+                let boundPersona = (Array(migratedPersonaByPair.values) + personas)
+                    .filter { $0.apiService?.objectID == service.objectID }
+                    .min(by: { $0.order < $1.order })
+                let defaultPersona: PersonaEntity
+                if let originalPersonaID = originalDefaultPersonas[service.objectID] ?? nil,
+                   let mapped = migratedPersonaByPair[
+                       PersonaServiceKey(personaID: originalPersonaID, serviceID: service.objectID)
+                   ] {
+                    defaultPersona = mapped
+                } else if let existing = service.defaultPersona,
+                          existing.apiService == nil || existing.apiService == service {
+                    existing.apiService = service
+                    applyDefaults(to: existing, service: service)
+                    defaultPersona = existing
+                    didChange = true
+                } else if let bound = boundPersona {
+                    defaultPersona = bound
+                } else {
                     maxOrder += 1
+                    let newPersona = PersonaEntity(context: context)
+                    newPersona.name = (service.name?.isEmpty == false)
+                        ? "\(service.name ?? "Service") Assistant"
+                        : "Assistant"
+                    newPersona.color = AppConstants.defaultPersonaColor
+                    newPersona.systemMessage = AppConstants.chatGptSystemMessage
+                    newPersona.temperature = AppConstants.defaultTemperatureForChat
+                    newPersona.contextSize = service.contextSize > 0
+                        ? service.contextSize
+                        : Int16(AppConstants.chatGptContextSize)
+                    newPersona.generateChatNames = service.generateChatNames
+                    newPersona.useStreamResponse = service.useStreamResponse
+                    newPersona.imageGenerationEnabled = service.imageGenerationSupported
+                    newPersona.model = service.model ?? AppConstants.defaultModel(for: service.type)
+                    newPersona.addedDate = Date()
+                    newPersona.id = UUID()
+                    newPersona.order = maxOrder
+                    newPersona.apiService = service
+                    defaultPersona = newPersona
+                    didChange = true
+                }
 
-                    let defaultPersona: PersonaEntity
-                    if let existingDefault = service.defaultPersona {
-                        if existingDefault.apiService == nil || existingDefault.apiService == service {
-                            existingDefault.apiService = service
-                            applyDefaults(to: existingDefault, service: service)
-                            defaultPersona = existingDefault
-                            didChange = true
-                        } else {
-                            let clone = clonePersona(existingDefault, order: maxOrder)
-                            clone.apiService = service
-                            applyDefaults(to: clone, service: service)
-                            defaultPersona = clone
-                            didChange = true
-                        }
-                    } else {
-                        let newPersona = PersonaEntity(context: context)
-                        newPersona.name = (service.name?.isEmpty == false)
-                            ? "\(service.name ?? "Service") Assistant"
-                            : "Assistant"
-                        newPersona.color = AppConstants.defaultPersonaColor
-                        newPersona.systemMessage = AppConstants.chatGptSystemMessage
-                        newPersona.temperature = AppConstants.defaultTemperatureForChat
-                        newPersona.contextSize = service.contextSize > 0
-                            ? service.contextSize
-                            : Int16(AppConstants.chatGptContextSize)
-                        newPersona.generateChatNames = service.generateChatNames
-                        newPersona.useStreamResponse = service.useStreamResponse
-                        newPersona.imageGenerationEnabled = service.imageGenerationSupported
-                        newPersona.model = service.model ?? AppConstants.defaultModel(for: service.type)
-                        newPersona.addedDate = Date()
-                        newPersona.id = UUID()
-                        newPersona.order = maxOrder
-                        newPersona.apiService = service
-                        defaultPersona = newPersona
-                        didChange = true
-                    }
-
-                    if service.defaultPersona == nil {
-                        service.defaultPersona = defaultPersona
-                        didChange = true
-                    }
+                if service.defaultPersona !== defaultPersona {
+                    service.defaultPersona = defaultPersona
+                    didChange = true
                 }
             }
 
             for chat in chats {
+                let originalServiceID = originalChatServices[chat.objectID] ?? nil
+                let originalPersonaID = originalChatPersonas[chat.objectID] ?? nil
+
+                if let originalServiceID,
+                   let originalPersonaID,
+                   let mappedPersona = migratedPersonaByPair[
+                       PersonaServiceKey(personaID: originalPersonaID, serviceID: originalServiceID)
+                   ] {
+                    chat.persona = mappedPersona
+                    chat.apiService = servicesByID[originalServiceID]
+                    didChange = true
+                }
+
                 if chat.persona == nil, let service = chat.apiService {
                     if let defaultPersona = service.defaultPersona {
                         chat.persona = defaultPersona
@@ -395,8 +442,25 @@ class DatabasePatcher {
                 }
 
                 if let persona = chat.persona, let personaService = persona.apiService {
-                    if chat.apiService?.objectID != personaService.objectID {
+                    // Preserve an explicit legacy mismatch. Otherwise the chat follows
+                    // the migrated assistant and future assistant edits stay live.
+                    let apiServiceOverridden = chat.apiService?.objectID != personaService.objectID
+                    let modelOverridden = !chat.gptModel.isEmpty
+                        && chat.gptModel != (persona.model ?? "")
+                    let systemMessageOverridden = !chat.systemMessage.isEmpty
+                        && chat.systemMessage != (persona.systemMessage ?? "")
+                    if chat.apiServiceOverridden != apiServiceOverridden
+                        || chat.modelOverridden != modelOverridden
+                        || chat.systemMessageOverridden != systemMessageOverridden {
+                        chat.apiServiceOverridden = apiServiceOverridden
+                        chat.modelOverridden = modelOverridden
+                        chat.systemMessageOverridden = systemMessageOverridden
+                        didChange = true
+                    }
+
+                    if chat.apiService == nil {
                         chat.apiService = personaService
+                        chat.apiServiceOverridden = false
                         didChange = true
                     }
                     if (chat.gptModel.isEmpty) && (persona.model?.isEmpty == false) {
@@ -405,6 +469,8 @@ class DatabasePatcher {
                     }
                 } else if chat.gptModel.isEmpty, let service = chat.apiService {
                     chat.gptModel = service.model ?? AppConstants.defaultModel(for: service.type)
+                    chat.apiServiceOverridden = true
+                    chat.modelOverridden = true
                     didChange = true
                 }
             }

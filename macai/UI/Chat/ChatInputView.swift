@@ -43,6 +43,7 @@ struct ChatInputView: View {
             onSendMessage: {
                 if editSystemMessage {
                     chat.systemMessage = newMessage
+                    chat.systemMessageOverridden = true
                     newMessage = ""
                     editSystemMessage = false
                     store.saveInCoreData()

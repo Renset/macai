@@ -641,15 +641,19 @@ struct ContentView: View {
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
         // Per-chat setting: only this chat switches service; the assistant
         // (and every other chat using it) is untouched.
+        let currentModel = chat.effectiveModel.trimmingCharacters(in: .whitespacesAndNewlines)
         chat.apiService = newService
+        chat.apiServiceOverridden = true
 
         // Keep the chat's model only when we know the new service offers it;
         // otherwise fall back to the service default.
-        let currentModel = chat.gptModel.trimmingCharacters(in: .whitespacesAndNewlines)
         let knownModels = newService.id.flatMap { ModelsCache.shared.models(for: $0) } ?? []
         if currentModel.isEmpty || !knownModels.contains(currentModel) {
             chat.gptModel = AppConstants.defaultModel(for: newService.type)
+        } else {
+            chat.gptModel = currentModel
         }
+        chat.modelOverridden = true
 
         chat.objectWillChange.send()
         try? viewContext.save()

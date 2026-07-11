@@ -354,14 +354,14 @@ class MessageManager: ObservableObject {
         if !AppConstants.openAiReasoningModels.contains(activeModel) {
             messages.append([
                 "role": "system",
-                "content": chat.systemMessage,
+                "content": chat.effectiveSystemMessage,
             ])
         }
         else {
             // Models like o1-mini and o1-preview don't support "system" role. However, we can pass the system message with "user" role instead.
             messages.append([
                 "role": "user",
-                "content": "Take this message as the system message: \(chat.systemMessage)",
+                "content": "Take this message as the system message: \(chat.effectiveSystemMessage)",
             ])
         }
 
