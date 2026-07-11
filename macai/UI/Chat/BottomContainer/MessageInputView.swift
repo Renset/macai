@@ -241,6 +241,7 @@ struct MessageInputView: View {
                     minHeight: initialInputSize,
                     maxHeight: maxInputHeight,
                     onEscape: isEditingSystemMessage ? onCancelEdit : nil,
+                    onPasteImage: imageUploadsAllowed ? addPastedImage : nil,
                     onCommit: {
                         guard !isInferenceInProgress else { return }
                         onEnter()
@@ -323,6 +324,14 @@ struct MessageInputView: View {
                     photoPickerItems = []
                 }
             }
+        }
+    }
+
+    private func addPastedImage(_ image: NSImage) {
+        let attachment = ImageAttachment(image: image)
+        attachment.saveToEntity(image: image, context: viewContext)
+        withAnimation {
+            attachedImages.append(attachment)
         }
     }
 
