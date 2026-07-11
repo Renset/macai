@@ -148,7 +148,8 @@ extension APIServiceManager {
             name: snapshot.type,
             apiUrl: snapshot.url,
             apiKey: apiKey,
-            model: snapshot.defaultModel
+            model: snapshot.defaultModel,
+            customHeaders: APIServiceHeaderStore.load(for: snapshot.serviceID)
         )
 
         let handler = APIServiceFactory.createAPIService(

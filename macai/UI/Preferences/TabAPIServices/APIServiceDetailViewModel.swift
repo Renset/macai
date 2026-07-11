@@ -8,6 +8,18 @@
 import CoreData
 import SwiftUI
 
+struct EditableHTTPHeader: Identifiable, Equatable {
+    let id: UUID
+    var name: String
+    var value: String
+
+    init(id: UUID = UUID(), name: String = "", value: String = "") {
+        self.id = id
+        self.name = name
+        self.value = value
+    }
+}
+
 @MainActor
 class APIServiceDetailViewModel: ObservableObject {
     private let viewContext: NSManagedObjectContext
@@ -20,6 +32,7 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var pdfUploadsAllowed: Bool = false
     @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
+    @Published var customHeaders: [EditableHTTPHeader] = []
     @Published var defaultApiConfiguration = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]
 
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
@@ -49,6 +62,9 @@ class APIServiceDetailViewModel: ObservableObject {
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
 
             if let serviceID = service.id {
+                customHeaders = APIServiceHeaderStore.load(for: serviceID)
+                    .sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
+                    .map { EditableHTTPHeader(name: $0.key, value: $0.value) }
                 let serviceIDString = serviceID.uuidString
                 do {
                     apiKey = try TokenManager.getToken(for: serviceIDString) ?? ""
@@ -89,6 +105,38 @@ class APIServiceDetailViewModel: ObservableObject {
             ?? defaultApiConfiguration?.imageGenerationSupported
             ?? false
         return personaEnabled && serviceSupports
+    }
+
+    var normalizedCustomHeaders: [String: String] {
+        customHeaders.reduce(into: [:]) { result, header in
+            let name = header.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let value = header.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, !value.isEmpty else { return }
+            result[name] = value
+        }
+    }
+
+    var hasInvalidCustomHeaders: Bool {
+        let completed = customHeaders.filter {
+            !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        guard completed.allSatisfy({
+            !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !$0.name.contains(":")
+                && !$0.name.contains(where: { $0.isWhitespace })
+        }) else { return true }
+        let names = completed.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        return Set(names).count != names.count
+    }
+
+    func addCustomHeader() {
+        customHeaders.append(EditableHTTPHeader())
+    }
+
+    func removeCustomHeader(id: UUID) {
+        customHeaders.removeAll { $0.id == id }
     }
 
     func saveAPIService() {
@@ -138,6 +186,7 @@ class APIServiceDetailViewModel: ObservableObject {
         let serviceIDString = serviceID.uuidString
         do {
             try TokenManager.setToken(apiKey, for: serviceIDString)
+            try APIServiceHeaderStore.save(normalizedCustomHeaders, for: serviceID)
         }
         catch {
             print("Failed to set token: \(error.localizedDescription)")
@@ -166,6 +215,7 @@ class APIServiceDetailViewModel: ObservableObject {
         if let serviceID = serviceToDelete.id {
             let serviceIDString = serviceID.uuidString
             try? TokenManager.deleteToken(for: serviceIDString)
+            APIServiceHeaderStore.delete(for: serviceID)
         }
 
         viewContext.delete(serviceToDelete)

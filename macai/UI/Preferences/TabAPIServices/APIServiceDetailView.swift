@@ -112,7 +112,8 @@ struct APIServiceDetailView: View {
                             gptModel: viewModel.testModel,
                             apiUrl: viewModel.url,
                             apiType: viewModel.type,
-                            imageGenerationSupported: viewModel.testImageGenerationEnabled
+                            imageGenerationSupported: viewModel.testImageGenerationEnabled,
+                            customHeaders: viewModel.normalizedCustomHeaders
                         )
                     }
                 }
@@ -160,6 +161,37 @@ struct APIServiceDetailView: View {
             }
             .padding(.vertical, 8)
 
+            DisclosureGroup("Advanced") {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach($viewModel.customHeaders) { $header in
+                        HStack {
+                            TextField("Header name", text: $header.name)
+                            TextField("Value", text: $header.value)
+                            Button("Remove header", systemImage: "minus.circle", role: .destructive) {
+                                viewModel.removeCustomHeader(id: header.id)
+                            }
+                            .labelStyle(.iconOnly)
+                        }
+                    }
+
+                    Button("Add Header", systemImage: "plus") {
+                        viewModel.addCustomHeader()
+                    }
+                    .buttonStyle(.link)
+
+                    Text("Custom headers are stored securely in Keychain. Required provider headers take precedence.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if viewModel.hasInvalidCustomHeaders {
+                        Text("Enter a unique name and value for each header. Names cannot contain spaces or colons.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                .padding(.top, 8)
+            }
+
             HStack {
                 Text("Default AI Assistant:")
                     .frame(width: 160, alignment: .leading)
@@ -196,6 +228,7 @@ struct APIServiceDetailView: View {
                     Text("Save")
                 }
                 .keyboardShortcut(.defaultAction)
+                .disabled(viewModel.hasInvalidCustomHeaders)
             }
             .padding(.top, 16)
         }

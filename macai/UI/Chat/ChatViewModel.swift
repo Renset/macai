@@ -312,7 +312,8 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             name: getApiServiceName(),
             apiUrl: apiServiceUrl,
             apiKey: apiKey,
-            model: chat.effectiveModel
+            model: chat.effectiveModel,
+            customHeaders: APIServiceHeaderStore.load(for: serviceID)
         )
     }
 

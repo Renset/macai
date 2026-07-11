@@ -42,6 +42,7 @@ protocol APIServiceConfiguration {
     var apiUrl: URL { get set }
     var apiKey: String { get set }
     var model: String { get set }
+    var customHeaders: [String: String] { get set }
 }
 
 struct AIModel: Codable, Identifiable {
