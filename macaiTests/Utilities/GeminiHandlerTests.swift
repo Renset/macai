@@ -193,6 +193,59 @@ final class GeminiHandlerTests: XCTestCase {
         XCTAssertNil(signaturePart?["text"])
         XCTAssertNil(signaturePart?["inlineData"])
     }
+
+    func testOpenAIResponsesHandlerUsesInputTextForAssistantHistory() throws {
+        let expectation = expectation(description: "Request captured")
+        var capturedRequest: URLRequest?
+
+        URLProtocolStub.requestHandler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(
+                url: request.url ?? URL(string: "https://example.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data("{\"output_text\":\"ok\"}".utf8))
+        }
+
+        let sessionConfig = URLSessionConfiguration.ephemeral
+        sessionConfig.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: sessionConfig)
+        let config = APIServiceConfig(
+            name: "OpenAI Responses",
+            apiUrl: URL(string: "https://example.com/v1/responses")!,
+            apiKey: "test-key",
+            model: "test-model"
+        )
+        let handler = OpenAIResponsesHandler(config: config, session: session)
+
+        handler.sendMessage(
+            [
+                ["role": "assistant", "content": "Previous answer"],
+                ["role": "user", "content": "Follow-up question"],
+            ],
+            temperature: 1.0
+        ) { _ in
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+
+        guard let request = capturedRequest,
+              let body = requestBody(from: request),
+              let payload = try JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let input = payload["input"] as? [[String: Any]],
+              let assistant = input.first(where: { $0["role"] as? String == "assistant" }),
+              let content = assistant["content"] as? [[String: Any]]
+        else {
+            XCTFail("Unable to decode assistant input content")
+            return
+        }
+
+        XCTAssertEqual(content.first?["type"] as? String, "input_text")
+        XCTAssertFalse(content.contains { $0["type"] as? String == "output_text" })
+    }
 }
 
 private final class URLProtocolStub: URLProtocol {
