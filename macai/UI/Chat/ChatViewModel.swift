@@ -66,6 +66,8 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
     private var isApplyingServiceChanges = false
     private var lastObservedPersonaID: NSManagedObjectID?
     private var lastObservedServiceID: NSManagedObjectID?
+    private var lastObservedModel: String?
+    private var lastObservedImageGenerationMode: Int16 = 0
 
     /// - Parameter loadsMessages: Pass `false` for lightweight use cases (e.g. chat list rows)
     ///   that only need actions like name regeneration. Skips fetching all chat messages and
@@ -76,6 +78,8 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
         self.viewContext = viewContext
         self.lastObservedPersonaID = chat.persona?.objectID
         self.lastObservedServiceID = chat.effectiveApiService?.objectID
+        self.lastObservedModel = chat.gptModel
+        self.lastObservedImageGenerationMode = chat.imageGenerationMode
 
         let fetchRequest: NSFetchRequest<MessageEntity> = MessageEntity.fetchRequest() as! NSFetchRequest<MessageEntity>
         fetchRequest.predicate = NSPredicate(format: "chat == %@", chat)
@@ -220,14 +224,21 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
 
                 let relationshipChanged = personaID != self.lastObservedPersonaID
                     || serviceID != self.lastObservedServiceID
+                // Per-chat settings baked into the MessageManager config: a change
+                // requires a rebuild even though no relationship moved.
+                let modelChanged = self.chat.gptModel != self.lastObservedModel
+                let imageModeChanged = self.chat.imageGenerationMode != self.lastObservedImageGenerationMode
+                let chatConfigChanged = relationshipChanged || modelChanged || imageModeChanged
 
-                guard personaObjectChanged || serviceObjectChanged || (chatObjectChanged && relationshipChanged) else {
+                guard personaObjectChanged || serviceObjectChanged || (chatObjectChanged && chatConfigChanged) else {
                     return
                 }
 
                 self.lastObservedPersonaID = personaID
                 self.lastObservedServiceID = serviceID
-                self.applyAPIServiceChanges(forceRecreate: personaObjectChanged || serviceObjectChanged || relationshipChanged)
+                self.lastObservedModel = self.chat.gptModel
+                self.lastObservedImageGenerationMode = self.chat.imageGenerationMode
+                self.applyAPIServiceChanges(forceRecreate: personaObjectChanged || serviceObjectChanged || chatConfigChanged)
             }
     }
 
@@ -245,22 +256,19 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
             self.isApplyingServiceChanges = true
             defer { self.isApplyingServiceChanges = false }
 
+            // The chat's own service/model are authoritative (per-chat settings);
+            // only backfill from the assistant when the chat has no value yet.
             var didChange = false
-            let resolvedService = chat.persona?.apiService ?? chat.apiService
-            if let resolvedService, chat.apiService != resolvedService {
-                chat.apiService = resolvedService
+            if chat.apiService == nil, let personaService = chat.persona?.apiService {
+                chat.apiService = personaService
                 didChange = true
             }
 
-            let fallbackModel = chat.gptModel.isEmpty
-                ? AppConstants.defaultModel(for: resolvedService?.type)
-                : chat.gptModel
-            let resolvedModel = chat.persona?.model?.isEmpty == false
-                ? (chat.persona?.model ?? fallbackModel)
-                : fallbackModel
-
-            if chat.gptModel != resolvedModel {
-                chat.gptModel = resolvedModel
+            if chat.gptModel.isEmpty {
+                let personaModel = chat.persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                chat.gptModel = personaModel.isEmpty
+                    ? AppConstants.defaultModel(for: chat.effectiveApiService?.type)
+                    : personaModel
                 didChange = true
             }
 

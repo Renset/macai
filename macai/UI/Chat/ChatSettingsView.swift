@@ -1,5 +1,5 @@
 //
-//  AssistantInspectorView.swift
+//  ChatSettingsView.swift
 //  macai
 //
 //  Created by Codex on 16.01.2026.
@@ -9,7 +9,10 @@ import AppKit
 import CoreData
 import SwiftUI
 
-struct AssistantInspectorView: View {
+/// Per-chat settings panel. Every control writes to the chat only: values the
+/// chat has not overridden are inherited live from its assistant. Assistants
+/// themselves are edited in Settings → AI Assistants.
+struct ChatSettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var chat: ChatEntity
     let onServiceChange: (APIServiceEntity) -> Void
@@ -36,7 +39,7 @@ struct AssistantInspectorView: View {
         return AppConstants.defaultApiConfigurations[type]?.models ?? []
     }
 
-    private var supportsImageGeneration: Bool {
+    private var serviceSupportsImageGeneration: Bool {
         chat.effectiveApiService?.imageGenerationSupported ?? false
     }
 
@@ -46,27 +49,29 @@ struct AssistantInspectorView: View {
 
     @ViewBuilder
     private var content: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            headerSection
-
-            if let persona = chat.persona {
-                personaSettings(persona)
-            } else {
-                emptyStateSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                headerSection
+                assistantSection
+                Divider()
+                apiServiceSection
+                Divider()
+                modelSection
+                Divider()
+                temperatureSection
+                Divider()
+                contextSizeSection
+                Divider()
+                toolsSection
+                resetSection
             }
+            .padding(16)
+            // Fully flexible frame so the controls' natural minimums don't
+            // dictate the panel width (the parent owns sizing).
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
-        .padding(.top, 36)
-        .frame(minWidth: 260, idealWidth: 320, maxWidth: 420)
-        .background(Color(NSColor.windowBackgroundColor))
         .onAppear {
             syncServiceSelection()
-            // Only persist when the stored value is actually stale.
-            if supportsImageGeneration == false, chat.persona?.imageGenerationEnabled == true {
-                chat.persona?.imageGenerationEnabled = false
-                viewContext.saveWithRetry(attempts: 1)
-            }
             refreshModels()
         }
         .onDisappear {
@@ -83,47 +88,22 @@ struct AssistantInspectorView: View {
         }
     }
 
-    private func syncServiceSelection() {
-        let currentID = chat.effectiveApiService?.objectID
-        if let currentID,
-           apiServices.contains(where: { $0.objectID == currentID }) {
-            selectedServiceID = currentID
-        } else {
-            selectedServiceID = nil
-        }
-    }
-
     private var headerSection: some View {
         HStack {
-            Text("Assistant Settings")
+            Text("Chat Settings")
                 .font(.headline)
             Spacer()
         }
     }
 
-    @ViewBuilder
-    private func personaSettings(_ persona: PersonaEntity) -> some View {
-        personaHeaderSection(persona)
-        Divider()
-        apiServiceSection
-        Divider()
-        modelSection(persona)
-        Divider()
-        temperatureSection(persona)
-        Divider()
-        contextSizeSection(persona)
-        Divider()
-        toolsSection(persona)
-        Spacer()
-    }
-
-    private func personaHeaderSection(_ persona: PersonaEntity) -> some View {
+    private var assistantSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(persona.name ?? "Assistant")
+            Text(chat.persona?.name ?? "No Assistant")
                 .font(.title3)
-            Text(chat.effectiveApiService?.name ?? "No API Service")
-                .font(.subheadline)
+            Text("Settings below apply to this chat only. Assistant defaults are edited in Settings → AI Assistants.")
+                .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -152,7 +132,7 @@ struct AssistantInspectorView: View {
     }
 
     @ViewBuilder
-    private func modelSection(_ persona: PersonaEntity) -> some View {
+    private var modelSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text("Model")
@@ -168,7 +148,7 @@ struct AssistantInspectorView: View {
             }
 
             if availableModels.isEmpty {
-                TextField("Enter model name", text: customModelBinding(for: persona))
+                TextField("Enter model name", text: customModelBinding)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             } else {
                 Picker("Model", selection: $selectedModel) {
@@ -183,12 +163,12 @@ struct AssistantInspectorView: View {
                     if newValue == "custom" {
                         isCustomModel = true
                         if customModel.isEmpty {
-                            customModel = persona.model ?? ""
+                            customModel = chat.effectiveModel
                         }
                     } else {
                         isCustomModel = false
                         customModel = newValue
-                        updateModel(persona, value: newValue)
+                        updateModel(newValue)
                     }
                 }
 
@@ -196,28 +176,28 @@ struct AssistantInspectorView: View {
                     TextField("Enter custom model name", text: $customModel)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .onChange(of: customModel) { _, newValue in
-                            updateModel(persona, value: newValue)
+                            updateModel(newValue)
                         }
                 }
             }
         }
     }
 
-    private func temperatureSection(_ persona: PersonaEntity) -> some View {
+    private var temperatureSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Temperature")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             Slider(
-                value: temperatureBinding(for: persona),
+                value: temperatureBinding,
                 in: 0...1,
                 step: 0.1
             )
             HStack {
                 Text("0.0")
                 Spacer()
-                Text("\(String(format: "%.1f", persona.temperature)) · \(persona.temperature.temperatureDescriptor)")
+                Text("\(String(format: "%.1f", chat.effectiveTemperature)) · \(chat.effectiveTemperature.temperatureDescriptor)")
                 Spacer()
                 Text("1.0")
             }
@@ -226,37 +206,33 @@ struct AssistantInspectorView: View {
         }
     }
 
-    private func contextSizeSection(_ persona: PersonaEntity) -> some View {
-        let effectiveContextSize = persona.contextSize == 0
-            ? Int16(AppConstants.chatGptContextSize)
-            : persona.contextSize
-
-        return VStack(alignment: .leading, spacing: 8) {
+    private var contextSizeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Context size")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             Slider(
-                value: contextSizeBinding(for: persona),
+                value: contextSizeBinding,
                 in: 5...100,
                 step: 5
             )
 
-            Text("\(Int(effectiveContextSize)) messages")
+            Text("\(chat.effectiveContextSize) messages")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
 
-    private func toolsSection(_ persona: PersonaEntity) -> some View {
+    private var toolsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Tools")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Toggle("Image generation", isOn: imageGenerationBinding(for: persona))
-                .disabled(!supportsImageGeneration)
-                .help(supportsImageGeneration ? "" : "This API service does not support image generation.")
+            Toggle("Image generation", isOn: imageGenerationBinding)
+                .disabled(!serviceSupportsImageGeneration)
+                .help(serviceSupportsImageGeneration ? "" : "This API service does not support image generation.")
 
             capabilityRow("Image uploads", isAvailable: chat.allowsImageUploads)
             capabilityRow("PDF uploads", isAvailable: chat.allowsPdfUploads)
@@ -264,6 +240,18 @@ struct AssistantInspectorView: View {
             Text("Uploads depend on the API service and can be changed in Settings → API Services.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var resetSection: some View {
+        if chat.persona != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                Divider()
+                Button("Reset to Assistant Defaults") {
+                    resetToAssistantDefaults()
+                }
+            }
         }
     }
 
@@ -278,12 +266,67 @@ struct AssistantInspectorView: View {
         .accessibilityLabel("\(title): \(isAvailable ? "available" : "not available with this API service")")
     }
 
-    private var emptyStateSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Select an assistant to edit its settings.")
-                .foregroundStyle(.secondary)
-            Spacer()
-        }
+    // MARK: - Bindings (all write to the chat, never to the assistant)
+
+    private var temperatureBinding: Binding<Double> {
+        Binding(
+            get: { Double(chat.effectiveTemperature) },
+            set: { newValue in
+                chat.temperature = newValue
+                chat.temperatureOverridden = true
+                scheduleDebouncedSave()
+            }
+        )
+    }
+
+    private var contextSizeBinding: Binding<Double> {
+        Binding(
+            get: { Double(chat.effectiveContextSize) },
+            set: { newValue in
+                chat.contextSize = Int16(newValue)
+                scheduleDebouncedSave()
+            }
+        )
+    }
+
+    private var imageGenerationBinding: Binding<Bool> {
+        Binding(
+            get: { chat.imageGenerationEnabled },
+            set: { newValue in
+                chat.imageGenerationMode = newValue ? 1 : 2
+                viewContext.saveWithRetry(attempts: 1)
+            }
+        )
+    }
+
+    private var customModelBinding: Binding<String> {
+        Binding(
+            get: {
+                customModel.isEmpty ? chat.effectiveModel : customModel
+            },
+            set: { newValue in
+                customModel = newValue
+                updateModel(newValue)
+            }
+        )
+    }
+
+    // MARK: - Actions
+
+    private func updateModel(_ value: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false, chat.gptModel != trimmed else { return }
+        chat.gptModel = trimmed
+        scheduleDebouncedSave()
+    }
+
+    private func resetToAssistantDefaults() {
+        flushPendingSave()
+        chat.resetToAssistantDefaults()
+        chat.objectWillChange.send()
+        viewContext.saveWithRetry(attempts: 1)
+        syncServiceSelection()
+        refreshModels()
     }
 
     /// Coalesces rapid-fire edits (slider drags, typing) into one Core Data
@@ -305,53 +348,16 @@ struct AssistantInspectorView: View {
         }
     }
 
-    private func temperatureBinding(for persona: PersonaEntity) -> Binding<Double> {
-        Binding(
-            get: { Double(persona.temperature) },
-            set: { newValue in
-                persona.temperature = Float(newValue)
-                scheduleDebouncedSave()
-            }
-        )
-    }
+    // MARK: - Selection sync
 
-    private func contextSizeBinding(for persona: PersonaEntity) -> Binding<Double> {
-        Binding(
-            get: { Double(persona.contextSize == 0 ? Int16(AppConstants.chatGptContextSize) : persona.contextSize) },
-            set: { newValue in
-                persona.contextSize = Int16(newValue)
-                scheduleDebouncedSave()
-            }
-        )
-    }
-
-    private func imageGenerationBinding(for persona: PersonaEntity) -> Binding<Bool> {
-        Binding(
-            get: { persona.imageGenerationEnabled },
-            set: { newValue in
-                persona.imageGenerationEnabled = newValue
-                viewContext.saveWithRetry(attempts: 1)
-            }
-        )
-    }
-
-    private func customModelBinding(for persona: PersonaEntity) -> Binding<String> {
-        Binding(
-            get: {
-                customModel.isEmpty ? (persona.model ?? "") : customModel
-            },
-            set: { newValue in
-                customModel = newValue
-                updateModel(persona, value: newValue)
-            }
-        )
-    }
-
-    private func updateModel(_ persona: PersonaEntity, value: String) {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard persona.model != trimmed else { return }
-        persona.model = trimmed
-        scheduleDebouncedSave()
+    private func syncServiceSelection() {
+        let currentID = chat.effectiveApiService?.objectID
+        if let currentID,
+           apiServices.contains(where: { $0.objectID == currentID }) {
+            selectedServiceID = currentID
+        } else {
+            selectedServiceID = nil
+        }
     }
 
     private func refreshModels() {
@@ -397,9 +403,7 @@ struct AssistantInspectorView: View {
     }
 
     private func syncModelSelection() {
-        guard let persona = chat.persona else { return }
-        let currentModel = persona.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let defaultModel = AppConstants.defaultModel(for: chat.effectiveApiService?.type)
+        let currentModel = chat.effectiveModel
 
         if availableModels.isEmpty {
             selectedModel = currentModel
@@ -408,22 +412,14 @@ struct AssistantInspectorView: View {
             return
         }
 
-        if currentModel.isEmpty == false, availableModels.contains(currentModel) {
+        if availableModels.contains(currentModel) {
             selectedModel = currentModel
             isCustomModel = false
             customModel = currentModel
-        } else if currentModel.isEmpty == false {
+        } else {
             selectedModel = "custom"
             isCustomModel = true
             customModel = currentModel
-        } else if availableModels.contains(defaultModel) {
-            selectedModel = defaultModel
-            isCustomModel = false
-            customModel = defaultModel
-        } else if let firstModel = availableModels.first {
-            selectedModel = firstModel
-            isCustomModel = false
-            customModel = firstModel
         }
     }
 }
@@ -431,5 +427,5 @@ struct AssistantInspectorView: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let chat = ChatEntity(context: context)
-    return AssistantInspectorView(chat: chat, onServiceChange: { _ in })
+    return ChatSettingsView(chat: chat, onServiceChange: { _ in })
 }

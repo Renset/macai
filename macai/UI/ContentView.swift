@@ -46,6 +46,10 @@ struct ContentView: View {
     @State private var isSearchPresented = false
     @State private var keyDownMonitor: Any?
     @AppStorage("assistantPanelVisible") private var assistantPanelVisible = false
+    @AppStorage("chatSettingsPanelWidth") private var chatSettingsPanelWidth: Double = 320
+    @State private var panelDragStartWidth: Double?
+    private static let chatSettingsPanelMinWidth: Double = 220
+    private static let chatSettingsPanelMaxWidth: Double = 560
     private var isSidebarVisible: Bool { columnVisibility != .detailOnly }
 
     var body: some View {
@@ -68,6 +72,25 @@ struct ContentView: View {
             lastChatCount = newCount
         }
         .background(WindowAccessor(window: $window))
+        .onChange(of: window) { _, _ in
+            scheduleToolbarReorder()
+        }
+        .onChange(of: columnVisibility) { _, _ in
+            // Toolbar contents rebuild when the sidebar toggles; re-assert order.
+            scheduleToolbarReorder()
+        }
+        .onChange(of: isSearchPresented) { _, isPresented in
+            if isPresented {
+                // The system search item is inserted asynchronously when the
+                // modifier appears, so re-apply the toolbar order afterwards.
+                scheduleToolbarReorder()
+            }
+            else {
+                // A collapsed search should leave the chat unfiltered and show
+                // only the magnifying-glass button again.
+                searchText = ""
+            }
+        }
         .onAppear {
             NotificationCenter.default.addObserver(
                 forName: AppConstants.newChatNotification,
@@ -128,30 +151,31 @@ struct ContentView: View {
                 }
             }
 
+            if !isSearchPresented {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: {
+                        isSearchPresented = true
+                    }) {
+                        Label("Find in Chat", systemImage: "magnifyingglass")
+                    }
+                    .labelStyle(.iconOnly)
+                    .help("Find in Chat (⌘F)")
+                }
+            }
+
+            // A single persistent toggle: toolbar items contributed by inspector
+            // content linger after dismissal (stale duplicate button), so the
+            // button stays in the main toolbar in both states.
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        assistantPanelVisible.toggle()
-                    }
+                    assistantPanelVisible.toggle()
                 }) {
-                    Label("Chat Parameters", systemImage: "slider.horizontal.3")
+                    // The label doubles as the NSToolbar identity used by
+                    // moveChatSettingsToggleAfterSearch — keep them in sync.
+                    Label(ContentView.chatSettingsToolbarLabel, systemImage: "sidebar.trailing")
                 }
                 .labelStyle(.iconOnly)
-                .help(assistantPanelVisible ? "Hide chat parameters" : "Show chat parameters")
-            }
-        }
-        .searchable(
-            text: $searchText,
-            isPresented: $isSearchPresented,
-            placement: .toolbar,
-            prompt: "Search"
-        )
-        .onSubmit(of: .search) {
-            if !searchText.isEmpty {
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("FindNext"),
-                    object: nil
-                )
+                .help(assistantPanelVisible ? "Hide chat settings" : "Show chat settings")
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -314,12 +338,7 @@ struct ContentView: View {
     }
 
     func openPreferencesView() {
-        if #available(macOS 13.0, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        }
-        else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
     func clearSelectedChat() {
@@ -367,38 +386,12 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detailColumn: some View {
-        HSplitView {
-            if let selectedChat {
-                ChatView(
-                    viewContext: viewContext,
-                    chat: selectedChat,
-                    searchText: $searchText,
-                    isSearchPresented: $isSearchPresented
-                )
-                    .frame(minWidth: 400)
-                    .id(openedChatId)
-            } else {
-                WelcomeScreen(
-                    chatsCount: chats.count,
-                    apiServiceIsPresent: apiServices.count > 0,
-                    customUrl: apiUrl != AppConstants.apiUrlOpenAIResponses,
-                    openPreferencesView: openPreferencesView,
-                    newChat: newChat
-                )
-            }
+        HStack(spacing: 0) {
+            chatContent
 
-            if assistantPanelVisible, let selectedChat {
-                AssistantInspectorView(
-                    chat: selectedChat,
-                    onServiceChange: { service in
-                        handleServiceChange(selectedChat, service)
-                    }
-                )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
-
-            if previewStateManager.isPreviewVisible {
-                PreviewPane(stateManager: previewStateManager)
+            if assistantPanelVisible {
+                chatSettingsPanel
+                    .transition(.move(edge: .trailing))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: assistantPanelVisible)
@@ -410,7 +403,6 @@ struct ContentView: View {
         .onAppear {
             // Install the key monitor once; re-appearing must not stack duplicates.
             guard keyDownMonitor == nil else { return }
-            // Add global key monitor for Shift+Enter when search is active
             keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if event.keyCode == 36 && event.modifierFlags.contains(.shift) && isSearchPresented && !searchText.isEmpty {
                     // Check if search field is focused by checking if any search-related view is first responder
@@ -438,6 +430,205 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var chatContent: some View {
+        // The searchable modifier lives on an invisible background anchor, not
+        // on the chat itself: wrapping chatContentBase in a conditional would
+        // change its view identity on every search toggle and recreate the
+        // whole ChatView (message reload, scroll reset, broken Stop while
+        // streaming). Toggling the anchor only recreates a Color.clear.
+        chatContentBase
+            .background {
+                if isSearchPresented {
+                    Color.clear
+                        .searchable(
+                            text: $searchText,
+                            isPresented: $isSearchPresented,
+                            placement: .toolbar,
+                            prompt: "Search"
+                        )
+                        .onSubmit(of: .search) {
+                            if !searchText.isEmpty {
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("FindNext"),
+                                    object: nil
+                                )
+                            }
+                        }
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var chatContentBase: some View {
+        HSplitView {
+            if let selectedChat {
+                // GeometryReader is load-bearing: it is the only container
+                // whose reported minimum width is truly 0, cutting off the
+                // large natural minimums of the chat content (text views,
+                // input bar) so they never inflate the window's minimum
+                // size. The outer frame then sets the real floor.
+                GeometryReader { _ in
+                    ChatView(
+                        viewContext: viewContext,
+                        chat: selectedChat,
+                        searchText: $searchText,
+                        isSearchPresented: $isSearchPresented
+                    )
+                }
+                .frame(minWidth: 150, maxWidth: .infinity)
+                .id(openedChatId)
+            } else {
+                WelcomeScreen(
+                    chatsCount: chats.count,
+                    apiServiceIsPresent: apiServices.count > 0,
+                    customUrl: apiUrl != AppConstants.apiUrlOpenAIResponses,
+                    openPreferencesView: openPreferencesView,
+                    newChat: newChat
+                )
+            }
+
+            if previewStateManager.isPreviewVisible {
+                PreviewPane(stateManager: previewStateManager)
+            }
+        }
+    }
+
+    /// SwiftUI always renders the `.searchable` toolbar field as the
+    /// trailing-most item, but the Chat Settings toggle belongs at the trailing
+    /// edge, right above the panel it controls (Xcode-style). SwiftUI offers no
+    /// ordering control here, so reorder the NSToolbar directly: move our
+    /// toggle (the only custom item after the split-view separator) behind the
+    /// search field.
+    /// The toolbar is populated asynchronously after the window appears and
+    /// after SwiftUI toolbar updates; retry a few times. The reorder itself is
+    /// idempotent (no-op once the toggle sits behind the search field).
+    private func scheduleToolbarReorder() {
+        for delay in [0.2, 1.0, 2.5] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                moveChatSettingsToggleAfterSearch()
+            }
+        }
+    }
+
+    /// Reacts to SwiftUI inserting/removing toolbar items (e.g. the search
+    /// field appearing when search is activated) and re-asserts the order
+    /// within the same runloop turn — before the next frame is drawn — so the
+    /// wrong order is never visible. The timer-based retries above remain as a
+    /// startup fallback only.
+    private func installToolbarObserverIfNeeded(_ toolbar: NSToolbar) {
+        guard ContentView.observedToolbars.contains(ObjectIdentifier(toolbar)) == false else { return }
+        ContentView.observedToolbars.insert(ObjectIdentifier(toolbar))
+
+        let reorder: (Notification) -> Void = { [weak toolbar] _ in
+            DispatchQueue.main.async {
+                guard let toolbar else { return }
+                Self.moveChatSettingsToggleAfterSearch(in: toolbar)
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSToolbar.willAddItemNotification, object: toolbar, queue: .main, using: reorder
+        )
+        NotificationCenter.default.addObserver(
+            forName: NSToolbar.didRemoveItemNotification, object: toolbar, queue: .main, using: reorder
+        )
+    }
+
+    private static var observedToolbars = Set<ObjectIdentifier>()
+
+    private func moveChatSettingsToggleAfterSearch() {
+        guard let toolbar = window?.toolbar else { return }
+        installToolbarObserverIfNeeded(toolbar)
+        Self.moveChatSettingsToggleAfterSearch(in: toolbar)
+    }
+
+    static let chatSettingsToolbarLabel = "Chat Settings"
+
+    private static func moveChatSettingsToggleAfterSearch(in toolbar: NSToolbar) {
+        // Identified by label: SwiftUI assigns random UUID identifiers to its
+        // toolbar items, and position heuristics break when the search field
+        // or the magnifier button get re-inserted at the end.
+        guard let buttonIndex = toolbar.items.lastIndex(where: { $0.label == chatSettingsToolbarLabel }) else {
+            return
+        }
+        guard buttonIndex != toolbar.items.count - 1 else { return }
+
+        let buttonID = toolbar.items[buttonIndex].itemIdentifier
+        toolbar.removeItem(at: buttonIndex)
+        toolbar.insertItem(withItemIdentifier: buttonID, at: toolbar.items.count)
+    }
+
+    /// Custom trailing panel: the native `.inspector` freezes the window's
+    /// minimum size at its current width on macOS 26 (verified empirically in
+    /// every configuration), and an HSplitView pane cannot animate. A plain
+    /// HStack with a draggable edge gives inspector-like behavior with none of
+    /// the window-sizing side effects.
+    private var chatSettingsPanel: some View {
+        HStack(spacing: 0) {
+            panelResizeHandle
+
+            Group {
+                if let selectedChat {
+                    ChatSettingsView(
+                        chat: selectedChat,
+                        onServiceChange: { service in
+                            handleServiceChange(selectedChat, service)
+                        }
+                    )
+                } else {
+                    VStack {
+                        Text("Select a chat to see its settings.")
+                            .foregroundStyle(.secondary)
+                            .padding()
+                        Spacer()
+                    }
+                }
+            }
+            // min lets the window squeeze the panel; max caps it at the width
+            // the user chose by dragging the handle.
+            .frame(
+                minWidth: Self.chatSettingsPanelMinWidth,
+                idealWidth: chatSettingsPanelWidth,
+                maxWidth: chatSettingsPanelWidth
+            )
+        }
+        .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    private var panelResizeHandle: some View {
+        Rectangle()
+            .fill(Color(NSColor.separatorColor))
+            .frame(width: 1)
+            .overlay(
+                // Invisible widened hit area for comfortable dragging.
+                Color.clear
+                    .frame(width: 9)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                            .onChanged { value in
+                                let start = panelDragStartWidth ?? chatSettingsPanelWidth
+                                panelDragStartWidth = start
+                                let proposed = start - value.translation.width
+                                chatSettingsPanelWidth = min(
+                                    max(proposed, Self.chatSettingsPanelMinWidth),
+                                    Self.chatSettingsPanelMaxWidth
+                                )
+                            }
+                            .onEnded { _ in
+                                panelDragStartWidth = nil
+                            }
+                    )
+                    .onHover { hovering in
+                        if hovering {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+            )
+    }
+
     private func getIndex(for chat: ChatEntity) -> Int {
         if let index = chats.firstIndex(where: { $0.id == chat.id }) {
             return index
@@ -448,26 +639,18 @@ struct ContentView: View {
     }
 
     private func handleServiceChange(_ chat: ChatEntity, _ newService: APIServiceEntity) {
-        // The assistant stays selected; only the service it talks to changes.
-        if let persona = chat.persona, persona.apiService?.objectID != newService.objectID {
-            persona.apiService = newService
+        // Per-chat setting: only this chat switches service; the assistant
+        // (and every other chat using it) is untouched.
+        chat.apiService = newService
 
-            // Keep the model only when we know the new service offers it;
-            // otherwise fall back to the service default.
-            let currentModel = persona.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let knownModels = newService.id.flatMap { ModelsCache.shared.models(for: $0) } ?? []
-            if currentModel.isEmpty || !knownModels.contains(currentModel) {
-                persona.model = AppConstants.defaultModel(for: newService.type)
-            }
-
-            if !newService.imageGenerationSupported, persona.imageGenerationEnabled {
-                persona.imageGenerationEnabled = false
-            }
+        // Keep the chat's model only when we know the new service offers it;
+        // otherwise fall back to the service default.
+        let currentModel = chat.gptModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let knownModels = newService.id.flatMap { ModelsCache.shared.models(for: $0) } ?? []
+        if currentModel.isEmpty || !knownModels.contains(currentModel) {
+            chat.gptModel = AppConstants.defaultModel(for: newService.type)
         }
 
-        chat.apiService = newService
-        let personaModel = chat.persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        chat.gptModel = personaModel.isEmpty ? AppConstants.defaultModel(for: newService.type) : personaModel
         chat.objectWillChange.send()
         try? viewContext.save()
 

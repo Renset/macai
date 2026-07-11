@@ -1,15 +1,6 @@
 {
-  "originHash" : "d070fef2f64af06e20606fc1c2f79b65b560cf76e83eda752a69e276d4467416",
+  "originHash" : "4e3c5261ae9082c0db29861ac762c2ff7c0e2a77139558e5f5c15146a81cf5a0",
   "pins" : [
-    {
-      "identity" : "attributedtext",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/gonzalezreal/AttributedText",
-      "state" : {
-        "revision" : "0e811cb14de367bbd58a94d12259687e5ee08bea",
-        "version" : "1.0.1"
-      }
-    },
     {
       "identity" : "highlightr",
       "kind" : "remoteSourceControl",

@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import AttributedText
 import CoreData
 import SwiftUI
 

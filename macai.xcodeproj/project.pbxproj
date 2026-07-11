@@ -24,7 +24,7 @@
 		4A1E16852E16DB4500E5CBA3 /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E16832E16DB4500E5CBA3 /* ChatInputView.swift */; };
 		4A1E16862E16DB4500E5CBA3 /* ChatMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E16842E16DB4500E5CBA3 /* ChatMessagesView.swift */; };
 		4A1E16872E16DB4600E5CBA3 /* ChatLogicHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E16822E16DB4500E5CBA3 /* ChatLogicHandler.swift */; };
-		9BC46E70111B408B9B189BE1 /* AssistantInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CC51F011F74CE497CC83D9 /* AssistantInspectorView.swift */; };
+		9BC46E70111B408B9B189BE1 /* ChatSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CC51F011F74CE497CC83D9 /* ChatSettingsView.swift */; };
 		4A1F0A0A29CEFB7F002A139A /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0929CEFB7F002A139A /* MessageCell.swift */; };
 		4A1F0A0C29CF02CA002A139A /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */; };
 		4A254A6D2CEA69EB00F66935 /* HighlighterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A254A6C2CEA69EB00F66935 /* HighlighterManager.swift */; };
@@ -45,6 +45,11 @@
 		C4E7B0A12E1A00010000000C /* ExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A00010000000B /* ExtensionsTests.swift */; };
 		C4E7B0A12E1A00010000000E /* DatabasePatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A00010000000D /* DatabasePatcherTests.swift */; };
 		C4E7B0A12E1A000100000010 /* ModelsCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A00010000000F /* ModelsCache.swift */; };
+		C4E7B0A12E1A000100000014 /* AttributedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A000100000013 /* AttributedText.swift */; };
+		C4E7B0A12E1A000100000016 /* AttributedTextImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A000100000015 /* AttributedTextImpl.swift */; };
+		C4E7B0A12E1A000100000018 /* AttributedTextImpl+macOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A000100000017 /* AttributedTextImpl+macOS.swift */; };
+		C4E7B0A12E1A00010000001A /* TextSizeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A000100000019 /* TextSizeViewModel.swift */; };
+		C4E7B0A12E1A00010000001C /* NSLineBreakMode+TruncationMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A00010000001B /* NSLineBreakMode+TruncationMode.swift */; };
 		C4E7B0A12E1A000100000012 /* ModelsCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E7B0A12E1A000100000011 /* ModelsCacheTests.swift */; };
 		4A2B9E952CE1272E00C8042F /* RequestMessagesTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */; };
 		4A2D3CEB2D5794B10082A262 /* ThemeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */; };
@@ -65,7 +70,6 @@
 		4A4F204B2D62650800D1F57F /* FiraCode-VF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
 		4A4F204C2D62651900D1F57F /* FiraCode-VF.ttf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 4A4F204A2D62650800D1F57F /* FiraCode-VF.ttf */; };
 		4A51EC6229C32AF700973D83 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6129C32AF700973D83 /* Highlightr */; };
-		4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */ = {isa = PBXBuildFile; productRef = 4A51EC6429C32B0B00973D83 /* AttributedText */; };
 		4A54E85B2ED6500F0068C25E /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A54E85A2ED6500F0068C25E /* CloudSyncManager.swift */; };
 		4A55DCA729C264BC00A3800C /* TableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A55DCA629C264BC00A3800C /* TableView.swift */; };
 		4A5F64B829C64E21000403F7 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5F64B729C64E21000403F7 /* ChatBubbleView.swift */; };
@@ -173,7 +177,7 @@
 		4A1E16822E16DB4500E5CBA3 /* ChatLogicHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatLogicHandler.swift; sourceTree = "<group>"; };
 		4A1E16832E16DB4500E5CBA3 /* ChatInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputView.swift; sourceTree = "<group>"; };
 		4A1E16842E16DB4500E5CBA3 /* ChatMessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessagesView.swift; sourceTree = "<group>"; };
-		70CC51F011F74CE497CC83D9 /* AssistantInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantInspectorView.swift; sourceTree = "<group>"; };
+		70CC51F011F74CE497CC83D9 /* ChatSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSettingsView.swift; sourceTree = "<group>"; };
 		4A1F0A0929CEFB7F002A139A /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
 		4A1F0A0B29CF02CA002A139A /* WelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreen.swift; sourceTree = "<group>"; };
 		4A254A6C2CEA69EB00F66935 /* HighlighterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlighterManager.swift; sourceTree = "<group>"; };
@@ -193,6 +197,11 @@
 		C4E7B0A12E1A00010000000B /* ExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsTests.swift; sourceTree = "<group>"; };
 		C4E7B0A12E1A00010000000D /* DatabasePatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePatcherTests.swift; sourceTree = "<group>"; };
 		C4E7B0A12E1A00010000000F /* ModelsCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsCache.swift; sourceTree = "<group>"; };
+		C4E7B0A12E1A000100000013 /* AttributedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttributedText.swift"; sourceTree = "<group>"; };
+		C4E7B0A12E1A000100000015 /* AttributedTextImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttributedTextImpl.swift"; sourceTree = "<group>"; };
+		C4E7B0A12E1A000100000017 /* AttributedTextImpl+macOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttributedTextImpl+macOS.swift"; sourceTree = "<group>"; };
+		C4E7B0A12E1A000100000019 /* TextSizeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextSizeViewModel.swift"; sourceTree = "<group>"; };
+		C4E7B0A12E1A00010000001B /* NSLineBreakMode+TruncationMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSLineBreakMode+TruncationMode.swift"; sourceTree = "<group>"; };
 		C4E7B0A12E1A000100000011 /* ModelsCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsCacheTests.swift; sourceTree = "<group>"; };
 		4A2B9E942CE1272E00C8042F /* RequestMessagesTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestMessagesTransformer.swift; sourceTree = "<group>"; };
 		4A2D3CEA2D5794B00082A262 /* ThemeMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeMode.swift; sourceTree = "<group>"; };
@@ -282,7 +291,6 @@
 				4A2842492C87014800E5C920 /* KeychainAccess in Frameworks */,
 				4A471B862C29C56800C66926 /* SwiftMath in Frameworks */,
 				4A7E1BDB29C910F900E57DC2 /* Sparkle in Frameworks */,
-				4A51EC6529C32B0B00973D83 /* AttributedText in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -366,7 +374,7 @@
 			children = (
 				4AC37B622F1255C0006FD196 /* AttachmentPreviewViews.swift */,
 				4AC37B7D2F14000100D1A2B3 /* ChatDraftManager.swift */,
-				70CC51F011F74CE497CC83D9 /* AssistantInspectorView.swift */,
+				70CC51F011F74CE497CC83D9 /* ChatSettingsView.swift */,
 				4A1E16832E16DB4500E5CBA3 /* ChatInputView.swift */,
 				4A1E16842E16DB4500E5CBA3 /* ChatMessagesView.swift */,
 				4A1E16822E16DB4500E5CBA3 /* ChatLogicHandler.swift */,
@@ -508,6 +516,26 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		C4E7B0A12E1A00010000001D /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				C4E7B0A12E1A00010000001E /* AttributedText */,
+			);
+			path = Vendor;
+			sourceTree = "<group>";
+		};
+		C4E7B0A12E1A00010000001E /* AttributedText */ = {
+			isa = PBXGroup;
+			children = (
+				C4E7B0A12E1A000100000013 /* AttributedText.swift */,
+				C4E7B0A12E1A000100000015 /* AttributedTextImpl.swift */,
+				C4E7B0A12E1A000100000017 /* AttributedTextImpl+macOS.swift */,
+				C4E7B0A12E1A000100000019 /* TextSizeViewModel.swift */,
+				C4E7B0A12E1A00010000001B /* NSLineBreakMode+TruncationMode.swift */,
+			);
+			path = AttributedText;
+			sourceTree = "<group>";
+		};
 		4A399C9729BC8FEF00E98796 /* macai */ = {
 			isa = PBXGroup;
 			children = (
@@ -515,6 +543,7 @@
 				4A399C9C29BC8FF100E98796 /* Assets.xcassets */,
 				4A399CA029BC8FF100E98796 /* Preview Assets.xcassets */,
 				4ABDBE6429F86B3900661B2D /* Configuration */,
+				C4E7B0A12E1A00010000001D /* Vendor */,
 				4A272A7029F5D9C200F93D0D /* Utilities */,
 				4A272A6F29F5CE5700F93D0D /* Resources */,
 				4A272A6A29F5CD5E00F93D0D /* Store */,
@@ -617,7 +646,6 @@
 			name = macai;
 			packageProductDependencies = (
 				4A51EC6129C32AF700973D83 /* Highlightr */,
-				4A51EC6429C32B0B00973D83 /* AttributedText */,
 				4A7E1BDA29C910F900E57DC2 /* Sparkle */,
 				4A471B852C29C56800C66926 /* SwiftMath */,
 				4A2842482C87014800E5C920 /* KeychainAccess */,
@@ -696,7 +724,6 @@
 			mainGroup = 4A399C8C29BC8FEF00E98796;
 			packageReferences = (
 				4A51EC6029C32AF600973D83 /* XCRemoteSwiftPackageReference "Highlightr" */,
-				4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */,
 				4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				4A471B842C29C56800C66926 /* XCRemoteSwiftPackageReference "SwiftMath" */,
 				4A2842472C87014800E5C920 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
@@ -772,6 +799,11 @@
 				4A28424B2C87018C00E5C920 /* TokenManager.swift in Sources */,
 				C4E7B0A12E1A000100000002 /* ChatExporter.swift in Sources */,
 				C4E7B0A12E1A000100000010 /* ModelsCache.swift in Sources */,
+				C4E7B0A12E1A000100000014 /* AttributedText.swift in Sources */,
+				C4E7B0A12E1A000100000016 /* AttributedTextImpl.swift in Sources */,
+				C4E7B0A12E1A000100000018 /* AttributedTextImpl+macOS.swift in Sources */,
+				C4E7B0A12E1A00010000001A /* TextSizeViewModel.swift in Sources */,
+				C4E7B0A12E1A00010000001C /* NSLineBreakMode+TruncationMode.swift in Sources */,
 				0BA0FF405FC14D3FABF82621 /* APIServiceTemplateProvider.swift in Sources */,
 				4ACE2FB82D61656000DEEA6D /* SwipeModifier.swift in Sources */,
 				4A0BCBBC2D5199140033AB96 /* ButtonWithStatusIndicator.swift in Sources */,
@@ -833,7 +865,7 @@
 				4A1E16852E16DB4500E5CBA3 /* ChatInputView.swift in Sources */,
 				4A1E16862E16DB4500E5CBA3 /* ChatMessagesView.swift in Sources */,
 				4A1E16872E16DB4600E5CBA3 /* ChatLogicHandler.swift in Sources */,
-				9BC46E70111B408B9B189BE1 /* AssistantInspectorView.swift in Sources */,
+				9BC46E70111B408B9B189BE1 /* ChatSettingsView.swift in Sources */,
 				4AFEE7252C472FB1006F99FB /* OllamaHandler.swift in Sources */,
 				4AE8691B2D5696A300E3B3AC /* GeminiHandler.swift in Sources */,
 			);
@@ -1028,7 +1060,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 3.0.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
@@ -1071,7 +1103,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 3.0.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macai;
@@ -1095,7 +1127,7 @@
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macaiTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1118,7 +1150,7 @@
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = notfullin.com.macaiTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1241,14 +1273,6 @@
 				kind = branch;
 			};
 		};
-		4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/gonzalezreal/AttributedText";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
 		4A7E1BD929C910F800E57DC2 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -1274,11 +1298,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4A51EC6029C32AF600973D83 /* XCRemoteSwiftPackageReference "Highlightr" */;
 			productName = Highlightr;
-		};
-		4A51EC6429C32B0B00973D83 /* AttributedText */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4A51EC6329C32B0B00973D83 /* XCRemoteSwiftPackageReference "AttributedText" */;
-			productName = AttributedText;
 		};
 		4A7E1BDA29C910F900E57DC2 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;

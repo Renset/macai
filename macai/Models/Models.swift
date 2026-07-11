@@ -15,6 +15,14 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var requestMessages: [[String: String]]
     @NSManaged public var newChat: Bool
     @NSManaged public var temperature: Double
+    /// Whether `temperature` holds a per-chat override. The legacy `temperature`
+    /// column contains stale values (old versions wrote 0/1 unconditionally),
+    /// so a companion flag is required to tell an override from leftovers.
+    @NSManaged public var temperatureOverridden: Bool
+    /// Per-chat context size override; 0 means "inherit from the assistant".
+    @NSManaged public var contextSize: Int16
+    /// Per-chat image generation override: 0 = inherit, 1 = enabled, 2 = disabled.
+    @NSManaged public var imageGenerationMode: Int16
     @NSManaged public var top_p: Double
     @NSManaged public var behavior: String?
     @NSManaged public var draftMessage: String?
@@ -302,33 +310,40 @@ extension ChatEntity {
     }
 }
 
+// Effective settings: the chat's own values win; anything the chat does not
+// define is inherited from its assistant (persona). The Chat Settings panel
+// writes to the chat only — assistants are edited in Settings → AI Assistants.
 extension ChatEntity {
     var effectiveApiService: APIServiceEntity? {
-        persona?.apiService ?? apiService
+        apiService ?? persona?.apiService
     }
 
     var effectiveModel: String {
-        let service = effectiveApiService
-        let defaultModel = AppConstants.defaultModel(for: service?.type)
         let chatModel = gptModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let personaServiceID = persona?.apiService?.objectID
-        let serviceID = service?.objectID
-        let personaMatchesService = personaServiceID == nil ? serviceID == nil : personaServiceID == serviceID
-
-        if personaMatchesService, personaModel.isEmpty == false {
-            return personaModel
-        }
         if chatModel.isEmpty == false {
             return chatModel
         }
-        return defaultModel
+        let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if personaModel.isEmpty == false {
+            return personaModel
+        }
+        return AppConstants.defaultModel(for: effectiveApiService?.type)
+    }
+
+    var effectiveTemperature: Float {
+        if temperatureOverridden {
+            return Float(min(max(temperature, 0), 1))
+        }
+        return persona?.temperature ?? AppConstants.defaultTemperatureForChat
     }
 
     var effectiveContextSize: Int {
-        let raw = Int(persona?.contextSize ?? 0)
-        if raw > 0 {
-            return raw
+        if contextSize > 0 {
+            return Int(contextSize)
+        }
+        let personaSize = Int(persona?.contextSize ?? 0)
+        if personaSize > 0 {
+            return personaSize
         }
         return Int(AppConstants.chatGptContextSize)
     }
@@ -342,11 +357,33 @@ extension ChatEntity {
     }
 
     var imageGenerationEnabled: Bool {
-        persona?.imageGenerationEnabled ?? false
+        switch imageGenerationMode {
+        case 1: return true
+        case 2: return false
+        default: return persona?.imageGenerationEnabled ?? false
+        }
     }
 
     var supportsImageGeneration: Bool {
         (effectiveApiService?.imageGenerationSupported ?? false) && imageGenerationEnabled
+    }
+
+    /// Drops every per-chat override so the chat follows its assistant again,
+    /// and re-snapshots the service/model/system message from the assistant.
+    func resetToAssistantDefaults() {
+        temperatureOverridden = false
+        contextSize = 0
+        imageGenerationMode = 0
+
+        guard let persona else { return }
+        if let personaService = persona.apiService {
+            apiService = personaService
+        }
+        let personaModel = persona.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        gptModel = personaModel.isEmpty
+            ? AppConstants.defaultModel(for: effectiveApiService?.type)
+            : personaModel
+        systemMessage = persona.systemMessage ?? systemMessage
     }
 
     var allowsImageUploads: Bool {

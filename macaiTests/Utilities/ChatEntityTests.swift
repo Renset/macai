@@ -160,4 +160,115 @@ final class ChatEntityTests: XCTestCase {
         chat.applySequenceIfNeeded(to: next)
         XCTAssertEqual(next.sequence, 8)
     }
+
+    // MARK: - Per-chat settings inheritance
+
+    private func makePersona(temperature: Float = 0.7, contextSize: Int16 = 30, model: String = "persona-model") -> PersonaEntity {
+        let persona = PersonaEntity(context: context)
+        persona.id = UUID()
+        persona.name = "Test Assistant"
+        persona.temperature = temperature
+        persona.contextSize = contextSize
+        persona.model = model
+        return persona
+    }
+
+    private func makeService(name: String = "Service") -> APIServiceEntity {
+        let service = APIServiceEntity(context: context)
+        service.id = UUID()
+        service.name = name
+        service.type = "chatgpt"
+        return service
+    }
+
+    func testEffectiveTemperatureInheritsFromPersonaUntilOverridden() {
+        let chat = makeChat()
+        chat.persona = makePersona(temperature: 0.7)
+
+        // Legacy chats carry stale temperature values (old versions wrote 0/1
+        // unconditionally); without the flag they must still inherit.
+        chat.temperature = 1.0
+        XCTAssertEqual(chat.effectiveTemperature, 0.7)
+
+        chat.temperature = 0.2
+        chat.temperatureOverridden = true
+        XCTAssertEqual(chat.effectiveTemperature, 0.2)
+    }
+
+    func testEffectiveContextSizeInheritsFromPersonaUntilOverridden() {
+        let chat = makeChat()
+        chat.persona = makePersona(contextSize: 30)
+
+        XCTAssertEqual(chat.effectiveContextSize, 30)
+
+        chat.contextSize = 50
+        XCTAssertEqual(chat.effectiveContextSize, 50)
+    }
+
+    func testEffectiveModelPrefersChatOverPersona() {
+        let chat = makeChat()
+        chat.persona = makePersona(model: "persona-model")
+
+        chat.gptModel = "chat-model"
+        XCTAssertEqual(chat.effectiveModel, "chat-model")
+
+        chat.gptModel = ""
+        XCTAssertEqual(chat.effectiveModel, "persona-model")
+    }
+
+    func testEffectiveApiServicePrefersChatOverPersona() {
+        let chat = makeChat()
+        let persona = makePersona()
+        let personaService = makeService(name: "Persona Service")
+        let chatService = makeService(name: "Chat Service")
+        persona.apiService = personaService
+        chat.persona = persona
+
+        chat.apiService = chatService
+        XCTAssertEqual(chat.effectiveApiService?.objectID, chatService.objectID)
+
+        chat.apiService = nil
+        XCTAssertEqual(chat.effectiveApiService?.objectID, personaService.objectID)
+    }
+
+    func testImageGenerationModeOverridesPersona() {
+        let chat = makeChat()
+        let persona = makePersona()
+        persona.imageGenerationEnabled = true
+        chat.persona = persona
+
+        XCTAssertTrue(chat.imageGenerationEnabled)  // inherit
+
+        chat.imageGenerationMode = 2
+        XCTAssertFalse(chat.imageGenerationEnabled)  // explicit off
+
+        chat.imageGenerationMode = 1
+        XCTAssertTrue(chat.imageGenerationEnabled)  // explicit on
+    }
+
+    func testResetToAssistantDefaultsClearsOverridesAndResnapshots() {
+        let chat = makeChat()
+        let persona = makePersona(temperature: 0.7, contextSize: 30, model: "persona-model")
+        let personaService = makeService(name: "Persona Service")
+        persona.apiService = personaService
+        persona.systemMessage = "Persona system message"
+        chat.persona = persona
+
+        chat.temperature = 0.1
+        chat.temperatureOverridden = true
+        chat.contextSize = 90
+        chat.imageGenerationMode = 2
+        chat.gptModel = "chat-model"
+        chat.apiService = makeService(name: "Chat Service")
+
+        chat.resetToAssistantDefaults()
+
+        XCTAssertFalse(chat.temperatureOverridden)
+        XCTAssertEqual(chat.effectiveTemperature, 0.7)
+        XCTAssertEqual(chat.effectiveContextSize, 30)
+        XCTAssertEqual(chat.imageGenerationMode, 0)
+        XCTAssertEqual(chat.gptModel, "persona-model")
+        XCTAssertEqual(chat.apiService?.objectID, personaService.objectID)
+        XCTAssertEqual(chat.systemMessage, "Persona system message")
+    }
 }

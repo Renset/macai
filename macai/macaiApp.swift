@@ -12,6 +12,66 @@ import Sparkle
 import SwiftUI
 import UserNotifications
 
+#if DEBUG
+/// Command-line window-sizing diagnostics: launch the app with
+/// MACAI_MEASURE_MIN_WIDTH=1 to print the effective minimum-width constraints
+/// of the main window and every view subtree, then exit. Used to verify
+/// inspector/window sizing fixes without manual resizing.
+enum WindowMetricsDebug {
+    // stderr is unbuffered, so lines survive even if the process is killed.
+    private static func log(_ line: String) {
+        FileHandle.standardError.write(Data(("MEASURE " + line + "\n").utf8))
+    }
+
+    static func runIfRequested() {
+        guard ProcessInfo.processInfo.environment["MACAI_MEASURE_MIN_WIDTH"] == "1" else { return }
+        log("scheduled")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
+            log("firing; windows=\(NSApp.windows.count) visible=\(NSApp.windows.filter(\.isVisible).count)")
+            guard let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil }),
+                  let content = window.contentView else {
+                log("no visible window")
+                exit(1)
+            }
+            log("initial frame.width=\(Int(window.frame.width)) minSize.width=\(Int(window.minSize.width)) contentMinSize.width=\(Int(window.contentMinSize.width))")
+            log("contentView.fittingSize.width=\(Int(content.fittingSize.width))")
+
+            if let toolbar = window.toolbar {
+                for item in toolbar.items {
+                    let x = item.view.flatMap { $0.window != nil ? Int($0.convert($0.bounds, to: nil).origin.x) : nil }
+                    log("toolbar item id=\(item.itemIdentifier.rawValue) label='\(item.label)' x=\(x.map(String.init) ?? "-")")
+                }
+            }
+
+            // Try shrinking programmatically: does minSize track the frame,
+            // or does AppKit push the window back to a fixed minimum?
+            var target = window.frame
+            target.size.width = 500
+            window.setFrame(target, display: true)
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                log("after setFrame(500): frame.width=\(Int(window.frame.width)) minSize.width=\(Int(window.minSize.width)) contentMinSize.width=\(Int(window.contentMinSize.width))")
+                dumpTree(content, depth: 0)
+                exit(0)
+            }
+        }
+    }
+
+    private static func dumpTree(_ view: NSView, depth: Int) {
+        guard depth <= 30 else { return }
+        let name = String(describing: type(of: view))
+        let fitting = view.fittingSize.width
+        // Only wide-demanding branches are interesting.
+        if fitting > 100 {
+            log("\(String(repeating: "| ", count: depth))\(name) fitting=\(Int(fitting)) frame=\(Int(view.frame.width))")
+        }
+        for sub in view.subviews {
+            dumpTree(sub, depth: depth + 1)
+        }
+    }
+}
+#endif
+
 // This view model class publishes when new updates can be checked by the user
 final class CheckForUpdatesViewModel: ObservableObject {
     @Published var canCheckForUpdates = false
@@ -422,6 +482,11 @@ struct macaiApp: App {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(preferredColorScheme)
+                .onAppear {
+                    #if DEBUG
+                    WindowMetricsDebug.runIfRequested()
+                    #endif
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

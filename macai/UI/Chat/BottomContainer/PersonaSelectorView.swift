@@ -76,6 +76,11 @@ struct PersonaSelectorView: View {
     private func updatePersonaAndSystemMessage(to persona: PersonaEntity?) {
         chat.persona = persona
         chat.systemMessage = persona?.systemMessage ?? AppConstants.chatGptSystemMessage
+        // Switching assistants drops the chat's own overrides: the chat starts
+        // following the new assistant's settings.
+        chat.temperatureOverridden = false
+        chat.contextSize = 0
+        chat.imageGenerationMode = 0
         if let service = persona?.apiService {
             chat.apiService = service
             let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

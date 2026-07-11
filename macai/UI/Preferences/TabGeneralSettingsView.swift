@@ -8,7 +8,6 @@
 import AppKit
 import Sparkle
 import SwiftUI
-import AttributedText
 
 struct TabGeneralSettingsView: View {
     private let previewCode = """

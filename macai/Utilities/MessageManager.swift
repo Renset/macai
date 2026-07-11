@@ -34,7 +34,7 @@ class MessageManager: ObservableObject {
     ) {
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         chat.waitingForResponse = true
-        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
+        let temperature = chat.effectiveTemperature.roundedToOneDecimal()
 
         let handleResult: (Result<String, APIError>) -> Void = { [weak self] result in
             guard let self = self else { return }
@@ -91,7 +91,7 @@ class MessageManager: ObservableObject {
     ) {
         cancelRequested = false
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
-        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
+        let temperature = chat.effectiveTemperature.roundedToOneDecimal()
 
         streamTask?.cancel()
         streamTask = Task { [weak self] in
@@ -238,8 +238,7 @@ class MessageManager: ObservableObject {
             chat: chat,
             contextSize: 3
         )
-        let personaTemperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat)
-            .roundedToOneDecimal()
+        let personaTemperature = chat.effectiveTemperature.roundedToOneDecimal()
 
         apiService.sendMessage(requestMessages, temperature: personaTemperature) {
             [weak self] result in

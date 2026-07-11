@@ -32,15 +32,8 @@ struct WelcomeScreen: View {
                         Text("Welcome to macai!").font(.title)
                         if !apiServiceIsPresent {
                             Text("To get started, please add at least one API Service in the settings")
-                            if #available(macOS 14.0, *) {
-                                SettingsLink {
-                                    Text("Open Settings")
-                                }
-                            }
-                            else {
-                                Button("Open Settings") {
-                                    openPreferencesView()
-                                }
+                            SettingsLink {
+                                Text("Open Settings")
                             }
                         }
                         else {

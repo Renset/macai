@@ -5,7 +5,6 @@
 //  Created by Renat on 07.06.2024.
 //
 
-import AttributedText
 import Foundation
 import Highlightr
 import SwiftUI
