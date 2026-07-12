@@ -31,6 +31,7 @@ struct ChatBottomContainerView: View {
     var onCancelEdit: () -> Void
     var onExpandedStateChange: ((Bool) -> Void)?  // Add this line
     @State private var isMentionPickerPresented = false
+    @State private var selectedMentionIndex = 0
 
     private var mentionQuery: String {
         guard newMessage.first == "@" else { return "" }
@@ -42,6 +43,18 @@ struct ChatBottomContainerView: View {
         return assistants.filter {
             ($0.name ?? "").localizedCaseInsensitiveContains(mentionQuery)
         }
+    }
+
+    private var mentionCandidates: [PersonaEntity] {
+        Array(filteredMentionAssistants.prefix(8))
+    }
+
+    private var mentionPickerHeight: CGFloat {
+        mentionCandidates.isEmpty ? 92 : CGFloat(mentionCandidates.count * 32 + 34)
+    }
+
+    private var mentionPickerLeadingOffset: CGFloat {
+        imageUploadsAllowed || pdfUploadsAllowed ? 48 : 8
     }
 
     init(
@@ -112,18 +125,30 @@ struct ChatBottomContainerView: View {
                         onAddImage: onAddImage,
                         onAddFile: onAddFile,
                         onStopInference: onStopInference,
-                        onCancelEdit: onCancelEdit
+                        onCancelEdit: onCancelEdit,
+                        onMoveUp: isMentionPickerPresented ? moveMentionSelectionUp : nil,
+                        onMoveDown: isMentionPickerPresented ? moveMentionSelectionDown : nil,
+                        onDismissSuggestions: isMentionPickerPresented ? dismissMentionPicker : nil
                     )
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .multilineTextAlignment(.leading)
                     .lineLimit(nil)
                     .padding()
-                    .popover(isPresented: $isMentionPickerPresented, arrowEdge: .bottom) {
-                        AssistantMentionPicker(
-                            assistants: filteredMentionAssistants,
-                            onSelect: selectMentionAssistant
-                        )
+                    .overlay(alignment: .topLeading) {
+                        if isMentionPickerPresented {
+                            AssistantMentionPicker(
+                                assistants: mentionCandidates,
+                                selectedIndex: selectedMentionIndex,
+                                onSelect: selectMentionAssistant
+                            )
+                                .offset(
+                                    x: mentionPickerLeadingOffset,
+                                    y: -(mentionPickerHeight + 4)
+                                )
+                                .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .bottomLeading)))
+                        }
                     }
+                    .zIndex(1)
                 }
                 .border(width: 1, edges: [.top], color: Color(NSColor.windowBackgroundColor).opacity(0.8))
             }
@@ -148,6 +173,7 @@ struct ChatBottomContainerView: View {
         .onChange(of: newMessage) { _, value in
             updateMentionPresentation(for: value)
         }
+        .animation(.easeOut(duration: 0.12), value: isMentionPickerPresented)
 
     }
 
@@ -156,11 +182,13 @@ struct ChatBottomContainerView: View {
         isMentionPickerPresented = !isEditingSystemMessage
             && value.first == "@"
             && !query.contains(where: { $0.isWhitespace })
+        selectedMentionIndex = 0
     }
 
     private func handleEnter() {
         if isMentionPickerPresented {
-            if let assistant = filteredMentionAssistants.first {
+            if mentionCandidates.indices.contains(selectedMentionIndex) {
+                let assistant = mentionCandidates[selectedMentionIndex]
                 selectMentionAssistant(assistant)
             }
             return
@@ -173,10 +201,31 @@ struct ChatBottomContainerView: View {
         newMessage = ""
         isMentionPickerPresented = false
     }
+
+    private func moveMentionSelectionUp() {
+        guard isMentionPickerPresented, !mentionCandidates.isEmpty else { return }
+        selectedMentionIndex = selectedMentionIndex == 0
+            ? mentionCandidates.count - 1
+            : selectedMentionIndex - 1
+    }
+
+    private func moveMentionSelectionDown() {
+        guard isMentionPickerPresented, !mentionCandidates.isEmpty else { return }
+        selectedMentionIndex = (selectedMentionIndex + 1) % mentionCandidates.count
+    }
+
+    private func dismissMentionPicker() {
+        guard isMentionPickerPresented else {
+            if isEditingSystemMessage { onCancelEdit() }
+            return
+        }
+        isMentionPickerPresented = false
+    }
 }
 
 private struct AssistantMentionPicker: View {
     let assistants: [PersonaEntity]
+    let selectedIndex: Int
     let onSelect: (PersonaEntity) -> Void
 
     var body: some View {
@@ -186,7 +235,7 @@ private struct AssistantMentionPicker: View {
                     "No Assistants Found",
                     systemImage: "person.crop.circle.badge.questionmark"
                 )
-                .frame(width: 300, height: 120)
+                .frame(width: 232, height: 84)
             } else {
                 Text("Choose Assistant")
                     .font(.caption)
@@ -194,7 +243,7 @@ private struct AssistantMentionPicker: View {
                     .padding(.horizontal, 8)
                     .padding(.top, 6)
 
-                ForEach(assistants.prefix(8), id: \.objectID) { assistant in
+                ForEach(Array(assistants.enumerated()), id: \.element.objectID) { index, assistant in
                     Button {
                         onSelect(assistant)
                     } label: {
@@ -203,19 +252,33 @@ private struct AssistantMentionPicker: View {
                                 .fill(Color(hex: assistant.color ?? AppConstants.defaultPersonaColor) ?? .accentColor)
                                 .frame(width: 10, height: 10)
                             Text(assistant.name ?? "Untitled Assistant")
+                                .lineLimit(1)
                             Spacer()
-                            Text(assistant.apiService?.name ?? "")
-                                .foregroundStyle(.secondary)
+                            if index == selectedIndex {
+                                Image(systemName: "return")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Color.accentColor.opacity(index == selectedIndex ? 0.16 : 0),
+                        in: .rect(cornerRadius: 6)
+                    )
                 }
             }
         }
-        .padding(.vertical, 4)
-        .frame(width: 320)
+        .padding(6)
+        .frame(width: 244)
+        .background(.regularMaterial, in: .rect(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 0.5)
+        }
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 5)
     }
 }

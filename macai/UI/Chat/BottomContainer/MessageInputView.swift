@@ -24,6 +24,9 @@ struct MessageInputView: View {
     var onAddFile: () -> Void
     var onStopInference: () -> Void
     var onCancelEdit: () -> Void
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
+    var onDismissSuggestions: (() -> Void)?
 
     private let frontReturnKeyType: MacaiTextField.ReturnKeyType = .next
     @State var isFocused: Focus?
@@ -115,6 +118,9 @@ struct MessageInputView: View {
         onAddFile: @escaping () -> Void,
         onStopInference: @escaping () -> Void,
         onCancelEdit: @escaping () -> Void = {},
+        onMoveUp: (() -> Void)? = nil,
+        onMoveDown: (() -> Void)? = nil,
+        onDismissSuggestions: (() -> Void)? = nil,
         inputPlaceholderText: String = "Type your prompt here",
         cornerRadius: Double = 20.0
     ) {
@@ -131,6 +137,9 @@ struct MessageInputView: View {
         self.onAddFile = onAddFile
         self.onStopInference = onStopInference
         self.onCancelEdit = onCancelEdit
+        self.onMoveUp = onMoveUp
+        self.onMoveDown = onMoveDown
+        self.onDismissSuggestions = onDismissSuggestions
         self.inputPlaceholderText = inputPlaceholderText
         self.cornerRadius = cornerRadius
     }
@@ -240,7 +249,9 @@ struct MessageInputView: View {
                     fontSize: effectiveFontSize,
                     minHeight: initialInputSize,
                     maxHeight: maxInputHeight,
-                    onEscape: isEditingSystemMessage ? onCancelEdit : nil,
+                    onEscape: onDismissSuggestions ?? (isEditingSystemMessage ? onCancelEdit : nil),
+                    onMoveUp: onMoveUp,
+                    onMoveDown: onMoveDown,
                     onPasteImage: imageUploadsAllowed ? addPastedImage : nil,
                     onCommit: {
                         guard !isInferenceInProgress else { return }

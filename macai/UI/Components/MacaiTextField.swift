@@ -23,6 +23,8 @@ struct MacaiTextField: View {
     var onTab: (() -> Void)?
     var onBackTab: (() -> Void)?
     var onEscape: (() -> Void)?
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
     var onPasteImage: ((NSImage) -> Void)?
 
     @State private var measuredHeight: CGFloat
@@ -39,6 +41,8 @@ struct MacaiTextField: View {
         onTab: (() -> Void)? = nil,
         onBackTab: (() -> Void)? = nil,
         onEscape: (() -> Void)? = nil,
+        onMoveUp: (() -> Void)? = nil,
+        onMoveDown: (() -> Void)? = nil,
         onPasteImage: ((NSImage) -> Void)? = nil,
         onCommit: (() -> Void)? = nil
     ) {
@@ -53,6 +57,8 @@ struct MacaiTextField: View {
         self.onTab = onTab
         self.onBackTab = onBackTab
         self.onEscape = onEscape
+        self.onMoveUp = onMoveUp
+        self.onMoveDown = onMoveDown
         self.onPasteImage = onPasteImage
         _measuredHeight = State(initialValue: minHeight)
     }
@@ -88,6 +94,8 @@ struct MacaiTextField: View {
                 onTab: onTab,
                 onBackTab: onBackTab,
                 onEscape: onEscape,
+                onMoveUp: onMoveUp,
+                onMoveDown: onMoveDown,
                 onPasteImage: onPasteImage
             )
         }
@@ -125,6 +133,8 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
     var onTab: (() -> Void)?
     var onBackTab: (() -> Void)?
     var onEscape: (() -> Void)?
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
     var onPasteImage: ((NSImage) -> Void)?
 
     func makeCoordinator() -> Coordinator {
@@ -280,6 +290,16 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
                       commandSelector == #selector(NSResponder.cancelOperation(_:))
             {
                 onEscape()
+                return true
+            } else if let onMoveUp = parent.onMoveUp,
+                      commandSelector == #selector(NSResponder.moveUp(_:))
+            {
+                onMoveUp()
+                return true
+            } else if let onMoveDown = parent.onMoveDown,
+                      commandSelector == #selector(NSResponder.moveDown(_:))
+            {
+                onMoveDown()
                 return true
             }
 
