@@ -548,6 +548,15 @@ struct macaiApp: App {
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
+                Button("New Chat with Assistant…") {
+                    NotificationCenter.default.post(
+                        name: AppConstants.selectAssistantNotification,
+                        object: nil,
+                        userInfo: ["windowId": NSApp.keyWindow?.windowNumber ?? 0]
+                    )
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+
                 Button("New Window") {
                     NSApplication.shared.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
                 }

@@ -20,35 +20,25 @@ struct APIRequestData: Codable {
 
 struct PreferencesView: View {
     @StateObject private var store = ChatStore(persistenceController: PersistenceController.shared)
-    @State private var lampColor: Color = .gray
+    @AppStorage(AppConstants.selectedPreferencesTabKey) private var selectedTab = 0
 
     var body: some View {
-        TabView {
-
-            TabGeneralSettingsView()
-                .tabItem {
-                    Label("General", systemImage: "gearshape")
-                }
-
-            TabAPIServicesView()
-                .tabItem {
-                    Label("API Services", systemImage: "network")
-                }
-
-            TabAIPersonasView()
-                .tabItem {
-                    Label("AI Assistants", systemImage: "person.2")
-                }
-
-            BackupRestoreView(store: store)
-                .tabItem {
-                    Label("Backup & Restore", systemImage: "externaldrive")
-                }
-
-            DangerZoneView(store: store)
-                .tabItem {
-                    Label("Danger Zone", systemImage: "flame.fill")
-                }
+        TabView(selection: $selectedTab) {
+            Tab("General", systemImage: "gearshape", value: 0) {
+                TabGeneralSettingsView()
+            }
+            Tab("API Services", systemImage: "network", value: 1) {
+                TabAPIServicesView()
+            }
+            Tab("AI Assistants", systemImage: "person.2", value: 2) {
+                TabAIPersonasView()
+            }
+            Tab("Backup & Restore", systemImage: "externaldrive", value: 3) {
+                BackupRestoreView(store: store)
+            }
+            Tab("Danger Zone", systemImage: "flame.fill", value: 4) {
+                DangerZoneView(store: store)
+            }
         }
         .frame(width: 480)
         .padding()

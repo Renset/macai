@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var window: NSWindow?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.openSettings) private var openSettings
 
     @FetchRequest(
         entity: ChatEntity.entity(),
@@ -29,12 +30,13 @@ struct ContentView: View {
     private var apiServices: FetchedResults<APIServiceEntity>
 
     @State var selectedChat: ChatEntity?
-    @AppStorage("gptToken") var gptToken = ""
-    @AppStorage("gptModel") var gptModel = AppConstants.defaultPrimaryModel
-    @AppStorage("systemMessage") var systemMessage = AppConstants.chatGptSystemMessage
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     @AppStorage("apiUrl") var apiUrl = AppConstants.apiUrlOpenAIResponses
     @AppStorage(SettingsIndicatorKeys.generalSeen) private var generalSettingsSeen: Bool = false
+    @AppStorage(AppConstants.assistantSettingsMigrationNoticePendingKey)
+    private var isAssistantMigrationNoticePending = false
+    @State private var isAssistantMigrationNoticePresented = false
+    @State private var didEvaluateAssistantMigrationNotice = false
     @StateObject private var previewStateManager = PreviewStateManager()
     @StateObject private var attentionStore = ChatAttentionStore.shared
 
@@ -44,6 +46,7 @@ struct ContentView: View {
     @State private var lastChatCount = 0
     @State private var searchText = ""
     @State private var isSearchPresented = false
+    @State private var isAssistantPickerPresented = false
     @State private var keyDownMonitor: Any?
     @AppStorage("assistantPanelVisible") private var assistantPanelVisible = false
     @AppStorage("chatSettingsPanelWidth") private var chatSettingsPanelWidth: Double = 320
@@ -61,6 +64,10 @@ struct ContentView: View {
         .onAppear(perform: {
             updateSidebarVisibilityForChatCount(previousCount: lastChatCount, newCount: chats.count)
             lastChatCount = chats.count
+            if !didEvaluateAssistantMigrationNotice {
+                didEvaluateAssistantMigrationNotice = true
+                isAssistantMigrationNoticePresented = isAssistantMigrationNoticePending
+            }
             if let lastOpenedChatId = UUID(uuidString: lastOpenedChatId) {
                 if let lastOpenedChat = chats.first(where: { $0.id == lastOpenedChatId }) {
                     selectedChat = lastOpenedChat
@@ -139,6 +146,21 @@ struct ContentView: View {
             }
         }
         .navigationTitle("Chats")
+        .alert("Review your v3 settings", isPresented: $isAssistantMigrationNoticePresented) {
+            Button("Open Settings") {
+                isAssistantMigrationNoticePending = false
+                UserDefaults.standard.set(1, forKey: AppConstants.selectedPreferencesTabKey)
+                openPreferencesView()
+            }
+            Button("Later", role: .cancel) {}
+        } message: {
+            Text(
+                "API Services now only define how macai connects to an API. "
+                    + "Models, system instructions, and chat behavior have moved to AI Assistants. "
+                    + "Your existing settings were migrated automatically, but we recommend reviewing both your "
+                    + "API Services and AI Assistants."
+            )
+        }
         .toolbar {
             if !isSidebarVisible {
                 ToolbarItem(placement: .navigation) {
@@ -237,6 +259,17 @@ struct ContentView: View {
             let format = rawFormat.flatMap(ChatExportFormat.init(rawValue:)) ?? .markdown
             ChatExporter.exportWithSavePanel(chat: chat, format: format)
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppConstants.selectAssistantNotification)) { notification in
+            let sourceWindowId = notification.userInfo?["windowId"] as? Int
+            guard sourceWindowId == nil || sourceWindowId == 0 || sourceWindowId == window?.windowNumber else { return }
+            isAssistantPickerPresented = true
+        }
+        .sheet(isPresented: $isAssistantPickerPresented) {
+            AssistantQuickPicker { assistant in
+                newChat(using: assistant)
+            }
+            .environment(\.managedObjectContext, viewContext)
+        }
         .focusedSceneValue(\.chatIsSelected, selectedChat != nil)
         .environmentObject(previewStateManager)
     }
@@ -256,10 +289,18 @@ struct ContentView: View {
     }
 
     private func newChat(using preferredService: APIServiceEntity?) {
-        let uuid = UUID()
-        let newChat = ChatEntity(context: viewContext)
+        guard let assistant = resolveAssistant(for: preferredService) else {
+            UserDefaults.standard.set(2, forKey: AppConstants.selectedPreferencesTabKey)
+            openPreferencesView()
+            return
+        }
+        newChat(using: assistant)
+    }
 
-        newChat.id = uuid
+    private func newChat(using assistant: PersonaEntity) {
+        guard let service = assistant.apiService else { return }
+        let newChat = ChatEntity(context: viewContext)
+        newChat.id = UUID()
         newChat.newChat = true
         newChat.temperature = 1
         newChat.top_p = 1.0
@@ -267,38 +308,19 @@ struct ContentView: View {
         newChat.draftMessage = ""
         newChat.createdDate = Date()
         newChat.updatedDate = Date()
-        newChat.systemMessage = systemMessage
-        newChat.gptModel = gptModel
+        newChat.systemMessage = assistant.systemMessage ?? AppConstants.chatGptSystemMessage
+        let model = assistant.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        newChat.gptModel = model.isEmpty ? AppConstants.defaultModel(for: service.type) : model
         newChat.lastSequence = 0
-
-        if let service = preferredService {
-            newChat.apiService = service
-            if let defaultPersona = service.defaultPersona {
-                newChat.persona = defaultPersona
-                newChat.gptModel = defaultPersona.model ?? AppConstants.defaultModel(for: service.type)
-                newChat.systemMessage = defaultPersona.systemMessage ?? AppConstants.chatGptSystemMessage
-            } else {
-                newChat.gptModel = AppConstants.defaultModel(for: service.type)
-            }
-        }
-        else if let defaultService = resolveDefaultAPIService() {
-            newChat.apiService = defaultService
-            if let defaultPersona = defaultService.defaultPersona {
-                newChat.persona = defaultPersona
-                newChat.gptModel = defaultPersona.model ?? AppConstants.defaultModel(for: defaultService.type)
-                newChat.systemMessage = defaultPersona.systemMessage ?? AppConstants.chatGptSystemMessage
-            } else {
-                newChat.gptModel = AppConstants.defaultModel(for: defaultService.type)
-            }
-        }
+        newChat.persona = assistant
+        newChat.apiService = service
 
         do {
             try viewContext.save()
             selectedChat = newChat
-        }
-        catch {
-            print("Error saving new chat: \(error.localizedDescription)")
+        } catch {
             viewContext.rollback()
+            print("Error saving new chat: \(error.localizedDescription)")
         }
     }
 
@@ -318,27 +340,12 @@ struct ContentView: View {
         }
     }
 
-    private func resolveDefaultAPIService() -> APIServiceEntity? {
-        if let service = apiServices.first(where: { $0.isDefault }) {
-            return service
-        }
-
-        if let defaultServiceIDString = UserDefaults.standard.string(forKey: "defaultApiService"),
-           let url = URL(string: defaultServiceIDString),
-           let objectID = viewContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
-           let service = try? viewContext.existingObject(with: objectID) as? APIServiceEntity
-        {
-            service.isDefault = true
-            viewContext.saveWithRetry(attempts: 1)
-            UserDefaults.standard.removeObject(forKey: "defaultApiService")
-            return service
-        }
-
-        return nil
+    private func resolveAssistant(for preferredService: APIServiceEntity?) -> PersonaEntity? {
+        try? PersonaEntity.preferredAssistant(in: viewContext, for: preferredService)
     }
 
     func openPreferencesView() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        openSettings()
     }
 
     func clearSelectedChat() {
@@ -713,6 +720,80 @@ private extension ContentView {
         return trimmed
     }
 
+}
+
+private struct AssistantQuickPicker: View {
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true)],
+        predicate: NSPredicate(format: "apiService != nil"),
+        animation: .default
+    )
+    private var assistants: FetchedResults<PersonaEntity>
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var selection: NSManagedObjectID?
+    @FocusState private var searchIsFocused: Bool
+    let onSelect: (PersonaEntity) -> Void
+
+    private var filteredAssistants: [PersonaEntity] {
+        guard !query.isEmpty else { return Array(assistants) }
+        return assistants.filter { ($0.name ?? "").localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            TextField("Search assistants", text: $query)
+                .textFieldStyle(.roundedBorder)
+                .focused($searchIsFocused)
+
+            List(filteredAssistants, selection: $selection) { assistant in
+                HStack {
+                    Circle()
+                        .fill(Color(hex: assistant.color ?? AppConstants.defaultPersonaColor) ?? .accentColor)
+                        .frame(width: 10, height: 10)
+                    Text(assistant.name ?? "Untitled Assistant")
+                    Spacer()
+                    Text(assistant.apiService?.name ?? "")
+                        .foregroundStyle(.secondary)
+                }
+                .tag(assistant.objectID)
+                .contentShape(.rect)
+                .onTapGesture(count: 2) { choose(assistant) }
+            }
+            .frame(minHeight: 220)
+
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }
+                Button("Create Chat") { chooseSelected() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(selectedAssistant == nil)
+            }
+        }
+        .padding(16)
+        .frame(width: 440)
+        .onAppear {
+            selection = filteredAssistants.first?.objectID
+            searchIsFocused = true
+        }
+        .onChange(of: query) { _, _ in
+            selection = filteredAssistants.first?.objectID
+        }
+    }
+
+    private var selectedAssistant: PersonaEntity? {
+        filteredAssistants.first { $0.objectID == selection }
+    }
+
+    private func chooseSelected() {
+        guard let selectedAssistant else { return }
+        choose(selectedAssistant)
+    }
+
+    private func choose(_ assistant: PersonaEntity) {
+        onSelect(assistant)
+        dismiss()
+    }
 }
 
 struct PreviewPane: View {
