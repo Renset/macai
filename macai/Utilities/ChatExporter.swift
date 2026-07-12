@@ -217,6 +217,23 @@ struct ChatExporter {
         )
     }
 
+    static func export(chats: [ChatEntity], format: ChatExportFormat) -> String {
+        combine(
+            transcripts: chats.map { export(chat: $0, format: format) },
+            format: format
+        )
+    }
+
+    static func combine(transcripts: [String], format: ChatExportFormat) -> String {
+        let separator = format == .markdown
+            ? "\n\n---\n\n"
+            : "\n\n\(String(repeating: "=", count: 60))\n\n"
+        let content = transcripts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: separator)
+        return content.isEmpty ? "" : content.appending("\n")
+    }
+
     static func suggestedFileName(for chat: ChatEntity, format: ChatExportFormat) -> String {
         var name = chat.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if name.isEmpty {
@@ -229,6 +246,10 @@ struct ChatExporter {
             name = "Chat"
         }
         return "\(name).\(format.fileExtension)"
+    }
+
+    static func suggestedFileName(chatCount: Int, format: ChatExportFormat) -> String {
+        "\(chatCount) Chats.\(format.fileExtension)"
     }
 
     private static func documentFilename(for uuid: UUID, in context: NSManagedObjectContext) -> String? {
@@ -269,29 +290,39 @@ struct ChatExporter {
     // MARK: - Save panel
 
     static func exportWithSavePanel(chat: ChatEntity, format: ChatExportFormat) {
+        exportWithSavePanel(chats: [chat], format: format)
+    }
+
+    static func exportWithSavePanel(chats: [ChatEntity], format: ChatExportFormat) {
+        guard !chats.isEmpty else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [format.contentType]
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
-        panel.nameFieldStringValue = suggestedFileName(for: chat, format: format)
-        panel.title = "Export Chat"
+        panel.nameFieldStringValue = chats.count == 1
+            ? suggestedFileName(for: chats[0], format: format)
+            : suggestedFileName(chatCount: chats.count, format: format)
+        panel.title = chats.count == 1 ? "Export Chat" : "Export \(chats.count) Chats"
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         // Render and write off the main thread: embedding images base64-encodes
         // potentially many megabytes of data.
-        let chatID = chat.objectID
-        guard !chatID.isTemporaryID,
-              let coordinator = chat.managedObjectContext?.persistentStoreCoordinator else {
-            writeExport(export(chat: chat, format: format), to: url)
+        let chatIDs = chats.map(\.objectID)
+        guard chatIDs.allSatisfy({ !$0.isTemporaryID }),
+              let coordinator = chats[0].managedObjectContext?.persistentStoreCoordinator else {
+            writeExport(export(chats: chats, format: format), to: url)
             return
         }
 
         let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = coordinator
         context.perform {
-            guard let backgroundChat = try? context.existingObject(with: chatID) as? ChatEntity else { return }
-            let content = export(chat: backgroundChat, format: format)
+            let backgroundChats = chatIDs.compactMap {
+                try? context.existingObject(with: $0) as? ChatEntity
+            }
+            guard !backgroundChats.isEmpty else { return }
+            let content = export(chats: backgroundChats, format: format)
             writeExport(content, to: url)
         }
     }

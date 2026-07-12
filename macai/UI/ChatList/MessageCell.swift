@@ -14,7 +14,9 @@ struct MessageCell: View, Equatable {
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.showsAttentionIndicator == rhs.showsAttentionIndicator &&
-        lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
+        lhs.isActive == rhs.isActive &&
+        lhs.isSelectionMode == rhs.isSelectionMode &&
+        lhs.isBulkSelected == rhs.isBulkSelected &&
         lhs.isPinned == rhs.isPinned &&
         lhs.searchText == rhs.searchText
     }
@@ -22,12 +24,15 @@ struct MessageCell: View, Equatable {
     let chatObjectID: NSManagedObjectID
     let personaName: String?
     let chatName: String
-    @State var timestamp: Date
+    let timestamp: Date
     var message: String
     let showsAttentionIndicator: Bool
     let isPinned: Bool
-    @Binding var isActive: Bool
+    let isActive: Bool
+    let isSelectionMode: Bool
+    let isBulkSelected: Bool
     let searchText: String
+    let onActivate: () -> Void
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
 
@@ -48,9 +53,16 @@ struct MessageCell: View, Equatable {
 
     var body: some View {
         Button {
-            isActive = true
+            onActivate()
         } label: {
             HStack {
+                if isSelectionMode {
+                    Image(systemName: isBulkSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(isBulkSelected ? Color.accentColor : .secondary)
+                        .accessibilityHidden(true)
+                }
+
                 VStack(alignment: .leading, spacing: 4) {
                     if let personaName {
                         HighlightedText(personaName, highlight: searchText, elementType: "chatlist")
@@ -105,6 +117,8 @@ struct MessageCell: View, Equatable {
                     .fill(
                         self.isActive
                             ? Color.accentColor
+                            : isBulkSelected
+                                ? Color.accentColor.opacity(colorScheme == .dark ? 0.24 : 0.14)
                             : self.isHovered
                                 ? (colorScheme == .dark ? Color(hex: "#666666")! : Color(hex: "#CCCCCC")!) : Color.clear
                     )
@@ -115,6 +129,8 @@ struct MessageCell: View, Equatable {
         }
         .buttonStyle(.borderless)
         .background(Color.clear)
+        .accessibilityLabel(chatName.isEmpty ? "Untitled Chat" : chatName)
+        .accessibilityValue(isSelectionMode ? (isBulkSelected ? "Selected" : "Not selected") : "")
     }
 }
 
@@ -164,8 +180,11 @@ struct MessageCell_Previews: PreviewProvider {
             message: message,
             showsAttentionIndicator: showsAttentionIndicator,
             isPinned: isPinned,
-            isActive: .constant(isActive),
-            searchText: ""
+            isActive: isActive,
+            isSelectionMode: false,
+            isBulkSelected: false,
+            searchText: "",
+            onActivate: {}
         )
     }
 

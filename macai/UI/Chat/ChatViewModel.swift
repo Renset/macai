@@ -321,8 +321,12 @@ class ChatViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDeleg
         return chat.effectiveApiService?.type ?? AppConstants.defaultApiType
     }
     
-    func regenerateChatName() {
-        messageManager?.generateChatNameIfNeeded(chat: chat, force: true)
+    func regenerateChatName(completion: ((Result<String?, Error>) -> Void)? = nil) {
+        guard let messageManager else {
+            completion?(.failure(APIError.noApiService("No valid API configuration found")))
+            return
+        }
+        messageManager.generateChatNameIfNeeded(chat: chat, force: true, completion: completion)
     }
 
     // MARK: - Search Logic

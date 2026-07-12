@@ -6,8 +6,17 @@
 //
 
 import CoreData
-import Foundation
 import SwiftUI
+
+enum ChatListRowAction {
+    case beginSelection
+    case togglePin
+    case rename
+    case regenerateName
+    case clear
+    case export(ChatExportFormat)
+    case delete
+}
 
 struct ChatListRow: View, Equatable {
     static func == (lhs: ChatListRow, rhs: ChatListRow) -> Bool {
@@ -17,7 +26,9 @@ struct ChatListRow: View, Equatable {
         lhs.lastMessageBody == rhs.lastMessageBody &&
         lhs.isPinned == rhs.isPinned &&
         lhs.showsAttentionIndicator == rhs.showsAttentionIndicator &&
-        (lhs.selectedChat?.objectID == rhs.selectedChat?.objectID) &&
+        lhs.isActive == rhs.isActive &&
+        lhs.isSelectionMode == rhs.isSelectionMode &&
+        lhs.isBulkSelected == rhs.isBulkSelected &&
         lhs.searchText == rhs.searchText
     }
     let chat: ChatEntity
@@ -29,17 +40,22 @@ struct ChatListRow: View, Equatable {
     let lastMessageTimestamp: Date
     let updatedDate: Date?
     let showsAttentionIndicator: Bool
-    @Binding var selectedChat: ChatEntity?
-    let viewContext: NSManagedObjectContext
+    let isActive: Bool
+    let isSelectionMode: Bool
+    let isBulkSelected: Bool
     let searchText: String
-    @StateObject private var chatViewModel: ChatViewModel
+    let onActivate: () -> Void
+    let onAction: (ChatListRowAction) -> Void
 
     init(
         chat: ChatEntity,
         showsAttentionIndicator: Bool,
-        selectedChat: Binding<ChatEntity?>,
-        viewContext: NSManagedObjectContext,
-        searchText: String
+        isActive: Bool,
+        isSelectionMode: Bool,
+        isBulkSelected: Bool,
+        searchText: String,
+        onActivate: @escaping () -> Void,
+        onAction: @escaping (ChatListRowAction) -> Void
     ) {
         self.chat = chat
         self.chatObjectID = chat.objectID
@@ -50,28 +66,12 @@ struct ChatListRow: View, Equatable {
         self.lastMessageTimestamp = chat.lastMessage?.timestamp ?? .distantPast
         self.updatedDate = chat.updatedDate
         self.showsAttentionIndicator = showsAttentionIndicator
-        self._selectedChat = selectedChat
-        self.viewContext = viewContext
+        self.isActive = isActive
+        self.isSelectionMode = isSelectionMode
+        self.isBulkSelected = isBulkSelected
         self.searchText = searchText
-        self._chatViewModel = StateObject(
-            wrappedValue: ChatViewModel(chat: chat, viewContext: viewContext, loadsMessages: false)
-        )
-    }
-
-    var isActive: Binding<Bool> {
-        Binding<Bool>(
-            get: {
-                selectedChat == chat
-            },
-            set: { newValue in
-                if newValue {
-                    selectedChat = chat
-                }
-                else {
-                    selectedChat = nil
-                }
-            }
-        )
+        self.onActivate = onActivate
+        self.onAction = onAction
     }
 
     var body: some View {
@@ -84,121 +84,47 @@ struct ChatListRow: View, Equatable {
             showsAttentionIndicator: showsAttentionIndicator,
             isPinned: isPinned,
             isActive: isActive,
-            searchText: searchText
+            isSelectionMode: isSelectionMode,
+            isBulkSelected: isBulkSelected,
+            searchText: searchText,
+            onActivate: onActivate
         )
         .contextMenu {
-            Button(action: { 
-                togglePinChat(chat)
-            }) {
+            Button(action: { onAction(.beginSelection) }) {
+                Label("Select", systemImage: "checkmark.circle")
+            }
+
+            Divider()
+
+            Button(action: { onAction(.togglePin) }) {
                 Label(isPinned ? "Unpin" : "Pin", systemImage: isPinned ? "pin.slash" : "pin")
             }
             
-            Button(action: { renameChat(chat) }) {
+            Button(action: { onAction(.rename) }) {
                 Label("Rename", systemImage: "pencil")
             }
             if chat.shouldGenerateChatNames {
-                Button(action: {
-                    chatViewModel.regenerateChatName()
-                }) {
+                Button(action: { onAction(.regenerateName) }) {
                     Label("Regenerate Name", systemImage: "arrow.clockwise")
                 }
             }
-            Button(action: { clearChat(chat) }) {
+            Button(action: { onAction(.clear) }) {
                 Label("Clear Chat", systemImage: "eraser")
             }
             Menu {
                 Button("As Markdown…") {
-                    ChatExporter.exportWithSavePanel(chat: chat, format: .markdown)
+                    onAction(.export(.markdown))
                 }
                 Button("As Plain Text…") {
-                    ChatExporter.exportWithSavePanel(chat: chat, format: .plainText)
+                    onAction(.export(.plainText))
                 }
             } label: {
                 Label("Export Chat", systemImage: "square.and.arrow.up")
             }
             Divider()
-            Button(action: { deleteChat(chat) }) {
+            Button(action: { onAction(.delete) }) {
                 Label("Delete", systemImage: "trash")
             }
-        }
-    }
-
-    func deleteChat(_ chat: ChatEntity) {
-        guard !chat.isDeleted else { return }
-        let alert = NSAlert()
-        alert.messageText = "Delete chat \(chat.name)?"
-        alert.informativeText = "Are you sure you want to delete this chat?"
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        alert.presentAsSheetOrModal { response in
-            if response == .alertFirstButtonReturn {
-                // Clear selectedChat to prevent accessing deleted item
-                if selectedChat?.objectID == chat.objectID {
-                    selectedChat = nil
-                }
-                viewContext.delete(chat)
-                DispatchQueue.main.async {
-                    do {
-                        try viewContext.save()
-                    }
-                    catch {
-                        print("Error deleting chat: \(error.localizedDescription)")
-                    }
-                }
-            }
-        }
-    }
-
-    func renameChat(_ chat: ChatEntity) {
-        let alert = NSAlert()
-        alert.messageText = "Rename chat"
-        alert.informativeText = "Enter new name for this chat"
-        alert.addButton(withTitle: "Rename")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .informational
-        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        textField.stringValue = chat.name
-        alert.accessoryView = textField
-        alert.presentAsSheetOrModal { response in
-            if response == .alertFirstButtonReturn {
-                chat.name = textField.stringValue
-                do {
-                    try viewContext.save()
-                }
-
-                catch {
-                    print("Error renaming chat: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-    
-    func clearChat(_ chat: ChatEntity) {
-        let alert = NSAlert()
-        alert.messageText = "Clear chat \(chat.name)?"
-        alert.informativeText = "Are you sure you want to delete all messages from this chat? Chat parameters will not be deleted. This action cannot be undone."
-        alert.addButton(withTitle: "Clear")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        alert.presentAsSheetOrModal { response in
-            if response == .alertFirstButtonReturn {
-                chat.clearMessages()
-                do {
-                    try viewContext.save()
-                } catch {
-                    print("Error clearing chat: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-    
-    func togglePinChat(_ chat: ChatEntity) {
-        chat.isPinned.toggle()
-        do {
-            try viewContext.save()
-        } catch {
-            print("Error toggling pin status: \(error.localizedDescription)")
         }
     }
 }

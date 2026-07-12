@@ -221,4 +221,38 @@ class ChatExporterTests: XCTestCase {
         XCTAssertTrue(result.hasPrefix("#### User"))
         XCTAssertTrue(result.contains("Hi"))
     }
+
+    // MARK: - Bulk export
+
+    func testCombineMarkdownTranscriptsPreservesChatBoundaries() {
+        let result = ChatExporter.combine(
+            transcripts: ["# First\n\nMessage one\n", "# Second\n\nMessage two\n"],
+            format: .markdown
+        )
+
+        XCTAssertEqual(result, "# First\n\nMessage one\n\n---\n\n# Second\n\nMessage two\n")
+    }
+
+    func testCombinePlainTextTranscriptsUsesVisibleSeparator() {
+        let result = ChatExporter.combine(
+            transcripts: ["First\n", "Second\n"],
+            format: .plainText
+        )
+
+        XCTAssertEqual(result, "First\n\n\(String(repeating: "=", count: 60))\n\nSecond\n")
+    }
+
+    func testCombineTranscriptsSkipsEmptyChats() {
+        let result = ChatExporter.combine(
+            transcripts: ["", "   \n", "# Only chat\n"],
+            format: .markdown
+        )
+
+        XCTAssertEqual(result, "# Only chat\n")
+    }
+
+    func testBulkSuggestedFileNameIncludesCountAndFormat() {
+        XCTAssertEqual(ChatExporter.suggestedFileName(chatCount: 4, format: .markdown), "4 Chats.md")
+        XCTAssertEqual(ChatExporter.suggestedFileName(chatCount: 2, format: .plainText), "2 Chats.txt")
+    }
 }

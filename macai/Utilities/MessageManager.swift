@@ -221,7 +221,11 @@ class MessageManager: ObservableObject {
         apiService.cancelCurrentRequest()
     }
 
-    func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
+    func generateChatNameIfNeeded(
+        chat: ChatEntity,
+        force: Bool = false,
+        completion: ((Result<String?, Error>) -> Void)? = nil
+    ) {
         // `force` (explicit "Regenerate Name") must work even when the chat
         // is already named; the name-emptiness check only gates auto-generation.
         guard force || (chat.shouldGenerateChatNames && chat.name == ""),
@@ -230,6 +234,7 @@ class MessageManager: ObservableObject {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
+            completion?(.success(nil))
             return
         }
 
@@ -244,13 +249,22 @@ class MessageManager: ObservableObject {
             [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let messageBody):
-                let chatName = MessageManager.sanitizeChatName(messageBody)
-                chat.name = chatName
-                self.viewContext.saveWithRetry(attempts: 3)
-            case .failure(let error):
-                print("Error generating chat name: \(error)")
+            self.viewContext.perform {
+                guard !chat.isDeleted else {
+                    completion?(.success(nil))
+                    return
+                }
+
+                switch result {
+                case .success(let messageBody):
+                    let chatName = MessageManager.sanitizeChatName(messageBody)
+                    chat.name = chatName
+                    self.viewContext.saveWithRetry(attempts: 3)
+                    completion?(.success(chatName))
+                case .failure(let error):
+                    print("Error generating chat name: \(error)")
+                    completion?(.failure(error))
+                }
             }
         }
     }

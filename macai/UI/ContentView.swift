@@ -47,6 +47,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var isSearchPresented = false
     @State private var isAssistantPickerPresented = false
+    @State private var isChatSelectionMode = false
     @State private var keyDownMonitor: Any?
     @AppStorage("assistantPanelVisible") private var assistantPanelVisible = false
     @AppStorage("chatSettingsPanelWidth") private var chatSettingsPanelWidth: Double = 320
@@ -369,7 +370,11 @@ struct ContentView: View {
     }
 
     private var primaryColumn: some View {
-        ChatListView(selectedChat: $selectedChat, searchText: $searchText)
+        ChatListView(
+            selectedChat: $selectedChat,
+            searchText: $searchText,
+            isSelectionMode: $isChatSelectionMode
+        )
             .environmentObject(attentionStore)
             .navigationSplitViewColumnWidth(
                 min: 180,
@@ -386,6 +391,22 @@ struct ContentView: View {
                         }
                         .labelStyle(.iconOnly)
                         .help("New Chat")
+                    }
+
+                    ToolbarItem(placement: .navigation) {
+                        Button {
+                            isChatSelectionMode.toggle()
+                        } label: {
+                            if isChatSelectionMode {
+                                Text("Done")
+                            }
+                            else {
+                                Label("Select Chats", systemImage: "checkmark.circle")
+                                    .labelStyle(.iconOnly)
+                            }
+                        }
+                        .help(isChatSelectionMode ? "Finish Selecting" : "Select Chats")
+                        .disabled(chats.isEmpty)
                     }
                 }
             }
