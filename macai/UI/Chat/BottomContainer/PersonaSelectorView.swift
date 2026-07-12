@@ -73,9 +73,9 @@ struct PersonaSelectorView: View {
     @ObservedObject var chat: ChatEntity
     @Environment(\.colorScheme) var colorScheme
 
-    private func updatePersonaAndSystemMessage(to persona: PersonaEntity?) {
+    static func updatePersonaAndSystemMessage(_ persona: PersonaEntity, for chat: ChatEntity) {
         chat.persona = persona
-        chat.systemMessage = persona?.systemMessage ?? AppConstants.chatGptSystemMessage
+        chat.systemMessage = persona.systemMessage ?? AppConstants.chatGptSystemMessage
         // Switching assistants drops the chat's own overrides: the chat starts
         // following the new assistant's settings.
         chat.temperatureOverridden = false
@@ -84,9 +84,9 @@ struct PersonaSelectorView: View {
         chat.apiServiceOverridden = false
         chat.modelOverridden = false
         chat.systemMessageOverridden = false
-        if let service = persona?.apiService {
+        if let service = persona.apiService {
             chat.apiService = service
-            let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let personaModel = persona.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             chat.gptModel = personaModel.isEmpty ? AppConstants.defaultModel(for: service.type) : personaModel
         } else if chat.gptModel.isEmpty {
             chat.gptModel = AppConstants.defaultPrimaryModel
@@ -106,7 +106,7 @@ struct PersonaSelectorView: View {
                         PersonaChipView(persona: persona, isSelected: chat.persona == persona)
                             .onTapGesture {
                                 withAnimation(.easeOut(duration: 0.2)) {
-                                    updatePersonaAndSystemMessage(to: persona)
+                                    Self.updatePersonaAndSystemMessage(persona, for: chat)
                                 }
                             }
                             .id(persona)
