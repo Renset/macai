@@ -53,6 +53,10 @@ struct ChatBottomContainerView: View {
         imageUploadsAllowed || pdfUploadsAllowed ? 48 : 8
     }
 
+    private var mentionPickerHeight: CGFloat {
+        AssistantMentionPicker.totalHeight(for: mentionCandidates.count)
+    }
+
     init(
         chat: ChatEntity,
         newMessage: Binding<String>,
@@ -137,10 +141,10 @@ struct ChatBottomContainerView: View {
                                 selectedIndex: selectedMentionIndex,
                                 onSelect: selectMentionAssistant
                             )
-                                .alignmentGuide(.top) { dimensions in
-                                    dimensions[.bottom] + 6
-                                }
-                                .offset(x: mentionPickerLeadingOffset)
+                                .offset(
+                                    x: mentionPickerLeadingOffset,
+                                    y: -(mentionPickerHeight + 6)
+                                )
                                 .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .bottomLeading)))
                         }
                     }
@@ -224,8 +228,16 @@ private struct AssistantMentionPicker: View {
     let selectedIndex: Int
     let onSelect: (PersonaEntity) -> Void
 
+    static func totalHeight(for count: Int) -> CGFloat {
+        (count == 0 ? 84 : listHeight(for: count)) + 12
+    }
+
+    private static func listHeight(for count: Int) -> CGFloat {
+        min(max(CGFloat(count) * 44 + 6, 132), 300)
+    }
+
     private var listHeight: CGFloat {
-        min(max(CGFloat(assistants.count) * 44 + 6, 132), 300)
+        Self.listHeight(for: assistants.count)
     }
 
     var body: some View {
