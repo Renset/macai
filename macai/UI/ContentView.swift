@@ -393,21 +393,6 @@ struct ContentView: View {
                         .help("New Chat")
                     }
 
-                    ToolbarItem(placement: .navigation) {
-                        Button {
-                            isChatSelectionMode.toggle()
-                        } label: {
-                            if isChatSelectionMode {
-                                Text("Done")
-                            }
-                            else {
-                                Label("Select Chats", systemImage: "checkmark.circle")
-                                    .labelStyle(.iconOnly)
-                            }
-                        }
-                        .help(isChatSelectionMode ? "Finish Selecting" : "Select Chats")
-                        .disabled(chats.isEmpty)
-                    }
                 }
             }
     }

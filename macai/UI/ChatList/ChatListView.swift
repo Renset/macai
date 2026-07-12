@@ -140,10 +140,12 @@ struct ChatListView: View {
 
     private var bulkActionBar: some View {
         HStack(spacing: 8) {
-            Text("\(selectedChatIDs.count) selected")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            Button("Done") {
+                isSelectionMode = false
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut(.cancelAction)
+            .help("Finish Selecting")
 
             Spacer(minLength: 4)
 
