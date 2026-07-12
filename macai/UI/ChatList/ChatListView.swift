@@ -73,10 +73,6 @@ struct ChatListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if isSelectionMode {
-                selectionHeader
-            }
-
             ScrollViewReader { _ in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
@@ -84,7 +80,7 @@ struct ChatListView: View {
                             ChatListRow(
                                 chat: chat,
                                 showsAttentionIndicator: attentionStore.contains(chat.id),
-                                isActive: !isSelectionMode && selectedChat?.objectID == chat.objectID,
+                                isActive: selectedChat?.objectID == chat.objectID,
                                 isSelectionMode: isSelectionMode,
                                 isBulkSelected: selectedChatIDs.contains(chat.objectID),
                                 searchText: debouncedSearchText,
@@ -142,88 +138,95 @@ struct ChatListView: View {
         !filteredChats.isEmpty && filteredChats.allSatisfy { selectedChatIDs.contains($0.objectID) }
     }
 
-    private var selectionHeader: some View {
-        HStack {
-            Text("\(selectedChatIDs.count) selected")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button(allVisibleChatsSelected ? "Deselect All" : "Select All") {
-                if allVisibleChatsSelected {
-                    selectedChatIDs.subtract(filteredChats.map(\.objectID))
-                }
-                else {
-                    selectedChatIDs.formUnion(filteredChats.map(\.objectID))
-                }
-            }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .disabled(filteredChats.isEmpty)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
     private var bulkActionBar: some View {
-        HStack(spacing: 4) {
-            bulkButton(
-                title: selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats",
-                systemImage: selectedChats.allSatisfy(\.isPinned) ? "pin.slash" : "pin"
-            ) {
-                setPinned(selectedChats, to: !selectedChats.allSatisfy(\.isPinned))
-            }
-
-            if nameGenerator.isRunning {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity)
-                    .help("Generating chat names")
-            }
-            else {
-                bulkButton(title: "Generate Names", systemImage: "wand.and.stars") {
-                    nameGenerator.generateNames(for: selectedChats, in: viewContext)
+        HStack {
+            ControlGroup {
+                Button(action: toggleAllVisibleChats) {
+                    Label(
+                        allVisibleChatsSelected ? "Deselect All" : "Select All",
+                        systemImage: allVisibleChatsSelected ? "checkmark.circle.fill" : "checkmark.circle"
+                    )
                 }
-            }
+                .disabled(filteredChats.isEmpty)
+                .help(allVisibleChatsSelected ? "Deselect All" : "Select All")
 
-            Menu {
-                Button("As Markdown…") { exportSelected(as: .markdown) }
-                Button("As Plain Text…") { exportSelected(as: .plainText) }
-            } label: {
-                Image(systemName: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .help("Export Chats")
+                Button(action: togglePinForSelectedChats) {
+                    Label(
+                        selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats",
+                        systemImage: selectedChats.allSatisfy(\.isPinned) ? "pin.slash" : "pin"
+                    )
+                }
+                .disabled(selectedChatIDs.isEmpty)
+                .help(selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats")
 
-            bulkButton(title: "Clear Chats", systemImage: "eraser") {
-                confirmClear(selectedChats)
-            }
+                Button(action: generateNamesForSelectedChats) {
+                    ZStack {
+                        Label("Generate Names", systemImage: "wand.and.stars")
+                            .opacity(nameGenerator.isRunning ? 0 : 1)
+                        if nameGenerator.isRunning {
+                            ProgressView()
+                                .controlSize(.mini)
+                        }
+                    }
+                }
+                .disabled(selectedChatIDs.isEmpty || nameGenerator.isRunning)
+                .help(nameGenerator.isRunning ? "Generating Names" : "Generate Names")
 
-            bulkButton(title: "Delete Chats", systemImage: "trash", role: .destructive) {
-                confirmDelete(selectedChats)
+                Menu {
+                    Button("As Markdown…") { exportSelected(as: .markdown) }
+                    Button("As Plain Text…") { exportSelected(as: .plainText) }
+                } label: {
+                    Label("Export Chats", systemImage: "square.and.arrow.up")
+                }
+                .disabled(selectedChatIDs.isEmpty)
+                .help("Export Chats")
+
+                Button(action: clearSelectedChats) {
+                    Label("Clear Chats", systemImage: "eraser")
+                }
+                .disabled(selectedChatIDs.isEmpty)
+                .help("Clear Chats")
+
+                Button(role: .destructive, action: deleteSelectedChats) {
+                    Label("Delete Chats", systemImage: "trash")
+                }
+                .disabled(selectedChatIDs.isEmpty)
+                .help("Delete Chats")
             }
+            .labelStyle(.iconOnly)
+            .controlSize(.small)
         }
         .padding(8)
+        .frame(maxWidth: .infinity)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
-        .disabled(selectedChatIDs.isEmpty)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Actions for \(selectedChatIDs.count) selected chats")
     }
 
-    private func bulkButton(
-        title: String,
-        systemImage: String,
-        role: ButtonRole? = nil,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(role: role, action: action) {
-            Image(systemName: systemImage)
-                .frame(maxWidth: .infinity)
+    private func toggleAllVisibleChats() {
+        if allVisibleChatsSelected {
+            selectedChatIDs.subtract(filteredChats.map(\.objectID))
         }
-        .buttonStyle(.borderless)
-        .help(title)
+        else {
+            selectedChatIDs.formUnion(filteredChats.map(\.objectID))
+        }
+    }
+
+    private func togglePinForSelectedChats() {
+        setPinned(selectedChats, to: !selectedChats.allSatisfy(\.isPinned))
+    }
+
+    private func generateNamesForSelectedChats() {
+        nameGenerator.generateNames(for: selectedChats, in: viewContext)
+    }
+
+    private func clearSelectedChats() {
+        confirmClear(selectedChats)
+    }
+
+    private func deleteSelectedChats() {
+        confirmDelete(selectedChats)
     }
 
     private func activate(_ chat: ChatEntity) {

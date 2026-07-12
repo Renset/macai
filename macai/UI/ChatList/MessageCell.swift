@@ -56,13 +56,6 @@ struct MessageCell: View, Equatable {
             onActivate()
         } label: {
             HStack {
-                if isSelectionMode {
-                    Image(systemName: isBulkSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.title3)
-                        .foregroundStyle(isBulkSelected ? Color.accentColor : .secondary)
-                        .accessibilityHidden(true)
-                }
-
                 VStack(alignment: .leading, spacing: 4) {
                     if let personaName {
                         HighlightedText(personaName, highlight: searchText, elementType: "chatlist")
@@ -109,20 +102,31 @@ struct MessageCell: View, Equatable {
                     }
                 }
                 .padding(.trailing, 8)
+                .opacity(isSelectionMode ? 0 : 1)
             }
             .frame(maxWidth: .infinity)
-            .foregroundColor(self.isActive ? .white : .primary)
+            .foregroundStyle(self.isActive ? Color.white : Color.primary)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(
                         self.isActive
                             ? Color.accentColor
-                            : isBulkSelected
-                                ? Color.accentColor.opacity(colorScheme == .dark ? 0.24 : 0.14)
                             : self.isHovered
                                 ? (colorScheme == .dark ? Color(hex: "#666666")! : Color(hex: "#CCCCCC")!) : Color.clear
                     )
             )
+            .overlay(alignment: .trailing) {
+                Image(systemName: isBulkSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(
+                        isActive
+                            ? Color.white
+                            : isBulkSelected ? Color.accentColor : Color.secondary
+                    )
+                    .padding(.trailing, 8)
+                    .opacity(isSelectionMode ? 1 : 0)
+                    .accessibilityHidden(true)
+            }
             .onHover { hovering in
                 isHovered = hovering
             }
@@ -131,6 +135,7 @@ struct MessageCell: View, Equatable {
         .background(Color.clear)
         .accessibilityLabel(chatName.isEmpty ? "Untitled Chat" : chatName)
         .accessibilityValue(isSelectionMode ? (isBulkSelected ? "Selected" : "Not selected") : "")
+        .accessibilityAddTraits(isSelectionMode && isBulkSelected ? .isSelected : [])
     }
 }
 
