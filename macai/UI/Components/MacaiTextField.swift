@@ -329,13 +329,43 @@ private final class MacaiNSTextView: NSTextView {
     }
 
     override func paste(_ sender: Any?) {
-        if let onPasteImage,
-           let image = NSImage(pasteboard: .general)
-        {
-            onPasteImage(image)
-            return
+        if let onPasteImage {
+            let pasteboard = NSPasteboard.general
+            if let image = pastedImage(from: pasteboard) {
+                onPasteImage(image)
+                return
+            }
+            if pasteboard.availableType(from: [.fileURL]) != nil {
+                NSSound.beep()
+                return
+            }
         }
         super.paste(sender)
+    }
+
+    private func pastedImage(from pasteboard: NSPasteboard) -> NSImage? {
+        let fileObjects = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [NSURL] ?? []
+
+        if !fileObjects.isEmpty {
+            guard fileObjects.count == 1 else { return nil }
+            let url = fileObjects[0] as URL
+            guard let type = UTType(filenameExtension: url.pathExtension),
+                  type.conforms(to: .image)
+            else { return nil }
+            return NSImage(contentsOf: url)
+        }
+
+        for type in [NSPasteboard.PasteboardType.png, .tiff] {
+            if let data = pasteboard.data(forType: type),
+               let image = NSImage(data: data)
+            {
+                return image
+            }
+        }
+        return nil
     }
 
     override func setFrameSize(_ newSize: NSSize) {
