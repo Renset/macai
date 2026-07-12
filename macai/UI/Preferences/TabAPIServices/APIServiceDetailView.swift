@@ -12,6 +12,7 @@ struct APIServiceDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var lampColor: Color = .gray
     @State private var showingDeleteConfirmation: Bool = false
+    @State private var isAdvancedExpanded = false
     @FocusState private var isFocused: Bool
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
         let viewModel = APIServiceDetailViewModel(
@@ -153,7 +154,7 @@ struct APIServiceDetailView: View {
             }
             .padding(.vertical, 8)
 
-            DisclosureGroup("Advanced") {
+            DisclosureGroup(isExpanded: $isAdvancedExpanded) {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach($viewModel.customHeaders) { $header in
                         HStack {
@@ -182,6 +183,13 @@ struct APIServiceDetailView: View {
                     }
                 }
                 .padding(.top, 8)
+            } label: {
+                Button("Advanced") {
+                    withAnimation {
+                        isAdvancedExpanded.toggle()
+                    }
+                }
+                .buttonStyle(.plain)
             }
 
             HStack {
