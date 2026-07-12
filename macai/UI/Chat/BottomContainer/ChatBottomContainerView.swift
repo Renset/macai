@@ -224,6 +224,10 @@ private struct AssistantMentionPicker: View {
     let selectedIndex: Int
     let onSelect: (PersonaEntity) -> Void
 
+    private var listHeight: CGFloat {
+        min(max(CGFloat(assistants.count) * 44 + 6, 132), 300)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if assistants.isEmpty {
@@ -248,7 +252,7 @@ private struct AssistantMentionPicker: View {
                         }
                         .padding(3)
                     }
-                    .frame(maxHeight: 264)
+                    .frame(height: listHeight)
                     .onChange(of: selectedIndex) { _, index in
                         guard assistants.indices.contains(index) else { return }
                         withAnimation(.easeOut(duration: 0.1)) {
