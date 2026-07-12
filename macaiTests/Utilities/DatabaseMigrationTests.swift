@@ -171,6 +171,96 @@ final class DatabaseMigrationTests: XCTestCase {
         XCTAssertEqual(export.documents.count, 0)
     }
 
+    func testModel3SQLiteStoreMigratesToModel4WithoutLosingChatData() throws {
+        guard let legacyModel = loadModelVersion(named: "macaiDataModel 3", remapClassNames: true),
+              let currentModel = loadCurrentModel() else {
+            throw XCTSkip("Required Core Data models not available in bundle")
+        }
+
+        let baseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("macai-v3-to-v4-\(UUID().uuidString)")
+        let sqliteURL = baseURL.appendingPathExtension("sqlite")
+        defer { removeStoreFiles(at: baseURL) }
+
+        let chatID = UUID()
+        let serviceID = UUID()
+        let personaID = UUID()
+
+        do {
+            let coordinator = NSPersistentStoreCoordinator(managedObjectModel: legacyModel)
+            try coordinator.addPersistentStore(
+                ofType: NSSQLiteStoreType,
+                configurationName: nil,
+                at: sqliteURL,
+                options: [NSSQLitePragmasOption: ["journal_mode": "DELETE"]]
+            )
+            let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+            context.persistentStoreCoordinator = coordinator
+
+            try context.performAndWait {
+                let service = NSEntityDescription.insertNewObject(forEntityName: "APIServiceEntity", into: context)
+                service.setValue(serviceID, forKey: "id")
+                service.setValue("Legacy OpenAI", forKey: "name")
+                service.setValue("chatgpt", forKey: "type")
+                service.setValue("legacy-model", forKey: "model")
+                service.setValue(URL(string: "https://example.com/v1/chat/completions"), forKey: "url")
+
+                let persona = NSEntityDescription.insertNewObject(forEntityName: "PersonaEntity", into: context)
+                persona.setValue(personaID, forKey: "id")
+                persona.setValue("Legacy Assistant", forKey: "name")
+                persona.setValue("Legacy system prompt", forKey: "systemMessage")
+                service.setValue(persona, forKey: "defaultPersona")
+                service.setValue(true, forKey: "isDefault")
+
+                let chat = NSEntityDescription.insertNewObject(forEntityName: "ChatEntity", into: context)
+                chat.setValue(chatID, forKey: "id")
+                chat.setValue("Legacy Chat", forKey: "name")
+                chat.setValue("legacy-model", forKey: "gptModel")
+                chat.setValue("Legacy system prompt", forKey: "systemMessage")
+                chat.setValue("Unsaved draft", forKey: "draftMessage")
+                chat.setValue(Int64(0), forKey: "lastSequence")
+                chat.setValue(service, forKey: "apiService")
+                chat.setValue(persona, forKey: "persona")
+
+                try context.save()
+            }
+        }
+
+        let container = NSPersistentContainer(name: "macaiDataModel", managedObjectModel: currentModel)
+        let description = NSPersistentStoreDescription(url: sqliteURL)
+        description.shouldMigrateStoreAutomatically = true
+        description.shouldInferMappingModelAutomatically = true
+        container.persistentStoreDescriptions = [description]
+
+        let loadExpectation = expectation(description: "Load and migrate Model 3 store")
+        var loadError: Error?
+        container.loadPersistentStores { _, error in
+            loadError = error
+            loadExpectation.fulfill()
+        }
+        wait(for: [loadExpectation], timeout: 10)
+        XCTAssertNil(loadError)
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: "ChatEntity")
+        request.predicate = NSPredicate(format: "id == %@", chatID as CVarArg)
+        let migratedChat = try XCTUnwrap(container.viewContext.fetch(request).first)
+        XCTAssertEqual(migratedChat.value(forKey: "name") as? String, "Legacy Chat")
+        XCTAssertEqual(migratedChat.value(forKey: "draftMessage") as? String, "Unsaved draft")
+        XCTAssertEqual((migratedChat.value(forKey: "apiService") as? NSManagedObject)?.value(forKey: "id") as? UUID, serviceID)
+        XCTAssertEqual((migratedChat.value(forKey: "persona") as? NSManagedObject)?.value(forKey: "id") as? UUID, personaID)
+        XCTAssertEqual(migratedChat.value(forKey: "apiServiceOverridden") as? Bool, false)
+        XCTAssertEqual(migratedChat.value(forKey: "modelOverridden") as? Bool, false)
+        XCTAssertEqual(migratedChat.value(forKey: "systemMessageOverridden") as? Bool, false)
+
+        let migratedService = try XCTUnwrap(migratedChat.value(forKey: "apiService") as? NSManagedObject)
+        let legacyDefault = migratedService.value(forKey: "defaultPersona") as? NSManagedObject
+        XCTAssertEqual(legacyDefault?.value(forKey: "id") as? UUID, personaID)
+        XCTAssertEqual(
+            (migratedChat.value(forKey: "persona") as? NSManagedObject)?.value(forKey: "isDefault") as? Bool,
+            false
+        )
+    }
+
     // MARK: - Helpers
 
     private struct StoreURLs {

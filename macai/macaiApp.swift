@@ -12,6 +12,66 @@ import Sparkle
 import SwiftUI
 import UserNotifications
 
+#if DEBUG
+/// Command-line window-sizing diagnostics: launch the app with
+/// MACAI_MEASURE_MIN_WIDTH=1 to print the effective minimum-width constraints
+/// of the main window and every view subtree, then exit. Used to verify
+/// inspector/window sizing fixes without manual resizing.
+enum WindowMetricsDebug {
+    // stderr is unbuffered, so lines survive even if the process is killed.
+    private static func log(_ line: String) {
+        FileHandle.standardError.write(Data(("MEASURE " + line + "\n").utf8))
+    }
+
+    static func runIfRequested() {
+        guard ProcessInfo.processInfo.environment["MACAI_MEASURE_MIN_WIDTH"] == "1" else { return }
+        log("scheduled")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
+            log("firing; windows=\(NSApp.windows.count) visible=\(NSApp.windows.filter(\.isVisible).count)")
+            guard let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil }),
+                  let content = window.contentView else {
+                log("no visible window")
+                exit(1)
+            }
+            log("initial frame.width=\(Int(window.frame.width)) minSize.width=\(Int(window.minSize.width)) contentMinSize.width=\(Int(window.contentMinSize.width))")
+            log("contentView.fittingSize.width=\(Int(content.fittingSize.width))")
+
+            if let toolbar = window.toolbar {
+                for item in toolbar.items {
+                    let x = item.view.flatMap { $0.window != nil ? Int($0.convert($0.bounds, to: nil).origin.x) : nil }
+                    log("toolbar item id=\(item.itemIdentifier.rawValue) label='\(item.label)' x=\(x.map(String.init) ?? "-")")
+                }
+            }
+
+            // Try shrinking programmatically: does minSize track the frame,
+            // or does AppKit push the window back to a fixed minimum?
+            var target = window.frame
+            target.size.width = 500
+            window.setFrame(target, display: true)
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                log("after setFrame(500): frame.width=\(Int(window.frame.width)) minSize.width=\(Int(window.minSize.width)) contentMinSize.width=\(Int(window.contentMinSize.width))")
+                dumpTree(content, depth: 0)
+                exit(0)
+            }
+        }
+    }
+
+    private static func dumpTree(_ view: NSView, depth: Int) {
+        guard depth <= 30 else { return }
+        let name = String(describing: type(of: view))
+        let fitting = view.fittingSize.width
+        // Only wide-demanding branches are interesting.
+        if fitting > 100 {
+            log("\(String(repeating: "| ", count: depth))\(name) fitting=\(Int(fitting)) frame=\(Int(view.frame.width))")
+        }
+        for sub in view.subviews {
+            dumpTree(sub, depth: depth + 1)
+        }
+    }
+}
+#endif
+
 // This view model class publishes when new updates can be checked by the user
 final class CheckForUpdatesViewModel: ObservableObject {
     @Published var canCheckForUpdates = false
@@ -388,14 +448,47 @@ struct macaiApp: App {
 
     }
 
+    private func postExportChatNotification(format: ChatExportFormat) {
+        NotificationCenter.default.post(
+            name: AppConstants.exportChatNotification,
+            object: nil,
+            userInfo: ["format": format.rawValue]
+        )
+    }
+
+    /// "Export Chat" menu items, disabled while no chat is selected in the
+    /// focused window (ContentView publishes the flag via focusedSceneValue).
+    private struct ExportChatMenu: View {
+        @FocusedValue(\.chatIsSelected) private var chatIsSelected: Bool?
+        let post: (ChatExportFormat) -> Void
+
+        var body: some View {
+            Menu("Export Chat") {
+                Button("As Markdown…") {
+                    post(.markdown)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+
+                Button("As Plain Text…") {
+                    post(.plainText)
+                }
+            }
+            .disabled(chatIsSelected != true)
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(preferredColorScheme)
-
+                .onAppear {
+                    #if DEBUG
+                    WindowMetricsDebug.runIfRequested()
+                    #endif
+                }
         }
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 if UserDefaults.standard.bool(forKey: "autoCheckForUpdates") {
                     updaterController.updater.checkForUpdatesInBackground()
@@ -439,6 +532,10 @@ struct macaiApp: App {
                     )
                 }
                 .keyboardShortcut(".", modifiers: .command)
+
+                Divider()
+
+                ExportChatMenu(post: postExportChatNotification)
             }
 
             CommandGroup(replacing: .newItem) {
@@ -450,6 +547,15 @@ struct macaiApp: App {
                     )
                 }
                 .keyboardShortcut("n", modifiers: .command)
+
+                Button("New Chat with Assistant…") {
+                    NotificationCenter.default.post(
+                        name: AppConstants.selectAssistantNotification,
+                        object: nil,
+                        userInfo: ["windowId": NSApp.keyWindow?.windowNumber ?? 0]
+                    )
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
 
                 Button("New Window") {
                     NSApplication.shared.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
@@ -473,5 +579,18 @@ struct macaiApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(preferredColorScheme)
         }
+    }
+}
+
+private struct ChatIsSelectedFocusKey: FocusedValueKey {
+    typealias Value = Bool
+}
+
+extension FocusedValues {
+    /// Whether the focused window currently has a chat selected; drives
+    /// enablement of chat-dependent menu commands.
+    var chatIsSelected: Bool? {
+        get { self[ChatIsSelectedFocusKey.self] }
+        set { self[ChatIsSelectedFocusKey.self] = newValue }
     }
 }

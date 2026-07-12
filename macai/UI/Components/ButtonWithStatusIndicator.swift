@@ -8,6 +8,7 @@ struct ButtonWithStatusIndicator: View {
     let errorMessage: String?
     let successMessage: String
     let isSuccess: Bool
+    var isWarning: Bool = false
 
     @State private var loadingIconIndex = 0
     private let loadingIcons = ["play.fill"]
@@ -46,6 +47,8 @@ struct ButtonWithStatusIndicator: View {
             return .yellow
         } else if hasError {
             return .red
+        } else if isWarning {
+            return .orange
         } else if isSuccess {
             return .green
         }

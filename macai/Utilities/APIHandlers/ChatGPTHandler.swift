@@ -287,9 +287,9 @@ class ChatGPTHandler: OpenAIHandlerBase, APIService {
                     let contentPart = delta["content"] as? String
                 {
 
-                    let finished = false
+                    var finished = false
                     if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
-                        _ = true
+                        finished = true
                     }
                     return (finished, nil, contentPart, defaultRole)
                 }

@@ -34,6 +34,9 @@ protocol APIService {
     
     func fetchModels() async throws -> [AIModel]
 
+    /// Checks the API service without sending a chat message or requiring an assistant model.
+    func testConnection() async throws -> APIConnectionTestResult
+
     func cancelCurrentRequest()
 }
 
@@ -42,6 +45,7 @@ protocol APIServiceConfiguration {
     var apiUrl: URL { get set }
     var apiKey: String { get set }
     var model: String { get set }
+    var customHeaders: [String: String] { get set }
 }
 
 struct AIModel: Codable, Identifiable {
@@ -52,9 +56,27 @@ struct AIModel: Codable, Identifiable {
     }
 }
 
+struct APIConnectionTestResult {
+    let discoveredModelCount: Int?
+    let authenticationVerified: Bool
+
+    static func authenticated(discoveredModelCount: Int? = nil) -> APIConnectionTestResult {
+        APIConnectionTestResult(
+            discoveredModelCount: discoveredModelCount,
+            authenticationVerified: true
+        )
+    }
+
+    static let reachable = APIConnectionTestResult(
+        discoveredModelCount: nil,
+        authenticationVerified: false
+    )
+}
+
 extension APIService {
-    func fetchModels() async throws -> [AIModel] {
-        return []
+    func testConnection() async throws -> APIConnectionTestResult {
+        let models = try await fetchModels()
+        return .authenticated(discoveredModelCount: models.count)
     }
 
     func cancelCurrentRequest() {}

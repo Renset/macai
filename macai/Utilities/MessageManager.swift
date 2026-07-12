@@ -34,7 +34,7 @@ class MessageManager: ObservableObject {
     ) {
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
         chat.waitingForResponse = true
-        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
+        let temperature = chat.effectiveTemperature.roundedToOneDecimal()
 
         let handleResult: (Result<String, APIError>) -> Void = { [weak self] result in
             guard let self = self else { return }
@@ -44,7 +44,7 @@ class MessageManager: ObservableObject {
                 chat.waitingForResponse = false
                 let partsEnvelope = encodePartsEnvelope(
                     from: (self.apiService as? GeminiHandler)?.consumeLastResponseParts(),
-                    serviceType: chat.apiService?.type
+                    serviceType: chat.effectiveApiService?.type
                 )
                 self.addMessageToChat(chat: chat, message: messageBody, partsEnvelope: partsEnvelope)
                 self.addNewMessageToRequestMessages(
@@ -91,7 +91,7 @@ class MessageManager: ObservableObject {
     ) {
         cancelRequested = false
         let requestMessages = prepareRequestMessages(userMessage: message, chat: chat, contextSize: contextSize)
-        let temperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat).roundedToOneDecimal()
+        let temperature = chat.effectiveTemperature.roundedToOneDecimal()
 
         streamTask?.cancel()
         streamTask = Task { [weak self] in
@@ -160,7 +160,7 @@ class MessageManager: ObservableObject {
 
                 let geminiParts = encodePartsEnvelope(
                     from: (self.apiService as? GeminiHandler)?.consumeLastResponseParts(),
-                    serviceType: chat.apiService?.type
+                    serviceType: chat.effectiveApiService?.type
                 )
 
                 if deferImageResponse {
@@ -221,11 +221,20 @@ class MessageManager: ObservableObject {
         apiService.cancelCurrentRequest()
     }
 
-    func generateChatNameIfNeeded(chat: ChatEntity, force: Bool = false) {
-        guard force || chat.name == "", !chat.messagesArray.isEmpty else {
+    func generateChatNameIfNeeded(
+        chat: ChatEntity,
+        force: Bool = false,
+        completion: ((Result<String?, Error>) -> Void)? = nil
+    ) {
+        // `force` (explicit "Regenerate Name") must work even when the chat
+        // is already named; the name-emptiness check only gates auto-generation.
+        guard force || (chat.shouldGenerateChatNames && chat.name == ""),
+              !chat.messagesArray.isEmpty
+        else {
             #if DEBUG
                 print("Chat name not needed, skipping generation")
             #endif
+            completion?(.success(nil))
             return
         }
 
@@ -234,26 +243,34 @@ class MessageManager: ObservableObject {
             chat: chat,
             contextSize: 3
         )
-        let personaTemperature = (chat.persona?.temperature ?? AppConstants.defaultTemperatureForChat)
-            .roundedToOneDecimal()
+        let personaTemperature = chat.effectiveTemperature.roundedToOneDecimal()
 
         apiService.sendMessage(requestMessages, temperature: personaTemperature) {
             [weak self] result in
             guard let self = self else { return }
 
-            switch result {
-            case .success(let messageBody):
-                let chatName = self.sanitizeChatName(messageBody)
-                chat.name = chatName
-                self.viewContext.saveWithRetry(attempts: 3)
-            case .failure(let error):
-                print("Error generating chat name: \(error)")
+            self.viewContext.perform {
+                guard !chat.isDeleted else {
+                    completion?(.success(nil))
+                    return
+                }
+
+                switch result {
+                case .success(let messageBody):
+                    let chatName = MessageManager.sanitizeChatName(messageBody)
+                    chat.name = chatName
+                    self.viewContext.saveWithRetry(attempts: 3)
+                    completion?(.success(chatName))
+                case .failure(let error):
+                    print("Error generating chat name: \(error)")
+                    completion?(.failure(error))
+                }
             }
         }
     }
 
-    private func sanitizeChatName(_ rawName: String) -> String {
-        if let range = rawName.range(of: "**(.+?)**", options: .regularExpression) {
+    static func sanitizeChatName(_ rawName: String) -> String {
+        if let range = rawName.range(of: "\\*\\*(.+?)\\*\\*", options: .regularExpression) {
             return String(rawName[range]).trimmingCharacters(in: CharacterSet(charactersIn: "*"))
         }
 
@@ -335,7 +352,6 @@ class MessageManager: ObservableObject {
     }
 
     private func updateLastMessage(chat: ChatEntity, lastMessage: MessageEntity, accumulatedResponse: String) {
-        print("Streaming chunk received: \(accumulatedResponse.suffix(20))")
         lastMessage.body = accumulatedResponse
         lastMessage.timestamp = Date()
         lastMessage.waitingForResponse = false
@@ -348,17 +364,18 @@ class MessageManager: ObservableObject {
     {
         var messages: [[String: String]] = []
 
-        if !AppConstants.openAiReasoningModels.contains(chat.gptModel) {
+        let activeModel = chat.effectiveModel
+        if !AppConstants.openAiReasoningModels.contains(activeModel) {
             messages.append([
                 "role": "system",
-                "content": chat.systemMessage,
+                "content": chat.effectiveSystemMessage,
             ])
         }
         else {
             // Models like o1-mini and o1-preview don't support "system" role. However, we can pass the system message with "user" role instead.
             messages.append([
                 "role": "user",
-                "content": "Take this message as the system message: \(chat.systemMessage)",
+                "content": "Take this message as the system message: \(chat.effectiveSystemMessage)",
             ])
         }
 

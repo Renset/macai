@@ -27,14 +27,15 @@ class ChatLogicHandler: ObservableObject {
         self.store = store
     }
     
-    func sendMessage(messageText: String, attachedImages: [ImageAttachment], attachedFiles: [DocumentAttachment]) {
-        guard !chat.waitingForResponse, !isStreaming else { return }
+    @discardableResult
+    func sendMessage(messageText: String, attachedImages: [ImageAttachment], attachedFiles: [DocumentAttachment]) -> Bool {
+        guard !chat.waitingForResponse, !isStreaming else { return false }
         guard chatViewModel.canSendMessage else {
             currentError = ErrorMessage(
-                type: .noApiService("No API service selected. Select the API service to send your first message"),
+                type: .noApiService("No API service selected. Choose an assistant with an API service to send your first message"),
                 timestamp: Date()
             )
-            return
+            return false
         }
 
         resetError()
@@ -47,7 +48,7 @@ class ChatLogicHandler: ObservableObject {
                 ? "One or more attachments failed to load. Remove them or try again."
                 : "Attachments are still loading. Please wait until they finish."
             currentError = ErrorMessage(type: .attachmentNotReady(message), timestamp: Date())
-            return
+            return false
         }
 
         var messageContents: [MessageContent] = []
@@ -82,15 +83,16 @@ class ChatLogicHandler: ObservableObject {
         saveNewMessageInStore(with: messageBody)
         userIsScrolling = false
 
-        if chat.apiService?.useStreamResponse ?? false {
+        if chat.shouldUseStreamResponse {
             sendStreamMessage(messageBody)
         } else {
             sendRegularMessage(messageBody)
         }
+        return true
     }
     
     func selectAndAddImages(completion: @escaping ([ImageAttachment]) -> Void) {
-        guard chat.apiService?.imageUploadsAllowed == true else { return }
+        guard chat.allowsImageUploads else { return }
 
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
@@ -175,7 +177,7 @@ class ChatLogicHandler: ObservableObject {
         Task { @MainActor in
             chatViewModel.sendMessageStream(
                 messageBody,
-                contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))
+                contextSize: chat.effectiveContextSize
             ) { result in
                 DispatchQueue.main.async {
                     switch result {
@@ -199,7 +201,7 @@ class ChatLogicHandler: ObservableObject {
         chat.waitingForResponse = true
         chatViewModel.sendMessage(
             messageBody,
-            contextSize: Int(chat.apiService?.contextSize ?? Int16(AppConstants.chatGptContextSize))
+            contextSize: chat.effectiveContextSize
         ) { result in
             DispatchQueue.main.async {
                 switch result {
@@ -271,6 +273,6 @@ class ChatLogicHandler: ObservableObject {
     }
 
     private func supportsPDFUploads() -> Bool {
-        return chat.apiService?.pdfUploadsAllowed == true
+        return chat.allowsPdfUploads
     }
 }

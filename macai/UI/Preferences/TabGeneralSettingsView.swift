@@ -8,7 +8,6 @@
 import AppKit
 import Sparkle
 import SwiftUI
-import AttributedText
 
 struct TabGeneralSettingsView: View {
     private let previewCode = """
@@ -293,7 +292,7 @@ struct TabGeneralSettingsView: View {
 
             HStack {
                 Toggle("Automatically check for updates", isOn: $autoCheckForUpdates)
-                    .onChange(of: autoCheckForUpdates) { newValue in
+                    .onChange(of: autoCheckForUpdates) { _, newValue in
                         updaterController.updater.automaticallyChecksForUpdates = newValue
                     }
 
@@ -520,7 +519,7 @@ struct SyncDebugLogView: View {
                         }
                         .id(entry.id)
                     }
-                    .onChange(of: filteredLogs.count) { _ in
+                    .onChange(of: filteredLogs.count) { _, _ in
                         if autoScroll, let lastEntry = filteredLogs.last {
                             withAnimation {
                                 proxy.scrollTo(lastEntry.id, anchor: .bottom)

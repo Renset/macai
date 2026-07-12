@@ -8,12 +8,13 @@
 import Foundation
 
 class APIServiceFactory {
-    static let session: URLSession = {
+    private static func makeSession(customHeaders: [String: String]) -> URLSession {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = AppConstants.requestTimeout
         configuration.timeoutIntervalForResource = AppConstants.requestTimeout
+        configuration.httpAdditionalHeaders = customHeaders
         return URLSession(configuration: configuration)
-    }()
+    }
 
     static func createAPIService(
         config: APIServiceConfiguration,
@@ -21,6 +22,7 @@ class APIServiceFactory {
     ) -> APIService {
         let configName =
             AppConstants.defaultApiConfigurations[config.name.lowercased()]?.inherits ?? config.name.lowercased()
+        let session = makeSession(customHeaders: config.customHeaders)
 
         switch configName {
         case "openai-responses", "openai":

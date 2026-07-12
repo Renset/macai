@@ -238,10 +238,8 @@ class OpenAIResponsesHandler: OpenAIHandlerBase, APIService {
                 let textContent = AttachmentParser.stripAttachments(from: content)
 
                 var contentArray: [[String: Any]] = []
-                let textType = role == "assistant" ? "output_text" : "input_text"
-
                 if !textContent.isEmpty {
-                    contentArray.append(["type": textType, "text": textContent])
+                    contentArray.append(["type": "input_text", "text": textContent])
                 }
 
                 if role != "assistant" {

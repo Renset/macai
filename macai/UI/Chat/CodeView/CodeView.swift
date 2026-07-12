@@ -5,7 +5,6 @@
 //  Created by Renat on 07.06.2024.
 //
 
-import AttributedText
 import Foundation
 import Highlightr
 import SwiftUI
@@ -64,16 +63,16 @@ struct CodeView: View {
         }
         .background(codeBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8.0))
-        .onChange(of: colorScheme) { newScheme in
+        .onChange(of: colorScheme) { _, newScheme in
             updateHighlightedCode(colorScheme: newScheme)
         }
-        .onChange(of: code) { code in
+        .onChange(of: code) { _, code in
             if isStreaming {
                 print("Code changed: \(code)")
                 updateHighlightedCode(colorScheme: colorScheme, code: code)
             }
         }
-        .onChange(of: highlightedCode) { _ in
+        .onChange(of: highlightedCode) { _, _ in
             if !isRendered {
                 isRendered = true
                 NotificationCenter.default.post(
@@ -85,11 +84,11 @@ struct CodeView: View {
         .onAppear {
             updateHighlightedCode(colorScheme: colorScheme)
         }
-        .onChange(of: chatFontSize) { _ in
+        .onChange(of: chatFontSize) { _, _ in
             HighlighterManager.shared.invalidateCache()
             updateHighlightedCode(colorScheme: colorScheme)
         }
-        .onChange(of: codeFont) { _ in
+        .onChange(of: codeFont) { _, _ in
             HighlighterManager.shared.invalidateCache()
             updateHighlightedCode(colorScheme: colorScheme)
         }

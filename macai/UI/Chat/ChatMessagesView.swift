@@ -19,156 +19,43 @@ struct ChatMessagesView: View {
     @Binding var searchText: String
     let reasoningDurations: [NSManagedObjectID: TimeInterval]
     let activeReasoningMessageID: NSManagedObjectID?
-    @State private var scrollDebounceWorkItem: DispatchWorkItem?
-    @State private var codeBlocksRendered = false
-    @State private var pendingCodeBlocks = 0
-    @State private var isInitialLoad = true
-    
+
+    private static let bottomAnchorID = "bottomAnchor"
+    /// How close (in points) the viewport bottom must be to the content bottom
+    /// to still count as "at the bottom". Generous enough to survive rounding
+    /// and bounce, small enough that a deliberate scroll releases the pin.
+    private static let bottomTolerance: CGFloat = 40
+
     var backgroundColor = Color(NSColor.controlBackgroundColor)
 
     private var shouldShowWaitingBubble: Bool {
         chat.waitingForResponse && (chat.lastMessage?.own ?? true)
     }
-    
+
     var body: some View {
         ScrollView {
             ScrollViewReader { scrollView in
-                VStack {
-                    SystemMessageBubbleView(
-                        message: chat.systemMessage,
-                        color: chat.persona?.color,
-                        newMessage: $newMessage,
-                        editSystemMessage: $editSystemMessage,
-                        searchText: $searchText
-                    )
-                    .id("system_message")
+                VStack(spacing: 0) {
+                    messagesList
+                        .padding(24)
 
-                    if !chatViewModel.sortedMessages.isEmpty {
-                        ForEach(chatViewModel.sortedMessages, id: \.objectID) { messageEntity in
-                            let storedDuration = messageEntity.reasoningDuration > 0 ? messageEntity.reasoningDuration : nil
-                            let bubbleContent = ChatBubbleContent(
-                                message: messageEntity.body,
-                                own: messageEntity.own,
-                                waitingForResponse: messageEntity.waitingForResponse,
-                                errorMessage: nil,
-                                systemMessage: false,
-                                isStreaming: isStreaming,
-                                isLatestMessage: messageEntity.objectID == chatViewModel.sortedMessages.last?.objectID,
-                                reasoningDuration: reasoningDurations[messageEntity.objectID] ?? storedDuration,
-                                isActiveReasoning: messageEntity.objectID == activeReasoningMessageID
-                            )
-                            ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText, currentSearchOccurrence: chatViewModel.currentSearchOccurrence)
-                                .id(messageEntity.objectID)
-                        }
-                    }
-
-                    if shouldShowWaitingBubble {
-                        let bubbleContent = ChatBubbleContent(
-                            message: "",
-                            own: false,
-                            waitingForResponse: true,
-                            errorMessage: nil,
-                            systemMessage: false,
-                            isStreaming: isStreaming,
-                            isLatestMessage: false,
-                            reasoningDuration: nil,
-                            isActiveReasoning: false
-                        )
-
-                        ChatBubbleView(content: bubbleContent, searchText: $searchText)
-                            .id(-1)
-                    }
-                    else if let error = currentError {
-                        let bubbleContent = ChatBubbleContent(
-                            message: "",
-                            own: false,
-                            waitingForResponse: false,
-                            errorMessage: error,
-                            systemMessage: false,
-                            isStreaming: isStreaming,
-                            isLatestMessage: true,
-                            reasoningDuration: nil,
-                            isActiveReasoning: false
-                        )
-
-                        ChatBubbleView(content: bubbleContent, searchText: $searchText)
-                            .id(-2)
-                    }
+                    // Invisible sentinel: the true bottom of the scrollable content.
+                    // It sits below the list padding, so scrolling to it lands exactly
+                    // at the end — a sentinel inside the padded stack stops 24 pt short.
+                    Color.clear
+                        .frame(height: 1)
+                        .id(Self.bottomAnchorID)
                 }
-                .padding(24)
-                .onAppear {
-                    pendingCodeBlocks = chatViewModel.sortedMessages.reduce(0) { count, message in
-                        count + (message.body.components(separatedBy: "```").count - 1) / 2
-                    }
-                    isInitialLoad = true
-
-                    if pendingCodeBlocks == 0 {
-                        codeBlocksRendered = true
-                        isInitialLoad = false
-                    }
-                }
-                .onSwipe { event in
-                    switch event.direction {
-                    case .up:
-                        userIsScrolling = true
-                    case .none, .down, .left, .right:
-                        break
-                    }
-                }
-                .onChange(of: chat.lastMessage?.body) { _ in
-                    if isStreaming && !userIsScrolling {
-                        scrollDebounceWorkItem?.cancel()
-
-                        let workItem = DispatchWorkItem {
-                            if let lastMessage = chatViewModel.sortedMessages.last {
-                                withAnimation(.easeOut(duration: 1)) {
-                                    scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
-                                }
-                            }
-                        }
-
-                        scrollDebounceWorkItem = workItem
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
-                    }
-                }
-                .onChange(of: chatViewModel.sortedMessages.count) { _ in
+                .onChange(of: chatViewModel.sortedMessages.count) { _, _ in
+                    // A message was just sent (or an error arrived): bring the
+                    // conversation tail into view even if the user had scrolled up.
                     if shouldShowWaitingBubble || currentError != nil {
                         withAnimation {
-                            scrollView.scrollTo(-1)
+                            scrollView.scrollTo(Self.bottomAnchorID, anchor: .bottom)
                         }
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NonStreamingMessageCompleted"))) { notification in
-                    if let notificationChat = notification.object as? ChatEntity, notificationChat == chat {
-                        DispatchQueue.main.async {
-                            if !isStreaming && !userIsScrolling {
-                                let sortedMessages = chatViewModel.sortedMessages
-                                if let lastMessage = sortedMessages.last {
-                                    withAnimation(.easeOut(duration: 0.5)) {
-                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CodeBlockRendered"))) { _ in
-                    if pendingCodeBlocks > 0 {
-                        pendingCodeBlocks -= 1
-                        if pendingCodeBlocks == 0 {
-                            codeBlocksRendered = true
-                            if isInitialLoad {
-                                isInitialLoad = false
-                                if let lastMessage = chatViewModel.sortedMessages.last {
-                                    DispatchQueue.main.async {
-                                        scrollView.scrollTo(lastMessage.objectID, anchor: .bottom)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .onChange(of: chatViewModel.currentSearchOccurrence) { newOccurrence in
+                .onChange(of: chatViewModel.currentSearchOccurrence) { _, newOccurrence in
                     if let occurrence = newOccurrence {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             // Generate element ID for the occurrence
@@ -181,7 +68,20 @@ struct ChatMessagesView: View {
             }
             .id("chatContainer")
         }
+        // Open at the bottom of the conversation…
         .defaultScrollAnchor(.bottom)
+        // …and keep the bottom pinned while content grows (streaming tokens,
+        // async code highlighting, image loading). The pin is released as soon
+        // as the user scrolls away and re-engaged when they scroll back down;
+        // the scroll view adjusts the offset within the same layout pass, so
+        // there is no post-hoc "jump to bottom" flicker.
+        .defaultScrollAnchor(userIsScrolling ? nil : .bottom, for: .sizeChanges)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.containerSize.height
+                >= geometry.contentSize.height + geometry.contentInsets.bottom - Self.bottomTolerance
+        } action: { _, isAtBottom in
+            userIsScrolling = !isAtBottom
+        }
         .padding(.bottom, 6)
         .overlay(alignment: .bottom) {
             LinearGradient(
@@ -198,6 +98,71 @@ struct ChatMessagesView: View {
             .frame(height: 40)
             .padding(.trailing, 16)
             .allowsHitTesting(false)
+        }
+    }
+
+    private var messagesList: some View {
+        VStack {
+            SystemMessageBubbleView(
+                message: chat.systemMessage,
+                color: chat.persona?.color,
+                newMessage: $newMessage,
+                editSystemMessage: $editSystemMessage,
+                searchText: $searchText
+            )
+            .id("system_message")
+
+            if !chatViewModel.sortedMessages.isEmpty {
+                ForEach(chatViewModel.sortedMessages, id: \.objectID) { messageEntity in
+                    let storedDuration = messageEntity.reasoningDuration > 0 ? messageEntity.reasoningDuration : nil
+                    let bubbleContent = ChatBubbleContent(
+                        message: messageEntity.body,
+                        own: messageEntity.own,
+                        waitingForResponse: messageEntity.waitingForResponse,
+                        errorMessage: nil,
+                        systemMessage: false,
+                        isStreaming: isStreaming,
+                        isLatestMessage: messageEntity.objectID == chatViewModel.sortedMessages.last?.objectID,
+                        reasoningDuration: reasoningDurations[messageEntity.objectID] ?? storedDuration,
+                        isActiveReasoning: messageEntity.objectID == activeReasoningMessageID
+                    )
+                    ChatBubbleView(content: bubbleContent, message: messageEntity, searchText: $searchText, currentSearchOccurrence: chatViewModel.currentSearchOccurrence)
+                        .id(messageEntity.objectID)
+                }
+            }
+
+            if shouldShowWaitingBubble {
+                let bubbleContent = ChatBubbleContent(
+                    message: "",
+                    own: false,
+                    waitingForResponse: true,
+                    errorMessage: nil,
+                    systemMessage: false,
+                    isStreaming: isStreaming,
+                    isLatestMessage: false,
+                    reasoningDuration: nil,
+                    isActiveReasoning: false
+                )
+
+                ChatBubbleView(content: bubbleContent, searchText: $searchText)
+                    .id(-1)
+            }
+            else if let error = currentError {
+                let bubbleContent = ChatBubbleContent(
+                    message: "",
+                    own: false,
+                    waitingForResponse: false,
+                    errorMessage: error,
+                    systemMessage: false,
+                    isStreaming: isStreaming,
+                    isLatestMessage: true,
+                    reasoningDuration: nil,
+                    isActiveReasoning: false
+                )
+
+                ChatBubbleView(content: bubbleContent, searchText: $searchText)
+                    .id(-2)
+            }
         }
     }
 }

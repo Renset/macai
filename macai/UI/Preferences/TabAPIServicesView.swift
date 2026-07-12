@@ -129,11 +129,9 @@ struct TabAPIServicesView: View {
             if let service = service {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Type of API: \(AppConstants.defaultApiConfigurations[service.type!]?.name ?? "Unknown")")
-                    Text("Selected Model: \(service.model ?? "Not specified")")
-                    Text("Context size: \(service.contextSize)")
-                    Text("Auto chat name generation: \(service.generateChatNames ? "Yes" : "No")")
-                    //Text("Stream responses: \(service.useStreamResponse ? "Yes" : "No")")
-                    Text("Default AI Assistant: \(service.defaultPersona?.name ?? "None")")
+                    Text("API URL: \(service.url?.absoluteString ?? "Not specified")")
+                    Text("Image uploads: \(service.imageUploadsAllowed ? "Allowed" : "Disabled")")
+                    Text("PDF uploads: \(service.pdfUploadsAllowed ? "Allowed" : "Disabled")")
                 }
             }
             else {

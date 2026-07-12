@@ -24,6 +24,9 @@ struct MessageInputView: View {
     var onAddFile: () -> Void
     var onStopInference: () -> Void
     var onCancelEdit: () -> Void
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
+    var onDismissSuggestions: (() -> Void)?
 
     private let frontReturnKeyType: MacaiTextField.ReturnKeyType = .next
     @State var isFocused: Focus?
@@ -115,6 +118,9 @@ struct MessageInputView: View {
         onAddFile: @escaping () -> Void,
         onStopInference: @escaping () -> Void,
         onCancelEdit: @escaping () -> Void = {},
+        onMoveUp: (() -> Void)? = nil,
+        onMoveDown: (() -> Void)? = nil,
+        onDismissSuggestions: (() -> Void)? = nil,
         inputPlaceholderText: String = "Type your prompt here",
         cornerRadius: Double = 20.0
     ) {
@@ -131,6 +137,9 @@ struct MessageInputView: View {
         self.onAddFile = onAddFile
         self.onStopInference = onStopInference
         self.onCancelEdit = onCancelEdit
+        self.onMoveUp = onMoveUp
+        self.onMoveDown = onMoveDown
+        self.onDismissSuggestions = onDismissSuggestions
         self.inputPlaceholderText = inputPlaceholderText
         self.cornerRadius = cornerRadius
     }
@@ -240,7 +249,12 @@ struct MessageInputView: View {
                     fontSize: effectiveFontSize,
                     minHeight: initialInputSize,
                     maxHeight: maxInputHeight,
-                    onEscape: isEditingSystemMessage ? onCancelEdit : nil,
+                    onEscape: onDismissSuggestions ?? (isEditingSystemMessage ? onCancelEdit : nil),
+                    onMoveUp: onMoveUp,
+                    onMoveDown: onMoveDown,
+                    onPasteImage: imageUploadsAllowed ? addPastedImage : nil,
+                    onPastePDF: pdfUploadsAllowed ? addPastedPDF : nil,
+                    handlesPasteAttachments: true,
                     onCommit: {
                         guard !isInferenceInProgress else { return }
                         onEnter()
@@ -288,10 +302,10 @@ struct MessageInputView: View {
         .onAppear {
             syncAttachmentOrder()
         }
-        .onChange(of: attachedImages.map { $0.id }) { _ in
+        .onChange(of: attachedImages.map { $0.id }) { _, _ in
             syncAttachmentOrder()
         }
-        .onChange(of: attachedFiles.map { $0.id }) { _ in
+        .onChange(of: attachedFiles.map { $0.id }) { _, _ in
             syncAttachmentOrder()
         }
         .onAppear {
@@ -300,7 +314,7 @@ struct MessageInputView: View {
             }
         }
         .photosPicker(isPresented: $isShowingPhotosPicker, selection: $photoPickerItems, matching: .images, photoLibrary: .shared())
-        .onChange(of: photoPickerItems) { newItems in
+        .onChange(of: photoPickerItems) { _, newItems in
             guard imageUploadsAllowed, !newItems.isEmpty else { return }
             Task {
                 var newAttachments: [ImageAttachment] = []
@@ -323,6 +337,36 @@ struct MessageInputView: View {
                     photoPickerItems = []
                 }
             }
+        }
+    }
+
+    private func addPastedImage(_ image: NSImage) {
+        let attachment = ImageAttachment(image: image)
+        attachment.saveToEntity(image: image, context: viewContext)
+        withAnimation {
+            attachedImages.append(attachment)
+        }
+    }
+
+    private func addPastedPDF(_ payload: PastedPDF) {
+        let url: URL?
+        if let sourceURL = payload.url {
+            url = sourceURL
+        } else if let data = payload.data {
+            url = PreviewFileHelper.writeTemporaryFile(
+                data: data,
+                filename: payload.filename,
+                defaultExtension: "pdf",
+                id: UUID()
+            )
+        } else {
+            url = nil
+        }
+
+        guard let url else { return }
+        let attachment = DocumentAttachment(url: url, context: viewContext)
+        withAnimation {
+            attachedFiles.append(attachment)
         }
     }
 

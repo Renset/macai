@@ -25,6 +25,48 @@ class PerplexityHandler: APIService {
         self.session = session
     }
 
+    func fetchModels() async throws -> [AIModel] {
+        throw APIError.unknown("Model discovery is not supported by Perplexity")
+    }
+
+    func testConnection() async throws -> APIConnectionTestResult {
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (_, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+
+            switch httpResponse.statusCode {
+            case 200...299:
+                return .authenticated()
+            case 401, 403:
+                throw APIError.unauthorized
+            case 429:
+                throw APIError.rateLimited
+            case 404:
+                throw APIError.serverError("Endpoint not found: \(baseURL.absoluteString)")
+            case 500...599:
+                throw APIError.serverError("Server Error: HTTP \(httpResponse.statusCode)")
+            case 400, 405, 422:
+                // Perplexity has no model-independent authentication endpoint. A response from
+                // the configured endpoint confirms reachability, but not the validity of the key.
+                return .reachable
+            default:
+                throw APIError.serverError("Unexpected HTTP status: \(httpResponse.statusCode)")
+            }
+        }
+        catch let error as APIError {
+            throw error
+        }
+        catch {
+            throw APIError.requestFailed(error)
+        }
+    }
+
     func sendMessage(
         _ requestMessages: [[String: String]],
         temperature: Float,

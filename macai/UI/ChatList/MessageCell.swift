@@ -14,7 +14,9 @@ struct MessageCell: View, Equatable {
         lhs.timestamp == rhs.timestamp &&
         lhs.message == rhs.message &&
         lhs.showsAttentionIndicator == rhs.showsAttentionIndicator &&
-        lhs.$isActive.wrappedValue == rhs.$isActive.wrappedValue &&
+        lhs.isActive == rhs.isActive &&
+        lhs.isSelectionMode == rhs.isSelectionMode &&
+        lhs.isBulkSelected == rhs.isBulkSelected &&
         lhs.isPinned == rhs.isPinned &&
         lhs.searchText == rhs.searchText
     }
@@ -22,12 +24,15 @@ struct MessageCell: View, Equatable {
     let chatObjectID: NSManagedObjectID
     let personaName: String?
     let chatName: String
-    @State var timestamp: Date
+    let timestamp: Date
     var message: String
     let showsAttentionIndicator: Bool
     let isPinned: Bool
-    @Binding var isActive: Bool
+    let isActive: Bool
+    let isSelectionMode: Bool
+    let isBulkSelected: Bool
     let searchText: String
+    let onActivate: () -> Void
     @State private var isHovered = false
     @Environment(\.colorScheme) var colorScheme
 
@@ -48,7 +53,7 @@ struct MessageCell: View, Equatable {
 
     var body: some View {
         Button {
-            isActive = true
+            onActivate()
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -97,9 +102,10 @@ struct MessageCell: View, Equatable {
                     }
                 }
                 .padding(.trailing, 8)
+                .opacity(isSelectionMode ? 0 : 1)
             }
             .frame(maxWidth: .infinity)
-            .foregroundColor(self.isActive ? .white : .primary)
+            .foregroundStyle(self.isActive ? Color.white : Color.primary)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(
@@ -109,12 +115,27 @@ struct MessageCell: View, Equatable {
                                 ? (colorScheme == .dark ? Color(hex: "#666666")! : Color(hex: "#CCCCCC")!) : Color.clear
                     )
             )
+            .overlay(alignment: .trailing) {
+                Image(systemName: isBulkSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(
+                        isActive
+                            ? Color.white
+                            : isBulkSelected ? Color.accentColor : Color.secondary
+                    )
+                    .padding(.trailing, 8)
+                    .opacity(isSelectionMode ? 1 : 0)
+                    .accessibilityHidden(true)
+            }
             .onHover { hovering in
                 isHovered = hovering
             }
         }
         .buttonStyle(.borderless)
         .background(Color.clear)
+        .accessibilityLabel(chatName.isEmpty ? "Untitled Chat" : chatName)
+        .accessibilityValue(isSelectionMode ? (isBulkSelected ? "Selected" : "Not selected") : "")
+        .accessibilityAddTraits(isSelectionMode && isBulkSelected ? .isSelected : [])
     }
 }
 
@@ -164,8 +185,11 @@ struct MessageCell_Previews: PreviewProvider {
             message: message,
             showsAttentionIndicator: showsAttentionIndicator,
             isPinned: isPinned,
-            isActive: .constant(isActive),
-            searchText: ""
+            isActive: isActive,
+            isSelectionMode: false,
+            isBulkSelected: false,
+            searchText: "",
+            onActivate: {}
         )
     }
 

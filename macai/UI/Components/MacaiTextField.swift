@@ -11,6 +11,12 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+struct PastedPDF {
+    let url: URL?
+    let data: Data?
+    let filename: String
+}
+
 struct MacaiTextField: View {
     var title: String
     @Binding var text: String
@@ -23,6 +29,11 @@ struct MacaiTextField: View {
     var onTab: (() -> Void)?
     var onBackTab: (() -> Void)?
     var onEscape: (() -> Void)?
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
+    var onPasteImage: ((NSImage) -> Void)?
+    var onPastePDF: ((PastedPDF) -> Void)?
+    var handlesPasteAttachments: Bool
 
     @State private var measuredHeight: CGFloat
     @State private var placeholderHeight: CGFloat = 0
@@ -38,6 +49,11 @@ struct MacaiTextField: View {
         onTab: (() -> Void)? = nil,
         onBackTab: (() -> Void)? = nil,
         onEscape: (() -> Void)? = nil,
+        onMoveUp: (() -> Void)? = nil,
+        onMoveDown: (() -> Void)? = nil,
+        onPasteImage: ((NSImage) -> Void)? = nil,
+        onPastePDF: ((PastedPDF) -> Void)? = nil,
+        handlesPasteAttachments: Bool = false,
         onCommit: (() -> Void)? = nil
     ) {
         self.title = String(title)
@@ -51,6 +67,11 @@ struct MacaiTextField: View {
         self.onTab = onTab
         self.onBackTab = onBackTab
         self.onEscape = onEscape
+        self.onMoveUp = onMoveUp
+        self.onMoveDown = onMoveDown
+        self.onPasteImage = onPasteImage
+        self.onPastePDF = onPastePDF
+        self.handlesPasteAttachments = handlesPasteAttachments
         _measuredHeight = State(initialValue: minHeight)
     }
 
@@ -84,7 +105,12 @@ struct MacaiTextField: View {
                 onCommit: onCommit,
                 onTab: onTab,
                 onBackTab: onBackTab,
-                onEscape: onEscape
+                onEscape: onEscape,
+                onMoveUp: onMoveUp,
+                onMoveDown: onMoveDown,
+                onPasteImage: onPasteImage,
+                onPastePDF: onPastePDF,
+                handlesPasteAttachments: handlesPasteAttachments
             )
         }
         .frame(height: min(max(currentHeight, minHeight), maxHeight))
@@ -121,6 +147,11 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
     var onTab: (() -> Void)?
     var onBackTab: (() -> Void)?
     var onEscape: (() -> Void)?
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
+    var onPasteImage: ((NSImage) -> Void)?
+    var onPastePDF: ((PastedPDF) -> Void)?
+    var handlesPasteAttachments: Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -129,6 +160,9 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let textView = makeTextView()
         textView.focusBinding = isFocused
+        textView.onPasteImage = onPasteImage
+        textView.onPastePDF = onPastePDF
+        textView.handlesPasteAttachments = handlesPasteAttachments
         textView.delegate = context.coordinator
         textView.string = text
         if let fontSize {
@@ -158,6 +192,9 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
 
         guard let textView = scrollView.documentView as? MacaiNSTextView else { return }
         textView.focusBinding = isFocused
+        textView.onPasteImage = onPasteImage
+        textView.onPastePDF = onPastePDF
+        textView.handlesPasteAttachments = handlesPasteAttachments
 
         if textView.string != text, !textView.hasMarkedText() {
             let selectedRange = textView.selectedRange()
@@ -274,6 +311,16 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
             {
                 onEscape()
                 return true
+            } else if let onMoveUp = parent.onMoveUp,
+                      commandSelector == #selector(NSResponder.moveUp(_:))
+            {
+                onMoveUp()
+                return true
+            } else if let onMoveDown = parent.onMoveDown,
+                      commandSelector == #selector(NSResponder.moveDown(_:))
+            {
+                onMoveDown()
+                return true
             }
 
             return false
@@ -288,6 +335,9 @@ private struct MacaiTextFieldRep: NSViewRepresentable {
 private final class MacaiNSTextView: NSTextView {
     var focusBinding: Binding<Bool>?
     var onSizeChange: (() -> Void)?
+    var onPasteImage: ((NSImage) -> Void)?
+    var onPastePDF: ((PastedPDF) -> Void)?
+    var handlesPasteAttachments = false
     private var isUpdatingSize = false
 
     override func becomeFirstResponder() -> Bool {
@@ -298,6 +348,71 @@ private final class MacaiNSTextView: NSTextView {
     override func resignFirstResponder() -> Bool {
         focusBinding?.wrappedValue = false
         return super.resignFirstResponder()
+    }
+
+    override func paste(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+
+        if let file = pastedFile(from: pasteboard) {
+            if file.type.conforms(to: .pdf), let onPastePDF {
+                onPastePDF(PastedPDF(url: file.url, data: nil, filename: file.url.lastPathComponent))
+            } else if file.type.conforms(to: .image),
+                      let onPasteImage,
+                      let image = NSImage(contentsOf: file.url)
+            {
+                onPasteImage(image)
+            } else {
+                NSSound.beep()
+            }
+            return
+        }
+
+        if pasteboard.availableType(from: [.fileURL]) != nil {
+            NSSound.beep()
+            return
+        }
+
+        if let pdfData = pasteboard.data(forType: .pdf) {
+            if let onPastePDF {
+                onPastePDF(PastedPDF(url: nil, data: pdfData, filename: "Pasted Document.pdf"))
+            } else if handlesPasteAttachments {
+                NSSound.beep()
+            }
+            return
+        }
+
+        if let image = pastedBitmap(from: pasteboard) {
+            if let onPasteImage {
+                onPasteImage(image)
+            } else if handlesPasteAttachments {
+                NSSound.beep()
+            }
+            return
+        }
+        super.paste(sender)
+    }
+
+    private func pastedFile(from pasteboard: NSPasteboard) -> (url: URL, type: UTType)? {
+        let fileObjects = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [NSURL] ?? []
+
+        guard fileObjects.count == 1 else { return nil }
+        let url = fileObjects[0] as URL
+        let type = UTType(filenameExtension: url.pathExtension) ?? .data
+        return (url, type)
+    }
+
+    private func pastedBitmap(from pasteboard: NSPasteboard) -> NSImage? {
+        for type in [NSPasteboard.PasteboardType.png, .tiff] {
+            if let data = pasteboard.data(forType: type),
+               let image = NSImage(data: data)
+            {
+                return image
+            }
+        }
+        return nil
     }
 
     override func setFrameSize(_ newSize: NSSize) {

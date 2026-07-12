@@ -75,9 +75,9 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
     @Published private(set) var isTesting: Bool = false
     @Published private(set) var validationMessage: String?
 
-    init(viewContext: NSManagedObjectContext, defaultPersona: PersonaEntity? = nil) {
+    init(viewContext: NSManagedObjectContext, selectedAssistant: PersonaEntity? = nil) {
         self.viewContext = viewContext
-        self.selectedPersona = defaultPersona
+        self.selectedPersona = selectedAssistant
 
         let catalog = APIServiceTemplateProvider.loadCatalog()
         self.providers = catalog.providers
@@ -322,20 +322,63 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
         service.name = trimmedName
         service.type = provider.id
         service.url = apiURL
-        service.model = modelTemplate.id
-        service.contextSize = Int16(contextSize)
-        service.useStreamResponse = useStreamResponse
-        service.generateChatNames = generateChatNames
         service.imageUploadsAllowed = imageUploadsAllowed
         service.pdfUploadsAllowed = pdfUploadsAllowed
-        service.imageGenerationSupported = imageGenerationSupported
-        service.defaultPersona = selectedPersona
+        service.imageGenerationSupported = defaultApiConfiguration?.imageGenerationSupported ?? imageGenerationSupported
         if service.tokenIdentifier == nil || service.tokenIdentifier?.isEmpty == true {
             service.tokenIdentifier = UUID().uuidString
         }
         if service.id == nil {
             service.id = UUID()
         }
+
+        let personaToUse: PersonaEntity
+        if let selectedPersona = selectedPersona {
+            if let existingService = selectedPersona.apiService, existingService != service {
+                let clone = PersonaEntity(context: viewContext)
+                clone.name = selectedPersona.name
+                clone.color = selectedPersona.color
+                clone.systemMessage = selectedPersona.systemMessage
+                clone.temperature = selectedPersona.temperature
+                clone.contextSize = selectedPersona.contextSize
+                clone.useStreamResponse = selectedPersona.useStreamResponse
+                clone.generateChatNames = selectedPersona.generateChatNames
+                clone.imageGenerationEnabled = selectedPersona.imageGenerationEnabled
+                clone.model = selectedPersona.model
+                clone.addedDate = Date()
+                clone.id = UUID()
+                let fetchRequest: NSFetchRequest<PersonaEntity> = PersonaEntity.fetchRequest()
+                let maxOrder = (try? viewContext.fetch(fetchRequest))?
+                    .map { $0.order }
+                    .max() ?? 0
+                clone.order = maxOrder + 1
+                personaToUse = clone
+            } else {
+                personaToUse = selectedPersona
+            }
+        } else {
+            let newPersona = PersonaEntity(context: viewContext)
+            newPersona.name = "\(trimmedName) Assistant"
+            newPersona.color = AppConstants.defaultPersonaColor
+            newPersona.systemMessage = AppConstants.chatGptSystemMessage
+            newPersona.temperature = AppConstants.defaultTemperatureForChat
+            newPersona.addedDate = Date()
+            newPersona.id = UUID()
+            let fetchRequest: NSFetchRequest<PersonaEntity> = PersonaEntity.fetchRequest()
+            let maxOrder = (try? viewContext.fetch(fetchRequest))?
+                .map { $0.order }
+                .max() ?? 0
+            newPersona.order = maxOrder + 1
+            personaToUse = newPersona
+        }
+
+        personaToUse.apiService = service
+        personaToUse.model = model
+        personaToUse.contextSize = Int16(contextSize)
+        personaToUse.useStreamResponse = useStreamResponse
+        personaToUse.generateChatNames = generateChatNames
+        personaToUse.imageGenerationEnabled = imageGenerationSupported
+        ensureDefaultAssistant(personaToUse)
 
         do {
             let identifier = service.id?.uuidString ?? UUID().uuidString
@@ -370,6 +413,16 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             errorMessage = "Failed to save service. Please try again."
             return false
         }
+    }
+
+    private func ensureDefaultAssistant(_ persona: PersonaEntity) {
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        request.predicate = NSPredicate(format: "isDefault == YES")
+
+        let defaults = (try? viewContext.fetch(request)) ?? []
+        guard defaults.contains(where: { $0.apiService != nil }) == false else { return }
+
+        try? PersonaEntity.setDefault(persona, in: viewContext)
     }
 
     private func requiresApiKey(for provider: APIServiceProviderTemplate) -> Bool {

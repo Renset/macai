@@ -39,3 +39,12 @@ DerivedData/
 *.Trash
 *.xcworkspace/xcuserdata/*/UserInterfaceState.xcuserstate
 macai.xcodeproj/project.xcworkspace/xcuserdata/*/UserInterfaceState.xcuserstate
+code-review/*
+
+# Local working notes (not part of the public repo)
+temp/
+Assistant_changes.md
+CODE_REVIEW.md
+CoreData_FIX_Plan.md
+GEMINI_SDK_DETAILS.md
+IOS_IMPLEMENTATION_PLAN.md

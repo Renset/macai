@@ -15,6 +15,17 @@ public class ChatEntity: NSManagedObject, Identifiable {
     @NSManaged public var requestMessages: [[String: String]]
     @NSManaged public var newChat: Bool
     @NSManaged public var temperature: Double
+    /// Whether `temperature` holds a per-chat override. The legacy `temperature`
+    /// column contains stale values (old versions wrote 0/1 unconditionally),
+    /// so a companion flag is required to tell an override from leftovers.
+    @NSManaged public var temperatureOverridden: Bool
+    /// Per-chat context size override; 0 means "inherit from the assistant".
+    @NSManaged public var contextSize: Int16
+    /// Per-chat image generation override: 0 = inherit, 1 = enabled, 2 = disabled.
+    @NSManaged public var imageGenerationMode: Int16
+    @NSManaged public var apiServiceOverridden: Bool
+    @NSManaged public var modelOverridden: Bool
+    @NSManaged public var systemMessageOverridden: Bool
     @NSManaged public var top_p: Double
     @NSManaged public var behavior: String?
     @NSManaged public var draftMessage: String?
@@ -302,23 +313,154 @@ extension ChatEntity {
     }
 }
 
+// Effective settings: the chat's own values win; anything the chat does not
+// define is inherited from its assistant (persona). The Chat Settings panel
+// writes to the chat only — assistants are edited in Settings → AI Assistants.
+extension ChatEntity {
+    var effectiveApiService: APIServiceEntity? {
+        if apiServiceOverridden {
+            return apiService
+        }
+        return persona?.apiService ?? apiService
+    }
+
+    var effectiveModel: String {
+        let chatModel = gptModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if modelOverridden, chatModel.isEmpty == false {
+            return chatModel
+        }
+        let personaModel = persona?.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if personaModel.isEmpty == false {
+            return personaModel
+        }
+        if chatModel.isEmpty == false {
+            return chatModel
+        }
+        return AppConstants.defaultModel(for: effectiveApiService?.type)
+    }
+
+    var effectiveSystemMessage: String {
+        if systemMessageOverridden || persona == nil {
+            return systemMessage
+        }
+        return persona?.systemMessage ?? systemMessage
+    }
+
+    var effectiveTemperature: Float {
+        if temperatureOverridden {
+            return Float(min(max(temperature, 0), 1))
+        }
+        return persona?.temperature ?? AppConstants.defaultTemperatureForChat
+    }
+
+    var effectiveContextSize: Int {
+        if contextSize > 0 {
+            return Int(contextSize)
+        }
+        let personaSize = Int(persona?.contextSize ?? 0)
+        if personaSize > 0 {
+            return personaSize
+        }
+        return Int(AppConstants.chatGptContextSize)
+    }
+
+    var shouldUseStreamResponse: Bool {
+        persona?.useStreamResponse ?? true
+    }
+
+    var shouldGenerateChatNames: Bool {
+        persona?.generateChatNames ?? true
+    }
+
+    var imageGenerationEnabled: Bool {
+        switch imageGenerationMode {
+        case 1: return true
+        case 2: return false
+        default: return persona?.imageGenerationEnabled ?? false
+        }
+    }
+
+    var supportsImageGeneration: Bool {
+        (effectiveApiService?.imageGenerationSupported ?? false) && imageGenerationEnabled
+    }
+
+    /// Drops every per-chat override so the chat follows its assistant again,
+    /// and re-snapshots the service/model/system message from the assistant.
+    func resetToAssistantDefaults() {
+        temperatureOverridden = false
+        contextSize = 0
+        imageGenerationMode = 0
+        apiServiceOverridden = false
+        modelOverridden = false
+        systemMessageOverridden = false
+
+        guard let persona else { return }
+        if let personaService = persona.apiService {
+            apiService = personaService
+        }
+        let personaModel = persona.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        gptModel = personaModel.isEmpty
+            ? AppConstants.defaultModel(for: effectiveApiService?.type)
+            : personaModel
+        systemMessage = persona.systemMessage ?? systemMessage
+    }
+
+    var allowsImageUploads: Bool {
+        effectiveApiService?.imageUploadsAllowed ?? false
+    }
+
+    var allowsPdfUploads: Bool {
+        effectiveApiService?.pdfUploadsAllowed ?? false
+    }
+}
+
 extension APIServiceEntity: NSCopying {
     public func copy(with zone: NSZone? = nil) -> Any {
         let copy = APIServiceEntity(context: self.managedObjectContext!)
         copy.name = self.name
         copy.type = self.type
         copy.url = self.url
-        copy.model = self.model
-        copy.contextSize = self.contextSize
-        copy.useStreamResponse = self.useStreamResponse
-        copy.generateChatNames = self.generateChatNames
         copy.imageUploadsAllowed = self.imageUploadsAllowed
         copy.pdfUploadsAllowed = self.pdfUploadsAllowed
         copy.imageGenerationSupported = self.imageGenerationSupported
-        copy.defaultPersona = self.defaultPersona
+        // Legacy migration bridge only; API Services no longer own a default assistant.
+        copy.defaultPersona = nil
         copy.isDefault = false
         copy.id = UUID()
         copy.tokenIdentifier = UUID().uuidString
         return copy
+    }
+}
+
+extension PersonaEntity {
+    /// Resolves the assistant used for a new chat. A global default is preferred
+    /// for ordinary chats; service-specific shortcuts fall back to the first
+    /// assistant bound to that service.
+    static func preferredAssistant(
+        in context: NSManagedObjectContext,
+        for service: APIServiceEntity? = nil
+    ) throws -> PersonaEntity? {
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true),
+            NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true),
+        ]
+        if let service {
+            request.predicate = NSPredicate(format: "apiService == %@", service)
+        } else {
+            request.predicate = NSPredicate(format: "apiService != nil")
+        }
+
+        let assistants = try context.fetch(request)
+        return assistants.first(where: { $0.isDefault }) ?? assistants.first
+    }
+
+    static func setDefault(_ selected: PersonaEntity, in context: NSManagedObjectContext) throws {
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        request.predicate = NSPredicate(format: "isDefault == YES")
+        for assistant in try context.fetch(request) where assistant !== selected {
+            assistant.isDefault = false
+        }
+        selected.isDefault = true
     }
 }

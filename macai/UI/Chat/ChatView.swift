@@ -14,6 +14,7 @@ struct ChatView: View {
     let viewContext: NSManagedObjectContext
     @State var chat: ChatEntity
     @Binding var searchText: String
+    @Binding var isSearchPresented: Bool
     @AppStorage("lastOpenedChatId") var lastOpenedChatId = ""
     
     // UI State
@@ -41,10 +42,16 @@ struct ChatView: View {
     private let reasoningTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     
     // MARK: - Initialization
-    init(viewContext: NSManagedObjectContext, chat: ChatEntity, searchText: Binding<String>) {
+    init(
+        viewContext: NSManagedObjectContext,
+        chat: ChatEntity,
+        searchText: Binding<String>,
+        isSearchPresented: Binding<Bool>
+    ) {
         self.viewContext = viewContext
         self._chat = State(initialValue: chat)
         self._searchText = searchText
+        self._isSearchPresented = isSearchPresented
 
         // Initialize view models
         let viewModel = ChatViewModel(chat: chat, viewContext: viewContext)
@@ -69,15 +76,15 @@ struct ChatView: View {
     }
 
     private var pdfUploadsAllowed: Bool {
-        chat.apiService?.pdfUploadsAllowed ?? false
+        chat.allowsPdfUploads
     }
 
     private var imageUploadsAllowed: Bool {
-        chat.apiService?.imageUploadsAllowed ?? false
+        chat.allowsImageUploads
     }
 
     private var imageGenerationSupported: Bool {
-        chat.apiService?.imageGenerationSupported ?? false
+        chat.supportsImageGeneration
     }
 
     private var isInferenceInProgress: Bool {
@@ -104,12 +111,10 @@ struct ChatView: View {
         .navigationTitle(chat.name != "" ? chat.name : chat.persona?.name ?? "macai LLM chat")
         .onAppear(perform: {
             self.lastOpenedChatId = chat.id.uuidString
-            print("lastOpenedChatId: \(lastOpenedChatId)")
-            Self._printChanges()
-            DispatchQueue.main.asyncAfter(deadline: .now()) {
-                let startTime = CFAbsoluteTimeGetCurrent()
-                _ = self.body
-                renderTime = CFAbsoluteTimeGetCurrent() - startTime
+            // Re-run search when switching to this chat with a query already entered:
+            // onChange(of: searchText) won't fire because the text didn't change.
+            if !searchText.isEmpty {
+                chatViewModel.updateSearchOccurrences(searchText: searchText)
             }
         })
         .onDisappear {
@@ -165,19 +170,19 @@ struct ChatView: View {
                 SearchNavigationView(chatViewModel: chatViewModel)
             }
         }
-        .onChange(of: searchText) { newSearchText in
+        .onChange(of: searchText) { _, newSearchText in
             chatViewModel.updateSearchOccurrences(searchText: newSearchText)
         }
-        .onChange(of: draftSignature) { _ in
+        .onChange(of: draftSignature) { _, _ in
             guard !editSystemMessage else { return }
             scheduleDraftSave()
         }
-        .onChange(of: editSystemMessage) { isEditing in
+        .onChange(of: editSystemMessage) { _, isEditing in
             if !isEditing, newMessage.isEmpty {
                 newMessage = draftManager.draftMessage(for: chat)
             }
         }
-        .onChange(of: chat.lastMessage?.body) { _ in
+        .onChange(of: chat.lastMessage?.body) { _, _ in
             guard let lastMessage = chat.lastMessage, !lastMessage.own else { return }
             updateReasoningTiming(for: lastMessage, isStreamingActive: logicHandler.isStreaming)
         }
@@ -226,19 +231,21 @@ struct ChatView: View {
 
     private func handleSendMessage() {
         lastRequestStartTime = Date()
-        logicHandler.sendMessage(
+        let didSend = logicHandler.sendMessage(
             messageText: newMessage,
             attachedImages: attachedImages,
             attachedFiles: attachedFiles
         )
-        newMessage = ""
-        attachedImages = []
-        attachedFiles = []
-        draftManager.clearDraft(chat: chat)
+        if didSend {
+            newMessage = ""
+            attachedImages = []
+            attachedFiles = []
+            draftManager.clearDraft(chat: chat)
 
-        if chatViewModel.sortedMessages.count == 1 { // First message just sent
-            withAnimation {
-                isBottomContainerExpanded = false
+            if chatViewModel.sortedMessages.count == 1 { // First message just sent
+                withAnimation {
+                    isBottomContainerExpanded = false
+                }
             }
         }
     }

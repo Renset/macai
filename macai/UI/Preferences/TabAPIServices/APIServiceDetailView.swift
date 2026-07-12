@@ -4,6 +4,7 @@
 //
 //  Created by Renat Notfullin on 13.09.2024.
 //
+import CoreData
 import SwiftUI
 
 struct APIServiceDetailView: View {
@@ -11,13 +12,8 @@ struct APIServiceDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var lampColor: Color = .gray
     @State private var showingDeleteConfirmation: Bool = false
+    @State private var isAdvancedExpanded = false
     @FocusState private var isFocused: Bool
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
-        animation: .default
-    )
-    private var personas: FetchedResults<PersonaEntity>
-
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
         let viewModel = APIServiceDetailViewModel(
             viewContext: viewContext,
@@ -28,8 +24,6 @@ struct APIServiceDetailView: View {
     }
 
     private let types = AppConstants.apiTypes
-    @State private var previousModel = ""
-    @State private var loadingIconIndex = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -61,7 +55,7 @@ struct APIServiceDetailView: View {
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .onChange(of: viewModel.type) { newValue in
+                            .onChange(of: viewModel.type) { _, newValue in
                                 viewModel.onChangeApiType(newValue)
                             }
                         }
@@ -76,7 +70,7 @@ struct APIServiceDetailView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
 
                         Button(action: {
-                            viewModel.url = viewModel.defaultApiConfiguration!.url
+                            viewModel.url = viewModel.defaultApiConfiguration?.url ?? AppConstants.apiUrlOpenAIResponses
                         }) {
                             Text("Default")
                         }
@@ -91,87 +85,28 @@ struct APIServiceDetailView: View {
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .focused($isFocused)
                                 .blur(radius: !viewModel.apiKey.isEmpty && !isFocused ? 3 : 0.0, opaque: false)
-                                .onChange(of: viewModel.apiKey) { newValue in
+                                .onChange(of: viewModel.apiKey) { _, newValue in
                                     viewModel.onChangeApiKey(newValue)
                                 }
                         }
 
-                        HStack {
-                            Spacer()
-                            Link(
-                                "How to get API Key",
-                                destination: URL(
-                                    string: viewModel.defaultApiConfiguration!.apiKeyRef
-                                )!
-                            )
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
+                        if let apiKeyRefURL = URL(string: viewModel.defaultApiConfiguration?.apiKeyRef ?? "") {
+                            HStack {
+                                Spacer()
+                                Link("How to get API Key", destination: apiKeyRefURL)
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                            }
                         }
                     }
 
                     HStack {
-                        Text("LLM Model:")
-                            .frame(width: 94, alignment: .leading)
-
-                        Picker("", selection: $viewModel.selectedModel) {
-                            ForEach(viewModel.availableModels.sorted(), id: \.self) { modelName in
-                                Text(modelName).tag(modelName)
-                            }
-                            Text("Enter custom model").tag("custom")
-                        }
-                        .onChange(of: viewModel.selectedModel) { newValue in
-                            if newValue == "custom" {
-                                viewModel.isCustomModel = true
-                            }
-                            else {
-                                viewModel.isCustomModel = false
-                                viewModel.model = newValue
-                            }
-                        }
-                        .disabled(viewModel.isLoadingModels)
-
-                        if AppConstants.defaultApiConfigurations[viewModel.type]?.modelsFetching ?? false {
-                            ButtonWithStatusIndicator(
-                                title: "Update",
-                                action: { viewModel.onUpdateModelsList() },
-                                isLoading: viewModel.isLoadingModels,
-                                hasError: viewModel.modelFetchError != nil,
-                                errorMessage:
-                                    "Can't get models from server (or I don't know how), but don't worry - using default list",
-                                successMessage: "Click to refresh models list",
-                                isSuccess: !viewModel.isLoadingModels && viewModel.modelFetchError == nil
-                                    && viewModel.availableModels.count > 0
-                            )
-                        }
-                    }
-                    .padding(.top, 8)
-
-                    if viewModel.isCustomModel {
-                        VStack {
-                            TextField("Enter custom model name", text: $viewModel.model)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                        }
-                    }
-
-                    HStack {
-                        Spacer()
-                        Link(
-                            "Models reference",
-                            destination: URL(string: viewModel.defaultApiConfiguration!.apiModelRef)!
-                        )
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                    }
-                    .padding(.bottom)
-
-                    HStack {
-                        ButtonTestApiTokenAndModel(
+                        ButtonTestAPIConnection(
                             lampColor: $lampColor,
-                            gptToken: viewModel.apiKey,
-                            gptModel: viewModel.model,
+                            apiKey: viewModel.apiKey,
                             apiUrl: viewModel.url,
                             apiType: viewModel.type,
-                            imageGenerationSupported: viewModel.imageGenerationSupported
+                            customHeaders: viewModel.normalizedCustomHeaders
                         )
                     }
                 }
@@ -179,69 +114,6 @@ struct APIServiceDetailView: View {
             }
 
             VStack {
-                HStack {
-                    // TODO: implement unlimited context size (is it really needed though?)
-                    //                    Toggle(isOn: $viewModel.contextSizeUnlimited) {
-                    //                        Text("Unlimited context size")
-                    //                    }
-                    //                    .disabled(true)
-                    //                    Spacer()
-                }
-                if !viewModel.contextSizeUnlimited {
-                    HStack {
-                        Slider(
-                            value: $viewModel.contextSize,
-                            in: 5...100,
-                            step: 5
-                        ) {
-                            Text("Context size")
-                        } minimumValueLabel: {
-                            Text("5")
-                        } maximumValueLabel: {
-                            Text("100")
-                        }
-                        .disabled(viewModel.contextSizeUnlimited)
-
-                        Text(String(format: ("%.0f messages"), viewModel.contextSize))
-                            .frame(width: 90)
-                    }
-                }
-            }.padding(.top, 16)
-
-            VStack {
-                Toggle(isOn: $viewModel.generateChatNames) {
-                    HStack {
-                        Text("Automatically generate chat names (using selected model)")
-                        Button(action: {
-                        }) {
-                            Image(systemName: "questionmark.circle")
-                                .foregroundColor(.blue)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .help(
-                            "Chat name will be generated based on chat messages. Selected model will be used to generate chat name"
-                        )
-
-                        Spacer()
-                    }
-                }
-                Toggle(isOn: $viewModel.useStreamResponse) {
-                    HStack {
-                        Text("Use stream responses")
-                        Button(action: {
-                        }) {
-                            Image(systemName: "questionmark.circle")
-                                .foregroundColor(.blue)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .help(
-                            "If on, the ChatGPT response will be streamed to the client. This will allow you to see the response in real-time. If off, the response will be sent to the client only after the model has finished processing."
-                        )
-
-                        Spacer()
-                    }
-                }
-
                 if viewModel.supportsImageUploads {
                     Toggle(isOn: $viewModel.imageUploadsAllowed) {
                         HStack {
@@ -279,44 +151,45 @@ struct APIServiceDetailView: View {
                         }
                     }
                 }
-
-                if viewModel.supportsImageGeneration {
-                    Toggle(isOn: $viewModel.imageGenerationSupported) {
-                        HStack {
-                            Text("Image generation supported")
-                            Button(action: {
-                            }) {
-                                Image(systemName: "questionmark.circle")
-                                    .foregroundColor(.blue)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .help(
-                                "Enable when the selected model should expose image generation features in chat."
-                            )
-
-                            Spacer()
-                        }
-                    }
-                }
             }
             .padding(.vertical, 8)
 
-            HStack {
-                Text("Default AI Assistant:")
-                    .frame(width: 160, alignment: .leading)
+            DisclosureGroup(isExpanded: $isAdvancedExpanded) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach($viewModel.customHeaders) { $header in
+                        HStack {
+                            TextField("Header name", text: $header.name)
+                            TextField("Value", text: $header.value)
+                            Button("Remove header", systemImage: "minus.circle", role: .destructive) {
+                                viewModel.removeCustomHeader(id: header.id)
+                            }
+                            .labelStyle(.iconOnly)
+                        }
+                    }
 
-                Picker("", selection: $viewModel.defaultAiPersona) {
-                    ForEach(personas) { persona in
-                        Text(persona.name ?? "Untitled").tag(persona)
+                    Button("Add Header", systemImage: "plus") {
+                        viewModel.addCustomHeader()
+                    }
+                    .buttonStyle(.link)
+
+                    Text("Custom headers are stored securely in Keychain. Required provider headers take precedence.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if viewModel.hasInvalidCustomHeaders {
+                        Text("Enter a unique name and value for each header. Names cannot contain spaces or colons.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
                     }
                 }
-            }
-
-            if AppConstants.openAiReasoningModels.contains(viewModel.model) {
-                Text(
-                    "💁‍♂️ OpenAI API doesn't support system message and temperature other than 1 for o1 models. macai will send system message as a user message internally, while temperature will be always set to 1.0"
-                )
-                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
+            } label: {
+                Button("Advanced") {
+                    withAnimation {
+                        isAdvancedExpanded.toggle()
+                    }
+                }
+                .buttonStyle(.plain)
             }
 
             HStack {
@@ -344,6 +217,7 @@ struct APIServiceDetailView: View {
                     Text("Save")
                 }
                 .keyboardShortcut(.defaultAction)
+                .disabled(viewModel.hasInvalidCustomHeaders)
             }
             .padding(.top, 16)
         }

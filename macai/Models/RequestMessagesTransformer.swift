@@ -31,6 +31,9 @@ class RequestMessagesTransformer: NSSecureUnarchiveFromDataTransformer {
         guard let data = value as? Data else {
             return nil
         }
-        return try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSArray.self, from: data) as? [[String: String]]
+        // The archive is an array of dictionaries of strings, so all three
+        // classes must be allowed for secure unarchiving to succeed.
+        let allowedClasses = [NSArray.self, NSDictionary.self, NSString.self]
+        return try? NSKeyedUnarchiver.unarchivedObject(ofClasses: allowedClasses, from: data) as? [[String: String]]
     }
 }
