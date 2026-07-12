@@ -508,7 +508,14 @@ struct MigrationDataExport {
                let personaPK = data["ZDEFAULTPERSONA"] as? Int64,
                let service = apiServiceMap[pk],
                let persona = personaMap[personaPK] {
-                service.setValue(persona, forKey: "defaultPersona")
+                if service.entity.relationshipsByName["legacyDefaultPersona"] != nil {
+                    service.setValue(persona, forKey: "legacyDefaultPersona")
+                } else if service.entity.relationshipsByName["defaultPersona"] != nil {
+                    service.setValue(persona, forKey: "defaultPersona")
+                }
+                if persona.entity.attributesByName["isDefault"] != nil {
+                    persona.setValue(true, forKey: "isDefault")
+                }
             }
         }
 

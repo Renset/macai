@@ -423,10 +423,44 @@ extension APIServiceEntity: NSCopying {
         copy.imageUploadsAllowed = self.imageUploadsAllowed
         copy.pdfUploadsAllowed = self.pdfUploadsAllowed
         copy.imageGenerationSupported = self.imageGenerationSupported
+        // Legacy migration bridge only; API Services no longer own a default assistant.
         copy.defaultPersona = nil
         copy.isDefault = false
         copy.id = UUID()
         copy.tokenIdentifier = UUID().uuidString
         return copy
+    }
+}
+
+extension PersonaEntity {
+    /// Resolves the assistant used for a new chat. A global default is preferred
+    /// for ordinary chats; service-specific shortcuts fall back to the first
+    /// assistant bound to that service.
+    static func preferredAssistant(
+        in context: NSManagedObjectContext,
+        for service: APIServiceEntity? = nil
+    ) throws -> PersonaEntity? {
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true),
+            NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true),
+        ]
+        if let service {
+            request.predicate = NSPredicate(format: "apiService == %@", service)
+        } else {
+            request.predicate = NSPredicate(format: "apiService != nil")
+        }
+
+        let assistants = try context.fetch(request)
+        return assistants.first(where: { $0.isDefault }) ?? assistants.first
+    }
+
+    static func setDefault(_ selected: PersonaEntity, in context: NSManagedObjectContext) throws {
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        request.predicate = NSPredicate(format: "isDefault == YES")
+        for assistant in try context.fetch(request) where assistant !== selected {
+            assistant.isDefault = false
+        }
+        selected.isDefault = true
     }
 }

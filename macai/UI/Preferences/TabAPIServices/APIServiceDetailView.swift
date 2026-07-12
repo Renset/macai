@@ -13,12 +13,6 @@ struct APIServiceDetailView: View {
     @State private var lampColor: Color = .gray
     @State private var showingDeleteConfirmation: Bool = false
     @FocusState private var isFocused: Bool
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PersonaEntity.addedDate, ascending: true)],
-        animation: .default
-    )
-    private var personas: FetchedResults<PersonaEntity>
-
     init(viewContext: NSManagedObjectContext, apiService: APIServiceEntity?, preferredType: String? = nil) {
         let viewModel = APIServiceDetailViewModel(
             viewContext: viewContext,
@@ -188,17 +182,6 @@ struct APIServiceDetailView: View {
                     }
                 }
                 .padding(.top, 8)
-            }
-
-            HStack {
-                Text("Default AI Assistant:")
-                    .frame(width: 160, alignment: .leading)
-
-                Picker("", selection: $viewModel.defaultAiPersona) {
-                    ForEach(personas) { persona in
-                        Text(persona.name ?? "Untitled").tag(persona)
-                    }
-                }
             }
 
             HStack {

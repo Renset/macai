@@ -75,9 +75,9 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
     @Published private(set) var isTesting: Bool = false
     @Published private(set) var validationMessage: String?
 
-    init(viewContext: NSManagedObjectContext, defaultPersona: PersonaEntity? = nil) {
+    init(viewContext: NSManagedObjectContext, selectedAssistant: PersonaEntity? = nil) {
         self.viewContext = viewContext
-        self.selectedPersona = defaultPersona
+        self.selectedPersona = selectedAssistant
 
         let catalog = APIServiceTemplateProvider.loadCatalog()
         self.providers = catalog.providers
@@ -378,7 +378,7 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
         personaToUse.useStreamResponse = useStreamResponse
         personaToUse.generateChatNames = generateChatNames
         personaToUse.imageGenerationEnabled = imageGenerationSupported
-        service.defaultPersona = personaToUse
+        ensureDefaultAssistant(personaToUse)
 
         do {
             let identifier = service.id?.uuidString ?? UUID().uuidString
@@ -413,6 +413,16 @@ final class APIServiceTemplateAddViewModel: ObservableObject {
             errorMessage = "Failed to save service. Please try again."
             return false
         }
+    }
+
+    private func ensureDefaultAssistant(_ persona: PersonaEntity) {
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        request.predicate = NSPredicate(format: "isDefault == YES")
+
+        let defaults = (try? viewContext.fetch(request)) ?? []
+        guard defaults.contains(where: { $0.apiService != nil }) == false else { return }
+
+        try? PersonaEntity.setDefault(persona, in: viewContext)
     }
 
     private func requiresApiKey(for provider: APIServiceProviderTemplate) -> Bool {

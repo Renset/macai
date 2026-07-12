@@ -209,6 +209,8 @@ final class DatabaseMigrationTests: XCTestCase {
                 persona.setValue(personaID, forKey: "id")
                 persona.setValue("Legacy Assistant", forKey: "name")
                 persona.setValue("Legacy system prompt", forKey: "systemMessage")
+                service.setValue(persona, forKey: "defaultPersona")
+                service.setValue(true, forKey: "isDefault")
 
                 let chat = NSEntityDescription.insertNewObject(forEntityName: "ChatEntity", into: context)
                 chat.setValue(chatID, forKey: "id")
@@ -249,6 +251,14 @@ final class DatabaseMigrationTests: XCTestCase {
         XCTAssertEqual(migratedChat.value(forKey: "apiServiceOverridden") as? Bool, false)
         XCTAssertEqual(migratedChat.value(forKey: "modelOverridden") as? Bool, false)
         XCTAssertEqual(migratedChat.value(forKey: "systemMessageOverridden") as? Bool, false)
+
+        let migratedService = try XCTUnwrap(migratedChat.value(forKey: "apiService") as? NSManagedObject)
+        let legacyDefault = migratedService.value(forKey: "defaultPersona") as? NSManagedObject
+        XCTAssertEqual(legacyDefault?.value(forKey: "id") as? UUID, personaID)
+        XCTAssertEqual(
+            (migratedChat.value(forKey: "persona") as? NSManagedObject)?.value(forKey: "isDefault") as? Bool,
+            false
+        )
     }
 
     // MARK: - Helpers

@@ -129,6 +129,7 @@ final class DatabasePatcherTests: XCTestCase {
         let serviceA = makeService(name: "OpenAI")
         let serviceB = makeService(name: "Claude")
         let persona = makePersona(name: "Shared")
+        serviceA.isDefault = true
         serviceA.defaultPersona = persona
         serviceB.defaultPersona = persona
         let chatA = makeChat(persona: persona, service: serviceA)
@@ -142,8 +143,10 @@ final class DatabasePatcherTests: XCTestCase {
         XCTAssertNotEqual(migratedPersonaA.objectID, migratedPersonaB.objectID)
         XCTAssertEqual(migratedPersonaA.apiService?.objectID, serviceA.objectID)
         XCTAssertEqual(migratedPersonaB.apiService?.objectID, serviceB.objectID)
-        XCTAssertEqual(serviceA.defaultPersona?.objectID, migratedPersonaA.objectID)
-        XCTAssertEqual(serviceB.defaultPersona?.objectID, migratedPersonaB.objectID)
+        XCTAssertNil(serviceA.defaultPersona)
+        XCTAssertNil(serviceB.defaultPersona)
+        XCTAssertTrue(migratedPersonaA.isDefault)
+        XCTAssertFalse(migratedPersonaB.isDefault)
         XCTAssertEqual(chatA.apiService?.objectID, serviceA.objectID)
         XCTAssertEqual(chatB.apiService?.objectID, serviceB.objectID)
         XCTAssertFalse(chatA.apiServiceOverridden)
@@ -162,9 +165,11 @@ final class DatabasePatcherTests: XCTestCase {
 
         XCTAssertTrue(DatabasePatcher.migrateAssistantSettingsToPersonas(context: context))
 
-        let defaultPersona = try XCTUnwrap(service.defaultPersona)
+        let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        let defaultPersona = try XCTUnwrap(try context.fetch(request).first)
         XCTAssertEqual(defaultPersona.apiService?.objectID, service.objectID)
         XCTAssertEqual(defaultPersona.model, "gpt-4o")
+        XCTAssertTrue(defaultPersona.isDefault)
     }
 
     func testMigrationAssignsDefaultPersonaToChatWithoutPersona() throws {
@@ -175,7 +180,8 @@ final class DatabasePatcherTests: XCTestCase {
         XCTAssertTrue(DatabasePatcher.migrateAssistantSettingsToPersonas(context: context))
 
         XCTAssertNotNil(chat.persona)
-        XCTAssertEqual(chat.persona?.objectID, service.defaultPersona?.objectID)
+        XCTAssertEqual(chat.persona?.apiService?.objectID, service.objectID)
+        XCTAssertTrue(chat.persona?.isDefault ?? false)
     }
 
     func testMigrationRestoresServiceForChatWithBoundPersonaOnly() throws {

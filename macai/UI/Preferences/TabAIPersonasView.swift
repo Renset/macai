@@ -23,6 +23,10 @@ struct TabAIPersonasView: View {
     @State private var showingDeleteConfirmation = false
     @State private var personaToDelete: PersonaEntity?
 
+    private var isSelectedPersonaDefault: Bool {
+        personas.first(where: { $0.objectID == selectedPersonaID })?.isDefault ?? false
+    }
+
     var body: some View {
         VStack {
             entityListView
@@ -46,6 +50,13 @@ struct TabAIPersonasView: View {
                         Label("Delete", systemImage: "trash")
                     }
                     .buttonStyle(BorderlessButtonStyle())
+
+                    if !isSelectedPersonaDefault {
+                        Button(action: setSelectedPersonaAsDefault) {
+                            Label("Set as Default", systemImage: "star")
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
                 }
                 Spacer()
                 if personas.count == 0 {
@@ -78,6 +89,9 @@ struct TabAIPersonasView: View {
                 primaryButton: .destructive(Text("Delete")) {
                     if let persona = personaToDelete {
                         viewContext.delete(persona)
+                        if persona.isDefault {
+                            personas.first(where: { $0 !== persona && $0.apiService != nil })?.isDefault = true
+                        }
                         try? viewContext.save()
                         selectedPersonaID = nil
                     }
@@ -95,6 +109,7 @@ struct TabAIPersonasView: View {
             onRefresh: refreshList,
             getEntityColor: getPersonaColor,
             getEntityName: getPersonaName,
+            getEntityDefault: { $0.isDefault },
             onEdit: {
                 if let persona = personas.first(where: { $0.objectID == selectedPersonaID }) {
                     selectedPersona = persona
@@ -174,6 +189,17 @@ struct TabAIPersonasView: View {
 
     private func refreshList() {
         refreshID = UUID()
+    }
+
+    private func setSelectedPersonaAsDefault() {
+        guard let selected = personas.first(where: { $0.objectID == selectedPersonaID }) else { return }
+        do {
+            try PersonaEntity.setDefault(selected, in: viewContext)
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
+            print("Failed to set default assistant: \(error)")
+        }
     }
 }
 
@@ -574,6 +600,17 @@ struct PersonaDetailView: View {
                 personaToSave.order = 0
                 print("Error fetching personas for order: \(error)")
             }
+
+            let defaultRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+            defaultRequest.predicate = NSPredicate(format: "isDefault == YES AND apiService != nil")
+            if (try? viewContext.count(for: defaultRequest)) == 0 {
+                let allDefaultsRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+                allDefaultsRequest.predicate = NSPredicate(format: "isDefault == YES")
+                for existingDefault in (try? viewContext.fetch(allDefaultsRequest)) ?? [] {
+                    existingDefault.isDefault = false
+                }
+                personaToSave.isDefault = true
+            }
         }
         else {
             personaToSave.editedDate = Date()
@@ -604,6 +641,13 @@ struct PersonaDetailView: View {
     @discardableResult
     private func deletePersona() -> Bool {
         guard let personaToDelete = persona else { return false }
+        if personaToDelete.isDefault {
+            let request = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+            request.predicate = NSPredicate(format: "SELF != %@ AND apiService != nil", personaToDelete)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true)]
+            request.fetchLimit = 1
+            (try? viewContext.fetch(request).first)?.isDefault = true
+        }
         viewContext.delete(personaToDelete)
         do {
             try viewContext.save()

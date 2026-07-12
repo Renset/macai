@@ -57,6 +57,10 @@ class ChatStore: ObservableObject {
 
     func saveToCoreData(chats: [Chat], completion: @escaping (Result<Int, Error>) -> Void) {
         do {
+            let defaultAssistant: PersonaEntity? = {
+                try? PersonaEntity.preferredAssistant(in: viewContext)
+            }()
+
             let defaultApiService: APIServiceEntity? = {
                 let request = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
                 request.predicate = NSPredicate(format: "isDefault == YES")
@@ -125,7 +129,13 @@ class ChatStore: ObservableObject {
                         personaFetch.predicate = NSPredicate(format: "name == %@", personaName)
                         if let existingPersona = try viewContext.fetch(personaFetch).first {
                             chatEntity.persona = existingPersona
+                            if let assistantService = existingPersona.apiService {
+                                chatEntity.apiService = assistantService
+                            }
                         }
+                    } else if let defaultAssistant {
+                        chatEntity.persona = defaultAssistant
+                        chatEntity.apiService = defaultAssistant.apiService
                     }
 
                     var nextSequence: Int64 = 0

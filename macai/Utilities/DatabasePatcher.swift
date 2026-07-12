@@ -63,10 +63,12 @@ class DatabasePatcher {
     static func applyPatches(context: NSManagedObjectContext, persistence: PersistenceController) {
         addDefaultPersonasIfNeeded(context: context)
         patchMissingIDs(context: context, persistence: persistence)
+        migrateDefaultAPIServiceSelectionIfNeeded(context: context, persistence: persistence)
 
         if persistence.getMetadata(forKey: AppConstants.assistantSettingsMigrationCompletedKey) as? Bool != true {
             if migrateAssistantSettingsToPersonas(context: context) {
                 persistence.setMetadata(value: true, forKey: AppConstants.assistantSettingsMigrationCompletedKey)
+                markAssistantSettingsMigrationNoticePendingIfNeeded(context: context)
             }
         }
         
@@ -112,11 +114,22 @@ class DatabasePatcher {
             }
         }
 
-        migrateDefaultAPIServiceSelectionIfNeeded(context: context, persistence: persistence)
-        
         backfillMessageSequencesIfNeeded(context: context, persistence: persistence)
         patchGeminiLegacyEndpoint(context: context, persistence: persistence)
         patchChatGPTLegacyEndpoint(context: context, persistence: persistence)
+    }
+
+    private static func markAssistantSettingsMigrationNoticePendingIfNeeded(
+        context: NSManagedObjectContext,
+        defaults: UserDefaults = .standard
+    ) {
+        let request = NSFetchRequest<APIServiceEntity>(entityName: "APIServiceEntity")
+        request.fetchLimit = 1
+
+        context.performAndWait {
+            guard (try? context.count(for: request)) ?? 0 > 0 else { return }
+            defaults.set(true, forKey: AppConstants.assistantSettingsMigrationNoticePendingKey)
+        }
     }
 
     static func initializeDatabaseIfNeeded(context: NSManagedObjectContext, persistence: PersistenceController) {
@@ -369,6 +382,7 @@ class DatabasePatcher {
                 }
             }
 
+            var preferredPersonaByService: [NSManagedObjectID: PersonaEntity] = [:]
             for service in services {
                 let boundPersona = (Array(migratedPersonaByPair.values) + personas)
                     .filter { $0.apiService?.objectID == service.objectID }
@@ -411,8 +425,44 @@ class DatabasePatcher {
                     didChange = true
                 }
 
-                if service.defaultPersona !== defaultPersona {
-                    service.defaultPersona = defaultPersona
+                preferredPersonaByService[service.objectID] = defaultPersona
+                // Clear the old service-owned selection after promoting one assistant
+                // to the global default. The relationship remains in Model 4 solely so
+                // lightweight migration can carry this value across without data loss.
+                if service.defaultPersona != nil {
+                    service.defaultPersona = nil
+                    didChange = true
+                }
+            }
+
+            let validExistingDefaults = personas.filter { $0.isDefault && $0.apiService != nil }
+            func personaComesBefore(_ lhs: PersonaEntity, _ rhs: PersonaEntity) -> Bool {
+                if lhs.order != rhs.order { return lhs.order < rhs.order }
+                return lhs.objectID.uriRepresentation().absoluteString
+                    < rhs.objectID.uriRepresentation().absoluteString
+            }
+            let orderedServices = services.sorted {
+                $0.objectID.uriRepresentation().absoluteString
+                    < $1.objectID.uriRepresentation().absoluteString
+            }
+            let selectedDefault: PersonaEntity? = {
+                if let existing = validExistingDefaults.min(by: personaComesBefore) {
+                    return existing
+                }
+                if let defaultService = orderedServices.first(where: { $0.isDefault }),
+                   let preferred = preferredPersonaByService[defaultService.objectID] {
+                    return preferred
+                }
+                return preferredPersonaByService.values.min(by: personaComesBefore)
+            }()
+
+            let allMigratedPersonas = personas
+                + Array(migratedPersonaByPair.values)
+                + Array(preferredPersonaByService.values)
+            for persona in allMigratedPersonas {
+                let shouldBeDefault = persona === selectedDefault
+                if persona.isDefault != shouldBeDefault {
+                    persona.isDefault = shouldBeDefault
                     didChange = true
                 }
             }
@@ -432,7 +482,7 @@ class DatabasePatcher {
                 }
 
                 if chat.persona == nil, let service = chat.apiService {
-                    if let defaultPersona = service.defaultPersona {
+                    if let defaultPersona = preferredPersonaByService[service.objectID] {
                         chat.persona = defaultPersona
                         if chat.systemMessage.isEmpty {
                             chat.systemMessage = defaultPersona.systemMessage ?? AppConstants.chatGptSystemMessage
@@ -1026,15 +1076,17 @@ class DatabasePatcher {
         // Set Default Assistant as the default for default API service
         let personaFetchRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
         personaFetchRequest.predicate = NSPredicate(format: "name == %@", "Default Assistant")
+        var migratedDefaultPersona: PersonaEntity?
 
         do {
             let defaultPersonas = try context.fetch(personaFetchRequest)
             if let defaultPersona = defaultPersonas.first {
+                migratedDefaultPersona = defaultPersona
                 print("Found default assistant: \(defaultPersona.name ?? "")")
-                apiService.defaultPersona = defaultPersona
                 if defaultPersona.apiService == nil {
                     defaultPersona.apiService = apiService
                 }
+                defaultPersona.isDefault = true
                 defaultPersona.model = gptModel
                 defaultPersona.contextSize = chatContext.toInt16() ?? 15
                 defaultPersona.useStreamResponse = useStream
@@ -1059,7 +1111,7 @@ class DatabasePatcher {
 
             for chat in existingChats {
                 chat.apiService = apiService
-                if let defaultPersona = apiService.defaultPersona {
+                if let defaultPersona = migratedDefaultPersona {
                     chat.persona = defaultPersona
                     chat.gptModel = defaultPersona.model ?? AppConstants.defaultModel(for: apiService.type)
                 } else {

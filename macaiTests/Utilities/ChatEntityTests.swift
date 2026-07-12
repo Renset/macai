@@ -307,4 +307,35 @@ final class ChatEntityTests: XCTestCase {
         XCTAssertFalse(chat.modelOverridden)
         XCTAssertFalse(chat.systemMessageOverridden)
     }
+
+    func testPreferredAssistantUsesGlobalDefaultAndItsService() throws {
+        let firstService = makeService(name: "First")
+        let defaultService = makeService(name: "Default")
+        let first = makePersona()
+        first.order = 0
+        first.apiService = firstService
+        let selected = makePersona(model: "default-model")
+        selected.order = 10
+        selected.apiService = defaultService
+        selected.isDefault = true
+
+        let result = try PersonaEntity.preferredAssistant(in: context)
+
+        XCTAssertEqual(result?.objectID, selected.objectID)
+        XCTAssertEqual(result?.apiService?.objectID, defaultService.objectID)
+    }
+
+    func testPreferredAssistantForServiceStaysWithinThatService() throws {
+        let globalService = makeService(name: "Global")
+        let requestedService = makeService(name: "Requested")
+        let global = makePersona()
+        global.apiService = globalService
+        global.isDefault = true
+        let requested = makePersona(model: "requested-model")
+        requested.apiService = requestedService
+
+        let result = try PersonaEntity.preferredAssistant(in: context, for: requestedService)
+
+        XCTAssertEqual(result?.objectID, requested.objectID)
+    }
 }

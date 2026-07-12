@@ -30,7 +30,6 @@ class APIServiceDetailViewModel: ObservableObject {
     @Published var url: String = ""
     @Published var imageUploadsAllowed: Bool = false
     @Published var pdfUploadsAllowed: Bool = false
-    @Published var defaultAiPersona: PersonaEntity?
     @Published var apiKey: String = ""
     @Published var customHeaders: [EditableHTTPHeader] = []
     @Published var defaultApiConfiguration = AppConstants.defaultApiConfigurations[AppConstants.defaultApiType]
@@ -58,7 +57,6 @@ class APIServiceDetailViewModel: ObservableObject {
             url = service.url?.absoluteString ?? ""
             imageUploadsAllowed = service.imageUploadsAllowed
             pdfUploadsAllowed = service.pdfUploadsAllowed
-            defaultAiPersona = service.defaultPersona
             defaultApiConfiguration = AppConstants.defaultApiConfigurations[type]
 
             if let serviceID = service.id {
@@ -88,23 +86,6 @@ class APIServiceDetailViewModel: ObservableObject {
                 pdfUploadsAllowed = false
             }
         }
-    }
-
-    var testModel: String {
-        if let persona = defaultAiPersona,
-           let model = persona.model,
-           model.isEmpty == false {
-            return model
-        }
-        return defaultApiConfiguration?.defaultModel ?? AppConstants.defaultPrimaryModel
-    }
-
-    var testImageGenerationEnabled: Bool {
-        let personaEnabled = defaultAiPersona?.imageGenerationEnabled ?? false
-        let serviceSupports = apiService?.imageGenerationSupported
-            ?? defaultApiConfiguration?.imageGenerationSupported
-            ?? false
-        return personaEnabled && serviceSupports
     }
 
     var normalizedCustomHeaders: [String: String] {
@@ -146,22 +127,6 @@ class APIServiceDetailViewModel: ObservableObject {
         serviceToSave.url = URL(string: url)
         serviceToSave.imageUploadsAllowed = imageUploadsAllowed
         serviceToSave.pdfUploadsAllowed = pdfUploadsAllowed
-        if let defaultPersona = defaultAiPersona {
-            if let boundService = defaultPersona.apiService, boundService != serviceToSave {
-                // The assistant already belongs to another service. Rebinding it here
-                // would silently switch every chat using it to this service, so clone
-                // it instead — same policy as the template-add flow.
-                let clone = clonePersona(defaultPersona)
-                clone.apiService = serviceToSave
-                serviceToSave.defaultPersona = clone
-                defaultAiPersona = clone
-            } else {
-                defaultPersona.apiService = serviceToSave
-                serviceToSave.defaultPersona = defaultPersona
-            }
-        } else {
-            serviceToSave.defaultPersona = nil
-        }
         if serviceToSave.tokenIdentifier == nil || serviceToSave.tokenIdentifier?.isEmpty == true {
             serviceToSave.tokenIdentifier = UUID().uuidString
         }
@@ -212,6 +177,17 @@ class APIServiceDetailViewModel: ObservableObject {
     func deleteAPIService() {
         guard let serviceToDelete = apiService else { return }
 
+        let defaultRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+        defaultRequest.predicate = NSPredicate(format: "isDefault == YES AND apiService == %@", serviceToDelete)
+        if let removedDefault = try? viewContext.fetch(defaultRequest).first {
+            removedDefault.isDefault = false
+            let replacementRequest = NSFetchRequest<PersonaEntity>(entityName: "PersonaEntity")
+            replacementRequest.predicate = NSPredicate(format: "apiService != nil AND apiService != %@", serviceToDelete)
+            replacementRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PersonaEntity.order, ascending: true)]
+            replacementRequest.fetchLimit = 1
+            (try? viewContext.fetch(replacementRequest).first)?.isDefault = true
+        }
+
         if let serviceID = serviceToDelete.id {
             let serviceIDString = serviceID.uuidString
             try? TokenManager.deleteToken(for: serviceIDString)
@@ -238,27 +214,6 @@ class APIServiceDetailViewModel: ObservableObject {
 
     func onChangeApiKey(_ token: String) {
         self.apiKey = token
-    }
-
-    private func clonePersona(_ persona: PersonaEntity) -> PersonaEntity {
-        let clone = PersonaEntity(context: viewContext)
-        clone.name = persona.name
-        clone.color = persona.color
-        clone.systemMessage = persona.systemMessage
-        clone.temperature = persona.temperature
-        clone.contextSize = persona.contextSize
-        clone.useStreamResponse = persona.useStreamResponse
-        clone.generateChatNames = persona.generateChatNames
-        clone.imageGenerationEnabled = persona.imageGenerationEnabled
-        clone.model = persona.model
-        clone.addedDate = Date()
-        clone.id = UUID()
-        let fetchRequest: NSFetchRequest<PersonaEntity> = PersonaEntity.fetchRequest()
-        let maxOrder = (try? viewContext.fetch(fetchRequest))?
-            .map { $0.order }
-            .max() ?? 0
-        clone.order = maxOrder + 1
-        return clone
     }
 
     var supportsImageUploads: Bool {
