@@ -253,6 +253,8 @@ struct MessageInputView: View {
                     onMoveUp: onMoveUp,
                     onMoveDown: onMoveDown,
                     onPasteImage: imageUploadsAllowed ? addPastedImage : nil,
+                    onPastePDF: pdfUploadsAllowed ? addPastedPDF : nil,
+                    handlesPasteAttachments: true,
                     onCommit: {
                         guard !isInferenceInProgress else { return }
                         onEnter()
@@ -343,6 +345,28 @@ struct MessageInputView: View {
         attachment.saveToEntity(image: image, context: viewContext)
         withAnimation {
             attachedImages.append(attachment)
+        }
+    }
+
+    private func addPastedPDF(_ payload: PastedPDF) {
+        let url: URL?
+        if let sourceURL = payload.url {
+            url = sourceURL
+        } else if let data = payload.data {
+            url = PreviewFileHelper.writeTemporaryFile(
+                data: data,
+                filename: payload.filename,
+                defaultExtension: "pdf",
+                id: UUID()
+            )
+        } else {
+            url = nil
+        }
+
+        guard let url else { return }
+        let attachment = DocumentAttachment(url: url, context: viewContext)
+        withAnimation {
+            attachedFiles.append(attachment)
         }
     }
 
