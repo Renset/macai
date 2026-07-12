@@ -246,6 +246,71 @@ final class GeminiHandlerTests: XCTestCase {
         XCTAssertEqual(content.first?["type"] as? String, "input_text")
         XCTAssertFalse(content.contains { $0["type"] as? String == "output_text" })
     }
+
+    func testPerplexityConnectionTestUsesModelIndependentRequest() async throws {
+        var capturedRequest: URLRequest?
+        URLProtocolStub.requestHandler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(
+                url: request.url ?? URL(string: "https://example.com")!,
+                statusCode: 405,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data())
+        }
+
+        let sessionConfig = URLSessionConfiguration.ephemeral
+        sessionConfig.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: sessionConfig)
+        let config = APIServiceConfig(
+            name: "Perplexity",
+            apiUrl: URL(string: "https://api.perplexity.ai/chat/completions")!,
+            apiKey: "test-key",
+            model: ""
+        )
+
+        let result = try await PerplexityHandler(config: config, session: session).testConnection()
+
+        XCTAssertFalse(result.authenticationVerified)
+        XCTAssertNil(result.discoveredModelCount)
+        XCTAssertEqual(capturedRequest?.httpMethod, "GET")
+        XCTAssertEqual(capturedRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer test-key")
+        XCTAssertNil(capturedRequest?.httpBody)
+    }
+
+    func testPerplexityConnectionTestRejectsUnauthorizedKey() async {
+        URLProtocolStub.requestHandler = { request in
+            let response = HTTPURLResponse(
+                url: request.url ?? URL(string: "https://example.com")!,
+                statusCode: 401,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data())
+        }
+
+        let sessionConfig = URLSessionConfiguration.ephemeral
+        sessionConfig.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: sessionConfig)
+        let config = APIServiceConfig(
+            name: "Perplexity",
+            apiUrl: URL(string: "https://api.perplexity.ai/chat/completions")!,
+            apiKey: "invalid-key",
+            model: ""
+        )
+
+        do {
+            _ = try await PerplexityHandler(config: config, session: session).testConnection()
+            XCTFail("Expected an unauthorized error")
+        }
+        catch APIError.unauthorized {
+            // Expected.
+        }
+        catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
 }
 
 private final class URLProtocolStub: URLProtocol {

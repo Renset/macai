@@ -106,13 +106,11 @@ struct APIServiceDetailView: View {
                     }
 
                     HStack {
-                        ButtonTestApiTokenAndModel(
+                        ButtonTestAPIConnection(
                             lampColor: $lampColor,
-                            gptToken: viewModel.apiKey,
-                            gptModel: viewModel.testModel,
+                            apiKey: viewModel.apiKey,
                             apiUrl: viewModel.url,
                             apiType: viewModel.type,
-                            imageGenerationSupported: viewModel.testImageGenerationEnabled,
                             customHeaders: viewModel.normalizedCustomHeaders
                         )
                     }
