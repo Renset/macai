@@ -46,11 +46,7 @@ struct ChatBottomContainerView: View {
     }
 
     private var mentionCandidates: [PersonaEntity] {
-        Array(filteredMentionAssistants.prefix(8))
-    }
-
-    private var mentionPickerHeight: CGFloat {
-        mentionCandidates.isEmpty ? 92 : CGFloat(mentionCandidates.count * 32 + 34)
+        filteredMentionAssistants
     }
 
     private var mentionPickerLeadingOffset: CGFloat {
@@ -141,10 +137,10 @@ struct ChatBottomContainerView: View {
                                 selectedIndex: selectedMentionIndex,
                                 onSelect: selectMentionAssistant
                             )
-                                .offset(
-                                    x: mentionPickerLeadingOffset,
-                                    y: -(mentionPickerHeight + 4)
-                                )
+                                .alignmentGuide(.top) { dimensions in
+                                    dimensions[.bottom] + 6
+                                }
+                                .offset(x: mentionPickerLeadingOffset)
                                 .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .bottomLeading)))
                         }
                     }
@@ -237,48 +233,89 @@ private struct AssistantMentionPicker: View {
                 )
                 .frame(width: 232, height: 84)
             } else {
-                Text("Choose Assistant")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.top, 6)
-
-                ForEach(Array(assistants.enumerated()), id: \.element.objectID) { index, assistant in
-                    Button {
-                        onSelect(assistant)
-                    } label: {
-                        HStack {
-                            Circle()
-                                .fill(Color(hex: assistant.color ?? AppConstants.defaultPersonaColor) ?? .accentColor)
-                                .frame(width: 10, height: 10)
-                            Text(assistant.name ?? "Untitled Assistant")
-                                .lineLimit(1)
-                            Spacer()
-                            if index == selectedIndex {
-                                Image(systemName: "return")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 3) {
+                            ForEach(Array(assistants.enumerated()), id: \.element.objectID) { index, assistant in
+                                AssistantMentionRow(
+                                    assistant: assistant,
+                                    isSelected: index == selectedIndex
+                                ) {
+                                    onSelect(assistant)
+                                }
+                                .id(assistant.objectID)
                             }
                         }
-                        .contentShape(.rect)
+                        .padding(3)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(
-                        Color.accentColor.opacity(index == selectedIndex ? 0.16 : 0),
-                        in: .rect(cornerRadius: 6)
-                    )
+                    .frame(maxHeight: 264)
+                    .onChange(of: selectedIndex) { _, index in
+                        guard assistants.indices.contains(index) else { return }
+                        withAnimation(.easeOut(duration: 0.1)) {
+                            proxy.scrollTo(assistants[index].objectID, anchor: .center)
+                        }
+                    }
                 }
             }
         }
         .padding(6)
-        .frame(width: 244)
+        .frame(width: 280)
         .background(.regularMaterial, in: .rect(cornerRadius: 10))
         .overlay {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 0.5)
         }
         .shadow(color: .black.opacity(0.18), radius: 12, y: 5)
+    }
+}
+
+private struct AssistantMentionRow: View {
+    let assistant: PersonaEntity
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var details: String {
+        let service = assistant.apiService
+        let model = assistant.model?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveModel = model?.isEmpty == false
+            ? (model ?? "")
+            : AppConstants.defaultModel(for: service?.type)
+        let serviceName = service?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return serviceName.isEmpty ? effectiveModel : "\(effectiveModel) • \(serviceName)"
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color(hex: assistant.color ?? AppConstants.defaultPersonaColor) ?? .accentColor)
+                    .frame(width: 10, height: 10)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(assistant.name ?? "Untitled Assistant")
+                        .lineLimit(1)
+                    Text(details)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+
+                if isSelected {
+                    Image(systemName: "return")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(.rect)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 5)
+            .background(
+                Color.accentColor.opacity(isSelected ? 0.16 : 0),
+                in: .rect(cornerRadius: 6)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
