@@ -139,8 +139,26 @@ struct ChatListView: View {
     }
 
     private var bulkActionBar: some View {
-        HStack {
-            ControlGroup {
+        HStack(spacing: 8) {
+            Text("\(selectedChatIDs.count) selected")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            Button(action: togglePinForSelectedChats) {
+                Label(
+                    selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats",
+                    systemImage: selectedChats.allSatisfy(\.isPinned) ? "pin.slash" : "pin"
+                )
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .disabled(selectedChatIDs.isEmpty)
+            .help(selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats")
+
+            Menu {
                 Button(action: toggleAllVisibleChats) {
                     Label(
                         allVisibleChatsSelected ? "Deselect All" : "Select All",
@@ -148,55 +166,46 @@ struct ChatListView: View {
                     )
                 }
                 .disabled(filteredChats.isEmpty)
-                .help(allVisibleChatsSelected ? "Deselect All" : "Select All")
 
-                Button(action: togglePinForSelectedChats) {
-                    Label(
-                        selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats",
-                        systemImage: selectedChats.allSatisfy(\.isPinned) ? "pin.slash" : "pin"
-                    )
-                }
-                .disabled(selectedChatIDs.isEmpty)
-                .help(selectedChats.allSatisfy(\.isPinned) ? "Unpin Chats" : "Pin Chats")
+                Divider()
 
                 Button(action: generateNamesForSelectedChats) {
-                    ZStack {
-                        Label("Generate Names", systemImage: "wand.and.stars")
-                            .opacity(nameGenerator.isRunning ? 0 : 1)
-                        if nameGenerator.isRunning {
-                            ProgressView()
-                                .controlSize(.mini)
-                        }
-                    }
+                    Label(
+                        nameGenerator.isRunning ? "Generating Names…" : "Generate Names",
+                        systemImage: nameGenerator.isRunning ? "hourglass" : "wand.and.stars"
+                    )
                 }
                 .disabled(selectedChatIDs.isEmpty || nameGenerator.isRunning)
-                .help(nameGenerator.isRunning ? "Generating Names" : "Generate Names")
 
-                Menu {
+                Menu("Export", systemImage: "square.and.arrow.up") {
                     Button("As Markdown…") { exportSelected(as: .markdown) }
                     Button("As Plain Text…") { exportSelected(as: .plainText) }
-                } label: {
-                    Label("Export Chats", systemImage: "square.and.arrow.up")
                 }
                 .disabled(selectedChatIDs.isEmpty)
-                .help("Export Chats")
 
-                Button(action: clearSelectedChats) {
-                    Label("Clear Chats", systemImage: "eraser")
+                Button(role: .destructive, action: clearSelectedChats) {
+                    Label("Clear Chats…", systemImage: "eraser")
                 }
                 .disabled(selectedChatIDs.isEmpty)
-                .help("Clear Chats")
-
-                Button(role: .destructive, action: deleteSelectedChats) {
-                    Label("Delete Chats", systemImage: "trash")
-                }
-                .disabled(selectedChatIDs.isEmpty)
-                .help("Delete Chats")
+            } label: {
+                Label("More Actions", systemImage: "ellipsis.circle")
             }
             .labelStyle(.iconOnly)
-            .controlSize(.small)
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("More Actions")
+
+            Button(role: .destructive, action: deleteSelectedChats) {
+                Label("Delete Chats", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .disabled(selectedChatIDs.isEmpty)
+            .help("Delete Chats")
         }
-        .padding(8)
+        .controlSize(.regular)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
