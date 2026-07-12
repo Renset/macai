@@ -19,25 +19,16 @@ struct ButtonTestAPIConnection: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        HStack(spacing: 8) {
-            ButtonWithStatusIndicator(
-                title: "Test connection",
-                action: testAPI,
-                isLoading: lampColor == .yellow,
-                hasError: lampColor == .red,
-                errorMessage: errorMessage,
-                successMessage: statusMessage ?? "API connection test successful",
-                isSuccess: testOk,
-                isWarning: hasWarning
-            )
-
-            if let statusMessage {
-                Text(statusMessage)
-                    .font(.caption)
-                    .foregroundStyle(hasWarning ? Color.orange : Color.secondary)
-                    .lineLimit(1)
-            }
-        }
+        ButtonWithStatusIndicator(
+            title: "Test connection",
+            action: testAPI,
+            isLoading: lampColor == .yellow,
+            hasError: lampColor == .red,
+            errorMessage: errorMessage,
+            successMessage: statusMessage ?? "API connection test successful",
+            isSuccess: testOk,
+            isWarning: hasWarning
+        )
     }
 
     private func testAPI() {
@@ -68,9 +59,7 @@ struct ButtonTestAPIConnection: View {
                 if result.authenticationVerified {
                     lampColor = .green
                     testOk = true
-                    statusMessage = result.discoveredModelCount.map {
-                        "Connected · \($0) model\($0 == 1 ? "" : "s")"
-                    } ?? "Connected"
+                    statusMessage = "Connection successful"
                 } else {
                     lampColor = .orange
                     hasWarning = true
