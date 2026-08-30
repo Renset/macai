@@ -35,6 +35,40 @@
             ]
         },
         {
+            "id": "requesty",
+            "displayName": "Requesty",
+            "defaultName": "Requesty",
+            "note": "Requires an API key from app.requesty.ai",
+            "models": [
+                {
+                    "id": "openai/gpt-4o-mini",
+                    "displayName": "GPT-4o mini",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 20,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "allowPdfUploads": true,
+                        "imageGenerationSupported": false
+                    }
+                },
+                {
+                    "id": "anthropic/claude-sonnet-4-5",
+                    "displayName": "Claude Sonnet 4.5",
+                    "isDefault": true,
+                    "settings": {
+                        "generateChatNames": true,
+                        "contextSize": 20,
+                        "useStreaming": true,
+                        "allowImageUploads": true,
+                        "allowPdfUploads": true,
+                        "imageGenerationSupported": false
+                    }
+                }
+            ]
+        },
+        {
             "id": "openai-responses",
             "displayName": "OpenAI",
             "defaultName": "GPT-5",

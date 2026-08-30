@@ -6,7 +6,7 @@
 <a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
 <a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
-macai (macOS AI) is a simple yet powerful native macOS AI chat client that supports most AI providers: ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama, OpenRouter, and almost any OpenAI-compatible APIs.
+macai (macOS AI) is a simple yet powerful native macOS AI chat client that supports most AI providers: ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama, OpenRouter, Requesty, and almost any OpenAI-compatible APIs.
 
 <img width="1152" height="821" src="https://github.com/user-attachments/assets/734afb2c-9b77-4076-9f5d-d3d4c94f3f23" />
 
@@ -57,6 +57,7 @@ Here is how to get API token for all supported services:
 - Google Gemini: https://ai.google.dev/gemini-api/docs/api-key
 - xAI Grok: https://docs.x.ai/docs#models
 - OpenRouter: https://openrouter.ai/docs/api-reference/authentication#using-an-api-key
+- Requesty: https://docs.requesty.ai
 
 If you are new to LLM and don't want to pay for the tokens, take a look Ollama. It supports dozens of OpenSource LLM models that can run locally on Apple M1/M2/M3/M4 Macs.
 
