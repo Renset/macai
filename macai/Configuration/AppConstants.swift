@@ -227,6 +227,21 @@ struct AppConstants {
                 "gemma",
             ]
         ),
+        // llmman (https://github.com/llmmanorg/llmman) serves the Ollama API on port 17434,
+        // so it reuses OllamaHandler via `inherits`.
+        "llmman": defaultApiConfiguration(
+            name: "llmman",
+            url: "http://localhost:17434/api/chat",
+            apiKeyRef: "",
+            apiModelRef: "https://github.com/llmmanorg/llmman",
+            defaultModel: "gemma4",
+            models: [
+                "gemma4",
+                "qwen3.8",
+                "hf.co/unsloth/Qwen3.5-0.8B-GGUF",
+            ],
+            inherits: "ollama"
+        ),
         "claude": defaultApiConfiguration(
             name: "Claude",
             url: "https://api.anthropic.com/v1/messages",
@@ -318,7 +333,8 @@ struct AppConstants {
     ]
 
     static let apiTypes = [
-        "openai-responses", "chatgpt", "ollama", "claude", "xai", "gemini", "perplexity", "deepseek", "openrouter",
+        "openai-responses", "chatgpt", "ollama", "llmman", "claude", "xai", "gemini", "perplexity", "deepseek",
+        "openrouter",
     ]
     static let newChatNotification = Notification.Name("newChatNotification")
     static let largeMessageSymbolsThreshold = 25000

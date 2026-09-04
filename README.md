@@ -6,7 +6,7 @@
 <a href="#"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/macai"></a> <a href="#"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Renset/macai"></a> <a href="https://github.com/Renset/macai/actions/workflows/swift-xcode.yml"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/macai/swift-xcode.yml"></a> <a href="https://github.com/Renset/macai/blob/main/LICENSE.md"><img alt="GitHub" src="https://img.shields.io/github/license/Renset/macai"></a>
 <a href="https://github.com/Renset/macai/releases/latest"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/macai/total"></a>
 
-macai (macOS AI) is a simple yet powerful native macOS AI chat client that supports most AI providers: ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama, OpenRouter, and almost any OpenAI-compatible APIs.
+macai (macOS AI) is a simple yet powerful native macOS AI chat client that supports most AI providers: ChatGPT, Claude, xAI (Grok), Google Gemini, Perplexity, Ollama, llmman, OpenRouter, and almost any OpenAI-compatible APIs.
 
 <img width="1152" height="821" src="https://github.com/user-attachments/assets/734afb2c-9b77-4076-9f5d-d3d4c94f3f23" />
 
@@ -18,6 +18,7 @@ macai (macOS AI) is a simple yet powerful native macOS AI chat client that suppo
 - [Why macai](#why-macai)
 - [Run with ChatGPT, Claude, xAI or Google Gemini](#run-with-chatgpt-claude-xai-or-google-gemini)
 - [Run with Ollama](#run-with-ollama)
+- [Run with llmman](#run-with-llmman)
 - [System requirements](#system-requirements)
 - [Project status](#project-status)
 - [Build from source](#build-from-source)
@@ -71,6 +72,14 @@ Run macai with Ollama is easy:
 
 5. Select model, and default AI Assistant and save
 6. Test and enjoy!
+
+## Run with [llmman](https://github.com/llmmanorg/llmman)
+llmman is a local model runner that serves the Ollama API (alongside OpenAI- and Anthropic-compatible ones) on port 17434. Models are pulled as OCI artifacts or straight from Hugging Face and served by llama.cpp, vllm or mlx-lm.
+1. Install llmman: `curl -fsSL https://raw.githubusercontent.com/llmmanorg/llmman/main/install.sh | sh`
+2. Start the server: `llmman serve`
+3. Pull a model: `llmman pull gemma4` (or e.g. `llmman pull hf.co/unsloth/Qwen3.5-0.8B-GGUF`)
+4. In macai settings, open API Service tab, add new API service (Expert mode) and select type "llmman" (defaults to `http://localhost:17434/api/chat`)
+5. Select model, and default AI Assistant and save
 
 ## System requirements
 macOS 14.0 and later (both Intel and Apple chips are supported)
