@@ -75,7 +75,7 @@ Run macai with Ollama is easy:
 
 ## Run with [llmman](https://github.com/llmmanorg/llmman)
 llmman is a local model runner that serves the Ollama API (alongside OpenAI- and Anthropic-compatible ones) on port 17434. Models are pulled as OCI artifacts or straight from Hugging Face and served by llama.cpp, vllm or mlx-lm.
-1. Install llmman: `curl -fsSL https://raw.githubusercontent.com/llmmanorg/llmman/main/install.sh | sh`
+1. Install llmman: `curl -fsSL https://llmmanorg.github.io/install.sh | sh`
 2. Start the server: `llmman serve`
 3. Pull a model: `llmman pull gemma4` (or e.g. `llmman pull hf.co/unsloth/Qwen3.5-0.8B-GGUF`)
 4. In macai settings, open API Service tab, add new API service (Expert mode) and select type "llmman" (defaults to `http://localhost:17434/api/chat`)
